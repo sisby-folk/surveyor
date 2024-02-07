@@ -1,5 +1,6 @@
 <!--suppress HtmlDeprecatedTag, XmlDeprecatedElement -->
 <center>
+<img alt="surveyor icon" src="https://raw.githubusercontent.com/sisby-folk/surveyor/1.20/src/main/resources/assets/surveyor/icon.png"><br/>
 A wasteful but flexible library for client-side world maps (and serverside companion mod for those maps) <br/>
 Used in <a href="https://modrinth.com/mod/antique-atlas-4">Antique Atlas 4</a>.<br/>
 Requires <a href="https://modrinth.com/mod/connector">Connector</a> and <a href="https://modrinth.com/mod/forgified-fabric-api">FFAPI</a> on forge.<br/>
