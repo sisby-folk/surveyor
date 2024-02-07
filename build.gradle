@@ -63,6 +63,14 @@ jar {
 }
 
 publishing {
+    repositories {
+        maven {
+            name 'SleepingTown'
+            url 'https://repo-api.sleeping.town/'
+            credentials(PasswordCredentials)
+        }
+    }
+
     publications {
         mavenJava(MavenPublication) {
             from components.java
