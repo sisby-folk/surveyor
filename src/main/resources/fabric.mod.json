@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "surveyor",
+  "version": "${version}",
+  "name": "Surveyor Map Framework",
+  "description": "A wasteful but flexible library for client-side world maps (and serverside companion mod for those maps)",
+  "authors": [
+    "Sisby folk"
+  ],
+  "contact": {
+    "homepage": "https://modrinth.com/mod/surveyor",
+    "issues": "https://github.com/sisby-folk/surveyor/issues",
+    "sources": "https://github.com/sisby-folk/surveyor"
+  },
+  "icon": "assets/surveyor/icon.png",
+  "license": "LGPL-3.0-only",
+  "entrypoints": {
+    "main": [
+      "folk.sisby.surveyor.Surveyor"
+    ],
+    "client": [
+      "folk.sisby.surveyor.client.SurveyorClient"
+    ]
+  },
+  "depends": {
+    "minecraft": ">=${mc}",
+    "fabricloader": ">=${fl}",
+    "fabric-api": ">=${fapi}"
+  },
+  "mixins": [
+    "surveyor.mixins.json"
+  ],
+  "accessWidener": "surveyor.accesswidener"
+}
