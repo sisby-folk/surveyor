@@ -31,6 +31,8 @@ It does this by creating and saving abbreviated versions of chunks and structure
 
 These summaries are quite large by map standards, but small enough that an entire dimension's worth can be feasibly loaded into memory or sent to a client at once.
 
+This means that a world map mod only needs to translate from these summaries to its own representation at runtime - and display that to the player, of course!
+
 ### Afterword
 
 All mods are built on the work of many others.
