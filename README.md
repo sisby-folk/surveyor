@@ -1,7 +1,7 @@
 <!--suppress HtmlDeprecatedTag, XmlDeprecatedElement -->
 <center>
 A wasteful but flexible library for client-side world maps (and serverside companion mod for those maps) <br/>
-A as used in <a href="https://modrinth.com/mod/antique-atlas-4">Antique Atlas 4</a>.<br/>
+Used in <a href="https://modrinth.com/mod/antique-atlas-4">Antique Atlas 4</a>.<br/>
 Requires <a href="https://modrinth.com/mod/connector">Connector</a> and <a href="https://modrinth.com/mod/forgified-fabric-api">FFAPI</a> on forge.<br/>
 <i>Other names considered: Polaris, Ichnite, Trackway, Lay of the Land, Worldsense, and Lithography.</i>
 </center>
