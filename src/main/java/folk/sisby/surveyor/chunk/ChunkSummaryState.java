@@ -76,11 +76,7 @@ public class ChunkSummaryState extends PersistentState {
     }
 
     public static ChunkSummaryState getOrCreate(ServerWorld world) {
-        return world.getPersistentStateManager().getOrCreate(nbt -> ChunkSummaryState.readNbt(nbt, world.getRegistryManager()), () -> {
-            ChunkSummaryState state = new ChunkSummaryState(new HashMap<>(), world.getRegistryManager());
-            state.markDirty();
-            return state;
-        }, STATE_KEY);
+        return world.getPersistentStateManager().getOrCreate(nbt -> ChunkSummaryState.readNbt(nbt, world.getRegistryManager()), () -> new ChunkSummaryState(new HashMap<>(), world.getRegistryManager()), STATE_KEY);
     }
 
     public static void onChunkLoad(ServerWorld world, Chunk chunk) {

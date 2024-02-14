@@ -40,7 +40,7 @@ public class ChunkSummary {
                 y = ChunkSectionPos.getBlockCoord(chunk.sectionIndexToCoord(sectionIndex));
                 continue;
             }
-            if (foundAir.isFalse() && !chunkSections[sectionIndex].getBlockState(x & 15, y & 15, z & 15).isAir()) {
+            if (foundAir.isFalse() && chunkSections[sectionIndex].getBlockState(x & 15, y & 15, z & 15).isAir()) {
                 foundAir.setTrue();
                 continue;
             }
