@@ -49,8 +49,8 @@ public class ChunkSummaryState extends PersistentState {
 
     @Override
     public NbtCompound writeNbt(NbtCompound nbt) {
-        List<Biome> biomePalette = chunks.values().stream().flatMap(summary -> summary.layers.values().stream().flatMap(Arrays::stream).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::biome)).distinct().sorted(Comparator.comparingInt(b -> manager.get(RegistryKeys.BIOME).getRawId(b))).toList();
-        List<Block> blockPalette = chunks.values().stream().flatMap(summary -> summary.layers.values().stream().flatMap(Arrays::stream).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::block)).distinct().sorted(Comparator.comparingInt(b -> manager.get(RegistryKeys.BLOCK).getRawId(b))).toList();
+        List<Biome> biomePalette = chunks.values().stream().flatMap(summary -> summary.layers.values().stream()).flatMap(Arrays::stream).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::biome).distinct().sorted(Comparator.comparingInt(b -> manager.get(RegistryKeys.BIOME).getRawId(b))).toList();
+        List<Block> blockPalette = chunks.values().stream().flatMap(summary -> summary.layers.values().stream()).flatMap(Arrays::stream).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::block).distinct().sorted(Comparator.comparingInt(b -> manager.get(RegistryKeys.BLOCK).getRawId(b))).toList();
         nbt.put(KEY_BIOMES, new NbtList(biomePalette.stream().map(b -> (NbtElement) NbtString.of(manager.get(RegistryKeys.BIOME).getId(b).toString())).toList(), NbtElement.STRING_TYPE));
         nbt.put(KEY_BLOCKS, new NbtList(blockPalette.stream().map(b -> (NbtElement) NbtString.of(manager.get(RegistryKeys.BLOCK).getId(b).toString())).toList(), NbtElement.STRING_TYPE));
         NbtCompound chunksCompound = new NbtCompound();
