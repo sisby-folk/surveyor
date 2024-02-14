@@ -51,10 +51,7 @@ public record StructureSummary(Collection<StructurePieceSummary> pieces) {
     }
 
     public NbtCompound writeNbt(NbtCompound nbt) {
-        NbtList pieceList = new NbtList();
-        for (StructurePieceSummary piece : pieces) {
-            pieceList.add(piece.writeNbt(new NbtCompound()));
-        }
+        NbtList pieceList = new NbtList(pieces.stream().map(p -> (NbtElement) p.writeNbt(new NbtCompound())).toList(), NbtElement.COMPOUND_TYPE);
         nbt.put(KEY_PIECES, pieceList);
         return nbt;
     }
@@ -140,10 +137,7 @@ public record StructureSummary(Collection<StructurePieceSummary> pieces) {
             super.writeNbt(nbt);
             String idKey = TYPE_KEYS.inverse().get(jigsawType);
             nbt.putString(idKey, id.toString());
-            NbtList junctionList = new NbtList();
-            for (JigsawJunction junction : junctions) {
-                junctionList.add(junction.serialize(NbtOps.INSTANCE).getValue());
-            }
+            NbtList junctionList = new NbtList(junctions.stream().map(j -> j.serialize(NbtOps.INSTANCE).getValue()).toList(), NbtElement.COMPOUND_TYPE);
             if (!junctionList.isEmpty()) nbt.put(KEY_JUNCTIONS, junctionList);
             return nbt;
         }

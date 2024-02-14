@@ -2,3 +2,5 @@ accessWidener v1 named
 accessible field net/minecraft/world/ChunkRegion world Lnet/minecraft/server/world/ServerWorld;
 accessible field net/minecraft/structure/pool/SinglePoolElement location Lcom/mojang/datafixers/util/Either;
 accessible field net/minecraft/structure/pool/FeaturePoolElement feature Lnet/minecraft/registry/entry/RegistryEntry;
+accessible field net/minecraft/world/chunk/ChunkSection nonEmptyBlockCount S
+accessible method net/minecraft/nbt/NbtList <init> (Ljava/util/List;B)V

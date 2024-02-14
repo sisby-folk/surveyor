@@ -1,38 +1,41 @@
 package folk.sisby.surveyor.chunk;
 
+import folk.sisby.surveyor.Surveyor;
+import net.minecraft.block.Block;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
-import net.minecraft.registry.RegistryKey;
+import net.minecraft.nbt.NbtString;
+import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.World;
+import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.WorldChunk;
 
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
-public class ChunkSummaryState<T extends ChunkSummary> extends PersistentState {
+public class ChunkSummaryState extends PersistentState {
     public static final String STATE_KEY = "surveyor_chunk_summary";
+    public static final String KEY_BIOMES = "biomes";
+    public static final String KEY_BLOCKS = "blocks";
     public static final String KEY_CHUNKS = "chunks";
-    public static final String KEY_SUMMARY = "summary";
-    public static final String KEY_X = "x";
-    public static final String KEY_Z = "z";
 
-    public static final Map<RegistryKey<World>, ChunkSummaryFactory<?>> FACTORIES = Map.of(
-        World.OVERWORLD, OverworldChunkSummary.FACTORY,
-        World.NETHER, NetherChunkSummary.FACTORY,
-        World.END, EndChunkSummary.FACTORY
-    );
+    private final Map<ChunkPos, ChunkSummary> chunks;
+    private final DynamicRegistryManager manager;
 
-    private final Map<ChunkPos, T> chunks;
-    private final ChunkSummaryFactory<T> factory;
-
-    public ChunkSummaryState(Map<ChunkPos, T> chunks, ChunkSummaryFactory<T> factory) {
+    public ChunkSummaryState(Map<ChunkPos, ChunkSummary> chunks, DynamicRegistryManager manager) {
         this.chunks = chunks;
-        this.factory = factory;
+        this.manager = manager;
     }
 
     public boolean contains(Chunk chunk) {
@@ -40,52 +43,53 @@ public class ChunkSummaryState<T extends ChunkSummary> extends PersistentState {
     }
 
     public void putChunk(World world, Chunk chunk) {
-        chunks.put(chunk.getPos(), factory.fromChunk(world, chunk));
+        chunks.put(chunk.getPos(), new ChunkSummary(chunk, Surveyor.CONFIG.getLayers(world, chunk)));
         markDirty();
     }
 
     @Override
     public NbtCompound writeNbt(NbtCompound nbt) {
-        NbtList chunkList = new NbtList();
-        chunks.forEach((pos, summary) -> {
-            NbtCompound chunkCompound = new NbtCompound();
-            chunkCompound.putInt(KEY_X, pos.x);
-            chunkCompound.putInt(KEY_Z, pos.z);
-            chunkCompound.put(KEY_SUMMARY, summary.writeNbt(new NbtCompound()));
-            chunkList.add(chunkCompound);
-        });
-        nbt.put(KEY_CHUNKS, chunkList);
+        List<Biome> biomePalette = chunks.values().stream().flatMap(summary -> summary.layers.values().stream().flatMap(Arrays::stream).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::biome)).distinct().sorted(Comparator.comparingInt(b -> manager.get(RegistryKeys.BIOME).getRawId(b))).toList();
+        List<Block> blockPalette = chunks.values().stream().flatMap(summary -> summary.layers.values().stream().flatMap(Arrays::stream).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::block)).distinct().sorted(Comparator.comparingInt(b -> manager.get(RegistryKeys.BLOCK).getRawId(b))).toList();
+        nbt.put(KEY_BIOMES, new NbtList(biomePalette.stream().map(b -> (NbtElement) NbtString.of(manager.get(RegistryKeys.BIOME).getId(b).toString())).toList(), NbtElement.STRING_TYPE));
+        nbt.put(KEY_BLOCKS, new NbtList(blockPalette.stream().map(b -> (NbtElement) NbtString.of(manager.get(RegistryKeys.BLOCK).getId(b).toString())).toList(), NbtElement.STRING_TYPE));
+        NbtCompound chunksCompound = new NbtCompound();
+        chunks.forEach((pos, summary) -> chunksCompound.put("%s,%s".formatted(pos.x, pos.z), summary.writeNbt(new NbtCompound(), biomePalette, blockPalette)));
+        nbt.put(KEY_CHUNKS, chunksCompound);
         return nbt;
     }
 
-    public static <T extends ChunkSummary> ChunkSummaryState<T> readNbt(NbtCompound nbt, ChunkSummaryFactory<T> factory) {
-        Map<ChunkPos, T> chunks = new HashMap<>();
-        for (NbtElement chunkElement : nbt.getList(KEY_CHUNKS, NbtElement.COMPOUND_TYPE)) {
-            NbtCompound chunkCompound = ((NbtCompound) chunkElement);
+    public static ChunkSummaryState readNbt(NbtCompound nbt, DynamicRegistryManager manager) {
+        Map<ChunkPos, ChunkSummary> chunks = new HashMap<>();
+        List<Biome> biomePalette =  nbt.getList(KEY_BIOMES, NbtElement.STRING_TYPE).stream().map(e -> manager.get(RegistryKeys.BIOME).get(new Identifier(e.asString()))).toList();
+        List<Block> blockPalette =  nbt.getList(KEY_BLOCKS, NbtElement.STRING_TYPE).stream().map(e -> manager.get(RegistryKeys.BLOCK).get(new Identifier(e.asString()))).toList();
+        NbtCompound chunksCompound = nbt.getCompound(KEY_CHUNKS);
+        for (String posKey : chunksCompound.getKeys()) {
+            int x = Integer.parseInt(posKey.split(",")[0]);
+            int z = Integer.parseInt(posKey.split(",")[1]);
             chunks.put(
-                new ChunkPos(chunkCompound.getInt(KEY_X), chunkCompound.getInt(KEY_Z)),
-                factory.fromNbt(chunkCompound.getCompound(KEY_SUMMARY))
+                new ChunkPos(x, z),
+                new ChunkSummary(chunksCompound.getCompound(posKey), biomePalette, blockPalette)
             );
         }
-        return new ChunkSummaryState<>(chunks, factory);
+        return new ChunkSummaryState(chunks, manager);
     }
 
-    public static ChunkSummaryState<?> getOrCreate(ServerWorld world) {
-        RegistryKey<World> worldKey = FACTORIES.containsKey(world.getRegistryKey()) ? world.getRegistryKey() : World.OVERWORLD;
-        return world.getPersistentStateManager().getOrCreate(nbt -> ChunkSummaryState.readNbt(nbt, FACTORIES.get(worldKey)), () -> {
-            ChunkSummaryState<?> state = new ChunkSummaryState<>(new HashMap<>(), FACTORIES.get(worldKey));
+    public static ChunkSummaryState getOrCreate(ServerWorld world) {
+        return world.getPersistentStateManager().getOrCreate(nbt -> ChunkSummaryState.readNbt(nbt, world.getRegistryManager()), () -> {
+            ChunkSummaryState state = new ChunkSummaryState(new HashMap<>(), world.getRegistryManager());
             state.markDirty();
             return state;
         }, STATE_KEY);
     }
 
     public static void onChunkLoad(ServerWorld world, Chunk chunk) {
-        ChunkSummaryState<?> state = ChunkSummaryState.getOrCreate(world);
+        ChunkSummaryState state = ChunkSummaryState.getOrCreate(world);
         if (!state.contains(chunk)) state.putChunk(world, chunk);
     }
 
     public static void onChunkUnload(ServerWorld world, WorldChunk chunk) {
-        ChunkSummaryState<?> state = ChunkSummaryState.getOrCreate(world);
+        ChunkSummaryState state = ChunkSummaryState.getOrCreate(world);
         if (chunk.needsSaving()) state.putChunk(world, chunk);
     }
 }
