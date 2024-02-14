@@ -2,11 +2,16 @@ package folk.sisby.surveyor.chunk;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.nbt.NbtByte;
+import net.minecraft.nbt.NbtByteArray;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtInt;
 import net.minecraft.nbt.NbtIntArray;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkSectionPos;
+import net.minecraft.world.LightType;
+import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
@@ -18,16 +23,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
+import java.util.stream.IntStream;
 
 public class ChunkSummary {
     private static final String KEY_LAYERS = "layers";
     private static final String KEY_HEIGHT = "height";
     private static final String KEY_BIOME = "biome";
     private static final String KEY_BLOCK = "block";
+    private static final String KEY_LIGHT = "light";
 
     protected final Map<Integer, FloorSummary[][]> layers = new HashMap<>();
 
-    public static FloorSummary getFloorBetween(Chunk chunk, int x, int topY, int bottomY, int z, MutableBoolean foundAir) {
+    public static FloorSummary getFloorBetween(World world, Chunk chunk, int x, int topY, int bottomY, int z, MutableBoolean foundAir) {
         ChunkSection[] chunkSections = chunk.getSectionArray();
         for (int y = topY; y > bottomY; y--) {
             int sectionIndex = chunk.getSectionIndex(y);
@@ -48,19 +55,19 @@ public class ChunkSummary {
                 BlockState state = chunkSections[sectionIndex].getBlockState(x & 15, y & 15, z & 15);
                 if (state.blocksMovement() || !state.getFluidState().isEmpty()) {
                     foundAir.setFalse(); // We technically lose definition of floors at the top of the next scan by stopping here, but that's much less important when we actually found a hit.
-                    return new FloorSummary(y, chunkSections[sectionIndex].getBiome(x & 3, y & 3, z & 3).value(), state.getBlock());
+                    return new FloorSummary(y, chunkSections[sectionIndex].getBiome(x & 3, y & 3, z & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y, z)));
                 }
             }
         }
         return null;
     }
 
-    public ChunkSummary(Chunk chunk, TreeSet<Integer> layerTops) {
+    public ChunkSummary(World world, Chunk chunk, TreeSet<Integer> layerTops) {
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 MutableBoolean foundAir = new MutableBoolean(false);
                 for (int i : layerTops.descendingSet()) {
-                    layers.computeIfAbsent(i, k -> new FloorSummary[16][16])[x][z] = getFloorBetween(chunk, x, i, !layerTops.first().equals(i) ? layerTops.lower(i) : chunk.getBottomY(), z, foundAir);
+                    layers.computeIfAbsent(i, k -> new FloorSummary[16][16])[x][z] = getFloorBetween(world, chunk, x, i, !layerTops.first().equals(i) ? layerTops.lower(i) : chunk.getBottomY(), z, foundAir);
                 }
             }
         }
@@ -75,8 +82,9 @@ public class ChunkSummary {
             int[] heightArray = layerCompound.getType(KEY_HEIGHT) == NbtElement.INT_ARRAY_TYPE ? layerCompound.getIntArray(KEY_HEIGHT) : Collections.nCopies(255, layerCompound.getInt(KEY_HEIGHT)).stream().mapToInt(i -> i).toArray();
             int[] biomeArray = layerCompound.getType(KEY_BIOME) == NbtElement.INT_ARRAY_TYPE ? layerCompound.getIntArray(KEY_BIOME) : Collections.nCopies(255, layerCompound.getInt(KEY_BIOME)).stream().mapToInt(i -> i).toArray();
             int[] blockArray = layerCompound.getType(KEY_BLOCK) == NbtElement.INT_ARRAY_TYPE ? layerCompound.getIntArray(KEY_BLOCK) : Collections.nCopies(255, layerCompound.getInt(KEY_BLOCK)).stream().mapToInt(i -> i).toArray();
+            int[] lightArray = layerCompound.getType(KEY_LIGHT) == NbtElement.BYTE_ARRAY_TYPE ? IntStream.range(0, layerCompound.getByteArray(KEY_LIGHT).length).map(i -> layerCompound.getByteArray(KEY_LIGHT)[i]).toArray() : Collections.nCopies(255, layerCompound.getByte(KEY_LIGHT)).stream().mapToInt(i -> i).toArray();
             for (int i = 0; i < 255; i++) {
-                layer[i / 16][i % 16] = biomeArray[i] == -1 ? null : new FloorSummary(heightArray[i], biomePalette.get(biomeArray[i]), blockPalette.get(blockArray[i]));
+                layer[i / 16][i % 16] = biomeArray[i] == -1 ? null : new FloorSummary(heightArray[i], biomePalette.get(biomeArray[i]), blockPalette.get(blockArray[i]), lightArray[i]);
             }
             layers.put(y, layer);
         }
@@ -89,20 +97,24 @@ public class ChunkSummary {
             NbtIntArray heightArray = new NbtIntArray(new int[]{});
             NbtIntArray biomeArray = new NbtIntArray(new int[]{});
             NbtIntArray blockArray = new NbtIntArray(new int[]{});
+            NbtByteArray lightArray = new NbtByteArray(new byte[]{});
             for (FloorSummary summary : Arrays.stream(floorSummaries).flatMap(Arrays::stream).toList()) {
                 if (summary != null) {
                     heightArray.add(NbtInt.of(summary.y()));
                     biomeArray.add(NbtInt.of(biomePalette.indexOf(summary.biome())));
                     blockArray.add(NbtInt.of(blockPalette.indexOf(summary.block())));
+                    lightArray.add(NbtByte.of((byte) summary.lightLevel()));
                 } else {
                     heightArray.add(NbtInt.of(-1));
                     biomeArray.add(NbtInt.of(-1));
                     blockArray.add(NbtInt.of(-1));
+                    lightArray.add(NbtByte.of((byte) -1));
                 }
             }
             layerCompound.put(KEY_HEIGHT, heightArray.stream().distinct().count() == 1 ? heightArray.get(0) : heightArray);
             layerCompound.put(KEY_BIOME, biomeArray.stream().distinct().count() == 1 ? biomeArray.get(0) : biomeArray);
             layerCompound.put(KEY_BLOCK, blockArray.stream().distinct().count() == 1 ? blockArray.get(0) : blockArray);
+            layerCompound.put(KEY_LIGHT, lightArray.stream().distinct().count() == 1 ? lightArray.get(0) : lightArray);
 
             layersCompound.put(String.valueOf(topY), layerCompound);
         });

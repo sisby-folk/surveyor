@@ -43,7 +43,7 @@ public class ChunkSummaryState extends PersistentState {
     }
 
     public void putChunk(World world, Chunk chunk) {
-        chunks.put(chunk.getPos(), new ChunkSummary(chunk, Surveyor.CONFIG.getLayers(world, chunk)));
+        chunks.put(chunk.getPos(), new ChunkSummary(world, chunk, Surveyor.CONFIG.getLayers(world, chunk)));
         markDirty();
     }
 
