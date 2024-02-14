@@ -1,13 +1,9 @@
 package folk.sisby.surveyor.chunk;
 
+import folk.sisby.surveyor.util.NbtUtil;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.nbt.NbtByte;
-import net.minecraft.nbt.NbtByteArray;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtInt;
-import net.minecraft.nbt.NbtIntArray;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.world.LightType;
@@ -18,12 +14,10 @@ import net.minecraft.world.chunk.ChunkSection;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
-import java.util.stream.IntStream;
 
 public class ChunkSummary {
     private static final String KEY_LAYERS = "layers";
@@ -73,20 +67,21 @@ public class ChunkSummary {
         }
     }
 
+    @SuppressWarnings("DataFlowIssue")
     public ChunkSummary(NbtCompound nbt, List<Biome> biomePalette, List<Block> blockPalette) {
         NbtCompound layersCompound = nbt.getCompound(KEY_LAYERS);
         for (String key : layersCompound.getKeys()) {
-            int y = Integer.parseInt(key);
+            int layerY = Integer.parseInt(key);
             FloorSummary[][] layer = new FloorSummary[16][16];
             NbtCompound layerCompound = layersCompound.getCompound(key);
-            int[] heightArray = layerCompound.getType(KEY_HEIGHT) == NbtElement.INT_ARRAY_TYPE ? layerCompound.getIntArray(KEY_HEIGHT) : Collections.nCopies(255, layerCompound.getInt(KEY_HEIGHT)).stream().mapToInt(i -> i).toArray();
-            int[] biomeArray = layerCompound.getType(KEY_BIOME) == NbtElement.INT_ARRAY_TYPE ? layerCompound.getIntArray(KEY_BIOME) : Collections.nCopies(255, layerCompound.getInt(KEY_BIOME)).stream().mapToInt(i -> i).toArray();
-            int[] blockArray = layerCompound.getType(KEY_BLOCK) == NbtElement.INT_ARRAY_TYPE ? layerCompound.getIntArray(KEY_BLOCK) : Collections.nCopies(255, layerCompound.getInt(KEY_BLOCK)).stream().mapToInt(i -> i).toArray();
-            int[] lightArray = layerCompound.getType(KEY_LIGHT) == NbtElement.BYTE_ARRAY_TYPE ? IntStream.range(0, layerCompound.getByteArray(KEY_LIGHT).length).map(i -> layerCompound.getByteArray(KEY_LIGHT)[i]).toArray() : Collections.nCopies(255, layerCompound.getByte(KEY_LIGHT)).stream().mapToInt(i -> i).toArray();
+            int[] heightArray = NbtUtil.readCompressedInts(layerCompound.get(KEY_HEIGHT));
+            int[] biomeArray = NbtUtil.readCompressedInts(layerCompound.get(KEY_BIOME));
+            int[] blockArray = NbtUtil.readCompressedInts(layerCompound.get(KEY_BLOCK));
+            int[] lightArray = NbtUtil.readCompressedInts(layerCompound.get(KEY_LIGHT));
             for (int i = 0; i < 255; i++) {
-                layer[i / 16][i % 16] = biomeArray[i] == -1 ? null : new FloorSummary(heightArray[i], biomePalette.get(biomeArray[i]), blockPalette.get(blockArray[i]), lightArray[i]);
+                layer[i / 16][i % 16] = heightArray[i] == layerY + 1 ? null : new FloorSummary(heightArray[i], biomePalette.get(biomeArray[i]), blockPalette.get(blockArray[i]), lightArray[i]);
             }
-            layers.put(y, layer);
+            layers.put(layerY, layer);
         }
     }
 
@@ -94,28 +89,10 @@ public class ChunkSummary {
         NbtCompound layersCompound = new NbtCompound();
         layers.forEach((topY, floorSummaries) -> {
             NbtCompound layerCompound = new NbtCompound();
-            NbtIntArray heightArray = new NbtIntArray(new int[]{});
-            NbtIntArray biomeArray = new NbtIntArray(new int[]{});
-            NbtIntArray blockArray = new NbtIntArray(new int[]{});
-            NbtByteArray lightArray = new NbtByteArray(new byte[]{});
-            for (FloorSummary summary : Arrays.stream(floorSummaries).flatMap(Arrays::stream).toList()) {
-                if (summary != null) {
-                    heightArray.add(NbtInt.of(summary.y()));
-                    biomeArray.add(NbtInt.of(biomePalette.indexOf(summary.biome())));
-                    blockArray.add(NbtInt.of(blockPalette.indexOf(summary.block())));
-                    lightArray.add(NbtByte.of((byte) summary.lightLevel()));
-                } else {
-                    heightArray.add(NbtInt.of(-1));
-                    biomeArray.add(NbtInt.of(-1));
-                    blockArray.add(NbtInt.of(-1));
-                    lightArray.add(NbtByte.of((byte) -1));
-                }
-            }
-            layerCompound.put(KEY_HEIGHT, heightArray.stream().distinct().count() == 1 ? heightArray.get(0) : heightArray);
-            layerCompound.put(KEY_BIOME, biomeArray.stream().distinct().count() == 1 ? biomeArray.get(0) : biomeArray);
-            layerCompound.put(KEY_BLOCK, blockArray.stream().distinct().count() == 1 ? blockArray.get(0) : blockArray);
-            layerCompound.put(KEY_LIGHT, lightArray.stream().distinct().count() == 1 ? lightArray.get(0) : lightArray);
-
+            NbtUtil.writeCompressedInts(layerCompound, KEY_HEIGHT, Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? topY + 1 : f.y()).toList());
+            NbtUtil.writeCompressedInts(layerCompound, KEY_BIOME, Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? null : biomePalette.indexOf(f.biome())).toList());
+            NbtUtil.writeCompressedInts(layerCompound, KEY_BLOCK, Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? null : blockPalette.indexOf(f.block())).toList());
+            NbtUtil.writeCompressedInts(layerCompound, KEY_LIGHT, Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? null : f.lightLevel()).toList());
             layersCompound.put(String.valueOf(topY), layerCompound);
         });
         nbt.put(KEY_LAYERS, layersCompound);
