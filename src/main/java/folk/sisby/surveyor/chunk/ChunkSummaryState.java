@@ -1,6 +1,7 @@
 package folk.sisby.surveyor.chunk;
 
 import folk.sisby.surveyor.Surveyor;
+import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -28,6 +29,10 @@ public class ChunkSummaryState extends PersistentState {
     public static final String STATE_KEY = "surveyor_chunk_summary";
     public static final String KEY_BIOMES = "biomes";
     public static final String KEY_BLOCKS = "blocks";
+    public static final String KEY_BIOME_WATER = "biomeWater";
+    public static final String KEY_BIOME_FOLIAGE = "biomeFoliage";
+    public static final String KEY_BIOME_GRASS = "biomeGrass";
+    public static final String KEY_BLOCK_COLORS = "blockColors";
     public static final String KEY_CHUNKS = "chunks";
 
     private final Map<ChunkPos, ChunkSummary> chunks;
@@ -53,6 +58,10 @@ public class ChunkSummaryState extends PersistentState {
         List<Block> blockPalette = chunks.values().stream().flatMap(summary -> summary.layers.values().stream()).flatMap(Arrays::stream).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::block).distinct().sorted(Comparator.comparingInt(b -> manager.get(RegistryKeys.BLOCK).getRawId(b))).toList();
         nbt.put(KEY_BIOMES, new NbtList(biomePalette.stream().map(b -> (NbtElement) NbtString.of(manager.get(RegistryKeys.BIOME).getId(b).toString())).toList(), NbtElement.STRING_TYPE));
         nbt.put(KEY_BLOCKS, new NbtList(blockPalette.stream().map(b -> (NbtElement) NbtString.of(manager.get(RegistryKeys.BLOCK).getId(b).toString())).toList(), NbtElement.STRING_TYPE));
+        nbt.putIntArray(KEY_BIOME_WATER, biomePalette.stream().mapToInt(Biome::getWaterColor).toArray());
+        nbt.putIntArray(KEY_BIOME_FOLIAGE, biomePalette.stream().mapToInt(Biome::getFoliageColor).toArray());
+        nbt.putIntArray(KEY_BIOME_GRASS, biomePalette.stream().mapToInt(b -> b.getGrassColorAt(0, 0)).toArray());
+        nbt.putIntArray(KEY_BLOCK_COLORS, blockPalette.stream().map(AbstractBlock::getDefaultMapColor).mapToInt(c -> c.color).toArray());
         NbtCompound chunksCompound = new NbtCompound();
         chunks.forEach((pos, summary) -> chunksCompound.put("%s,%s".formatted(pos.x, pos.z), summary.writeNbt(new NbtCompound(), biomePalette, blockPalette)));
         nbt.put(KEY_CHUNKS, chunksCompound);
