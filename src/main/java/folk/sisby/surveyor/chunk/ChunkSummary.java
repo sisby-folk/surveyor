@@ -79,7 +79,7 @@ public class ChunkSummary {
             int[] blockArray = NbtUtil.readCompressedInts(layerCompound.get(KEY_BLOCK));
             int[] lightArray = NbtUtil.readCompressedInts(layerCompound.get(KEY_LIGHT));
             for (int i = 0; i < 255; i++) {
-                layer[i / 16][i % 16] = heightArray[i] == layerY + 1 ? null : new FloorSummary(heightArray[i], biomePalette.get(biomeArray[i]), blockPalette.get(blockArray[i]), lightArray[i]);
+                layer[i / 16][i % 16] = heightArray[i] == -1 ? null : new FloorSummary(layerY - heightArray[i], biomePalette.get(biomeArray[i]), blockPalette.get(blockArray[i]), lightArray[i]);
             }
             layers.put(layerY, layer);
         }
@@ -87,13 +87,13 @@ public class ChunkSummary {
 
     public NbtCompound writeNbt(NbtCompound nbt, List<Biome> biomePalette, List<Block> blockPalette) {
         NbtCompound layersCompound = new NbtCompound();
-        layers.forEach((topY, floorSummaries) -> {
+        layers.forEach((layerY, floorSummaries) -> {
             NbtCompound layerCompound = new NbtCompound();
-            NbtUtil.writeCompressedInts(layerCompound, KEY_HEIGHT, Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? topY + 1 : f.y()).toList());
+            NbtUtil.writeCompressedInts(layerCompound, KEY_HEIGHT, Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? layerY + 1 : f.y()).map(i -> layerY - i).toList());
             NbtUtil.writeCompressedInts(layerCompound, KEY_BIOME, Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? null : biomePalette.indexOf(f.biome())).toList());
             NbtUtil.writeCompressedInts(layerCompound, KEY_BLOCK, Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? null : blockPalette.indexOf(f.block())).toList());
             NbtUtil.writeCompressedInts(layerCompound, KEY_LIGHT, Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? null : f.lightLevel()).toList());
-            layersCompound.put(String.valueOf(topY), layerCompound);
+            layersCompound.put(String.valueOf(layerY), layerCompound);
         });
         nbt.put(KEY_LAYERS, layersCompound);
         return nbt;
