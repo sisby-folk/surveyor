@@ -28,8 +28,9 @@ public class ChunkSummary {
 
     protected final Map<Integer, FloorSummary[][]> layers = new HashMap<>();
 
-    public static FloorSummary getFloorBetween(World world, Chunk chunk, int x, int topY, int bottomY, int z, MutableBoolean foundAir) {
+    public static FloorSummary getTopFloor(World world, Chunk chunk, int x, int topY, int bottomY, int z, MutableBoolean foundAir) {
         ChunkSection[] chunkSections = chunk.getSectionArray();
+        FloorSummary foundFloor = null;
         for (int y = topY; y > bottomY; y--) {
             int sectionIndex = chunk.getSectionIndex(y);
             if (foundAir.isFalse() && chunkSections[sectionIndex].nonEmptyBlockCount == 4096) {
@@ -41,27 +42,25 @@ public class ChunkSummary {
                 y = ChunkSectionPos.getBlockCoord(chunk.sectionIndexToCoord(sectionIndex));
                 continue;
             }
-            if (foundAir.isFalse() && chunkSections[sectionIndex].getBlockState(x & 15, y & 15, z & 15).isAir()) {
+            BlockState state = chunkSections[sectionIndex].getBlockState(x & 15, y & 15, z & 15);
+            if (state.isAir()) {
                 foundAir.setTrue();
                 continue;
             }
-            if (foundAir.isTrue()) {
-                BlockState state = chunkSections[sectionIndex].getBlockState(x & 15, y & 15, z & 15);
-                if (state.blocksMovement() || !state.getFluidState().isEmpty()) {
-                    foundAir.setFalse(); // We technically lose definition of floors at the top of the next scan by stopping here, but that's much less important when we actually found a hit.
-                    return new FloorSummary(y, chunkSections[sectionIndex].getBiome(x & 3, y & 3, z & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y, z)));
-                }
+            if (state.blocksMovement() || !state.getFluidState().isEmpty()) {
+                if (foundFloor == null && foundAir.isTrue()) foundFloor = new FloorSummary(y, chunkSections[sectionIndex].getBiome(x & 3, y & 3, z & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y, z)));
+                foundAir.setFalse();
             }
         }
-        return null;
+        return foundFloor;
     }
 
-    public ChunkSummary(World world, Chunk chunk, TreeSet<Integer> layerTops) {
+    public ChunkSummary(World world, Chunk chunk, TreeSet<Integer> layers) {
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 MutableBoolean foundAir = new MutableBoolean(false);
-                for (int i : layerTops.descendingSet()) {
-                    layers.computeIfAbsent(i, k -> new FloorSummary[16][16])[x][z] = getFloorBetween(world, chunk, x, i, !layerTops.first().equals(i) ? layerTops.lower(i) : chunk.getBottomY(), z, foundAir);
+                for (int i : layers.descendingSet()) {
+                    if (!layers.first().equals(i)) this.layers.computeIfAbsent(i, k -> new FloorSummary[16][16])[x][z] = getTopFloor(world, chunk, x, i, layers.lower(i), z, foundAir);
                 }
             }
         }
@@ -88,7 +87,7 @@ public class ChunkSummary {
         NbtCompound layersCompound = new NbtCompound();
         layers.forEach((layerY, floorSummaries) -> {
             NbtCompound layerCompound = new NbtCompound();
-            NbtUtil.writeOptionalUInts(layerCompound, KEY_HEIGHT, Arrays.stream(floorSummaries).flatMap(Arrays::stream).mapToInt(f -> f == null ? layerY + 1 : f.y()).map(i -> layerY - i).toArray());
+            NbtUtil.writeUInts(layerCompound, KEY_HEIGHT, Arrays.stream(floorSummaries).flatMap(Arrays::stream).mapToInt(f -> f == null ? layerY + 1 : f.y()).map(i -> layerY - i).toArray());
             NbtUtil.writeOptionalUInts(layerCompound, KEY_BIOME, Arrays.stream(floorSummaries).flatMap(Arrays::stream).mapToInt(f -> f == null ? -1 : biomePalette.indexOf(f.biome())).toArray());
             NbtUtil.writeOptionalUInts(layerCompound, KEY_BLOCK, Arrays.stream(floorSummaries).flatMap(Arrays::stream).mapToInt(f -> f == null ? -1 : blockPalette.indexOf(f.block())).toArray());
             NbtUtil.writeOptionalUInts(layerCompound, KEY_LIGHT, Arrays.stream(floorSummaries).flatMap(Arrays::stream).mapToInt(f -> f == null ? -1 : f.lightLevel()).toArray());

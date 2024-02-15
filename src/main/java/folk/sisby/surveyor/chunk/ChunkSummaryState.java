@@ -52,7 +52,7 @@ public class ChunkSummaryState {
     }
 
     public void putChunk(World world, Chunk chunk) {
-        chunks.put(chunk.getPos(), new ChunkSummary(world, chunk, Surveyor.CONFIG.getLayers(world, chunk)));
+        chunks.put(chunk.getPos(), new ChunkSummary(world, chunk, DimensionSupport.getSummaryLayers(world)));
         dirty = true;
     }
 
@@ -104,7 +104,7 @@ public class ChunkSummaryState {
 
     public static ChunkSummaryState readNbt(Map<ChunkPos, NbtCompound> regions, DynamicRegistryManager manager) {
         Map<ChunkPos, ChunkSummary> chunks = new HashMap<>();
-        regions.values().forEach(nbt -> readNbt(chunks, nbt, manager));
+        regions.forEach((pos, nbt) -> readNbt(chunks, nbt, manager));
         return new ChunkSummaryState(chunks, manager);
     }
 
