@@ -16,8 +16,8 @@ public class DimensionSupport {
         if (dimension.minY() + dimension.height() > 256) set.add(256); // Layer At Y=256 (assume special layer change)
         if (dimension.minY() < 0) set.add(0); // Layer At Y=0 (assume special layer change)
         if (world.getDimensionKey() == DimensionTypes.THE_NETHER) {
-            set.add(70); // Middle outcrops (navigation by land)
-            set.add(32); // Above lava level (navigation by strider)
+            set.add(70); // Mid outcrops
+            set.add(40); // Lava Shores
         }
         set.add(dimension.minY()); // End Layers at Min Y
         return set;
