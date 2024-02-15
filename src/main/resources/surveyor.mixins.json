@@ -6,7 +6,8 @@
   "mixins": [
     "MixinPlayerEntity",
     "MixinStructureStart",
-    "MixinThreadedAnvilChunkStorage"
+    "MixinThreadedAnvilChunkStorage",
+    "ServerWorldMixin"
   ],
   "client": [
   ],

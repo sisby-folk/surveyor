@@ -19,7 +19,7 @@ public class Surveyor implements ModInitializer {
     public void onInitialize() {
         SurveyorNetworking.init();
 
-        ServerWorldEvents.LOAD.register((s, world) -> ChunkSummaryState.getOrCreate(world));
+        ServerWorldEvents.LOAD.register((s, world) -> ((SurveyorWorld) world).surveyor$getChunkSummaryState());
         ServerWorldEvents.LOAD.register((s, world) -> StructureSummaryState.getOrCreate(world));
 
         ServerChunkEvents.CHUNK_LOAD.register(ChunkSummaryState::onChunkLoad);
