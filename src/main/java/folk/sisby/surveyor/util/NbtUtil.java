@@ -31,8 +31,8 @@ public class NbtUtil {
 
     private static void writeUInts(NbtCompound nbt, String key, int[] array, boolean nullOptional) {
         long distinct = Arrays.stream(array).filter(i -> !nullOptional || i >= 0).distinct().count();
-        if (distinct == 0) return;
         Integer single = distinct == 1 ? Arrays.stream(array).filter(i -> !nullOptional || i >= 0).distinct().findFirst().getAsInt() : null;
+        if (Integer.valueOf(-1).equals(single)) return;
         boolean oneByte = Arrays.stream(array).filter(Objects::nonNull).allMatch(i -> i >= -128 + UINT_OFFSET && i < 127 + UINT_OFFSET);
         if (single != null && oneByte) nbt.putByte(key, (byte) (single - UINT_OFFSET));
         if (single == null && oneByte) nbt.putByteArray(key, Arrays.stream(array).mapToObj((i -> (byte) (i - UINT_OFFSET))).toList());
