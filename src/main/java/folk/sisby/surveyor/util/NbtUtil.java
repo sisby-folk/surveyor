@@ -9,13 +9,14 @@ import net.minecraft.nbt.NbtIntArray;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
 
 public class NbtUtil {
     public static int UINT_OFFSET = 127;
 
-    public static int[] readOptionalUInts(NbtElement nbt) {
+    public static int[] readUInts(NbtElement nbt) {
         if (nbt == null) return Collections.nCopies(255, -1).stream().mapToInt(i -> i).toArray();
         return switch (nbt.getType()) {
             case NbtElement.BYTE_TYPE -> Collections.nCopies(255, ((NbtByte) nbt).intValue() + UINT_OFFSET).stream().mapToInt(i -> i).toArray();
@@ -29,22 +30,15 @@ public class NbtUtil {
         };
     }
 
-    private static void writeUInts(NbtCompound nbt, String key, int[] array, boolean nullOptional) {
-        long distinct = Arrays.stream(array).filter(i -> !nullOptional || i >= 0).distinct().count();
-        Integer single = distinct == 1 ? Arrays.stream(array).filter(i -> !nullOptional || i >= 0).distinct().findFirst().getAsInt() : null;
-        if (Integer.valueOf(-1).equals(single)) return;
-        boolean oneByte = Arrays.stream(array).filter(Objects::nonNull).allMatch(i -> i >= -128 + UINT_OFFSET && i < 127 + UINT_OFFSET);
+    public static void writeNullableUInts(NbtCompound nbt, String key, List<Integer> ints) {
+        long distinct = ints.stream().filter(Objects::nonNull).distinct().count();
+        Integer single = distinct == 1 ? ints.stream().filter(Objects::nonNull).distinct().findFirst().get() : null;
+        if (distinct == 0 || Integer.valueOf(-1).equals(single)) return;
+        boolean oneByte = ints.stream().filter(Objects::nonNull).allMatch(i -> i >= -128 + UINT_OFFSET && i < 127 + UINT_OFFSET);
         if (single != null && oneByte) nbt.putByte(key, (byte) (single - UINT_OFFSET));
-        if (single == null && oneByte) nbt.putByteArray(key, Arrays.stream(array).mapToObj((i -> (byte) (i - UINT_OFFSET))).toList());
         if (single != null && !oneByte) nbt.putInt(key, single);
-        if (single == null && !oneByte) nbt.putIntArray(key, array);
-    }
-
-    public static void writeOptionalUInts(NbtCompound nbt, String key, int[] array) {
-        writeUInts(nbt, key, array, true);
-    }
-
-    public static void writeUInts(NbtCompound nbt, String key, int[] array) {
-        writeUInts(nbt, key, array, false);
+        int[] intArray = ints.stream().mapToInt(i -> Objects.requireNonNullElse(i, -1)).toArray();
+        if (single == null && oneByte) nbt.putByteArray(key, Arrays.stream(intArray).mapToObj((i -> (byte) (i - UINT_OFFSET))).toList());
+        if (single == null && !oneByte) nbt.putIntArray(key, intArray);
     }
 }

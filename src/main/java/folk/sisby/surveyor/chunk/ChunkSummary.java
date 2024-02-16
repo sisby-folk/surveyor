@@ -72,10 +72,10 @@ public class ChunkSummary {
             int layerY = Integer.parseInt(key);
             FloorSummary[][] layer = new FloorSummary[16][16];
             NbtCompound layerCompound = layersCompound.getCompound(key);
-            int[] heightArray = NbtUtil.readOptionalUInts(layerCompound.get(KEY_HEIGHT));
-            int[] biomeArray = NbtUtil.readOptionalUInts(layerCompound.get(KEY_BIOME));
-            int[] blockArray = NbtUtil.readOptionalUInts(layerCompound.get(KEY_BLOCK));
-            int[] lightArray = NbtUtil.readOptionalUInts(layerCompound.get(KEY_LIGHT));
+            int[] heightArray = NbtUtil.readUInts(layerCompound.get(KEY_HEIGHT));
+            int[] biomeArray = NbtUtil.readUInts(layerCompound.get(KEY_BIOME));
+            int[] blockArray = NbtUtil.readUInts(layerCompound.get(KEY_BLOCK));
+            int[] lightArray = NbtUtil.readUInts(layerCompound.get(KEY_LIGHT));
             for (int i = 0; i < 255; i++) {
                 layer[i / 16][i % 16] = heightArray[i] == -1 ? null : new FloorSummary(layerY - heightArray[i], biomePalette.get(biomeArray[i]), blockPalette.get(blockArray[i]), lightArray[i]);
             }
@@ -87,10 +87,10 @@ public class ChunkSummary {
         NbtCompound layersCompound = new NbtCompound();
         layers.forEach((layerY, floorSummaries) -> {
             NbtCompound layerCompound = new NbtCompound();
-            NbtUtil.writeUInts(layerCompound, KEY_HEIGHT, Arrays.stream(floorSummaries).flatMap(Arrays::stream).mapToInt(f -> f == null ? layerY + 1 : f.y()).map(i -> layerY - i).toArray());
-            NbtUtil.writeOptionalUInts(layerCompound, KEY_BIOME, Arrays.stream(floorSummaries).flatMap(Arrays::stream).mapToInt(f -> f == null ? -1 : biomePalette.indexOf(f.biome())).toArray());
-            NbtUtil.writeOptionalUInts(layerCompound, KEY_BLOCK, Arrays.stream(floorSummaries).flatMap(Arrays::stream).mapToInt(f -> f == null ? -1 : blockPalette.indexOf(f.block())).toArray());
-            NbtUtil.writeOptionalUInts(layerCompound, KEY_LIGHT, Arrays.stream(floorSummaries).flatMap(Arrays::stream).mapToInt(f -> f == null ? -1 : f.lightLevel()).toArray());
+            NbtUtil.writeNullableUInts(layerCompound, KEY_HEIGHT, Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? -1 : layerY - f.y()).toList());
+            NbtUtil.writeNullableUInts(layerCompound, KEY_BIOME, Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? null : biomePalette.indexOf(f.biome())).toList());
+            NbtUtil.writeNullableUInts(layerCompound, KEY_BLOCK, Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? null : blockPalette.indexOf(f.block())).toList());
+            NbtUtil.writeNullableUInts(layerCompound, KEY_LIGHT, Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? null : f.lightLevel()).toList());
             layersCompound.put(String.valueOf(layerY), layerCompound);
         });
         nbt.put(KEY_LAYERS, layersCompound);
