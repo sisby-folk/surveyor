@@ -14,7 +14,7 @@ import java.util.Objects;
 import java.util.stream.IntStream;
 
 public class NbtUtil {
-    public static int UINT_OFFSET = 127;
+    public static final int UINT_OFFSET = 127;
 
     public static int[] readUInts(NbtElement nbt) {
         if (nbt == null) return Collections.nCopies(255, -1).stream().mapToInt(i -> i).toArray();

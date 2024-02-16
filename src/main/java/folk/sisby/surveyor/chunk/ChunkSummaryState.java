@@ -17,8 +17,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ChunkSummaryState {
-    private final Map<ChunkPos, RegionSummary> regions;
-    private final DynamicRegistryManager manager;
+    protected final Map<ChunkPos, RegionSummary> regions;
+    protected final DynamicRegistryManager manager;
 
     public static ChunkPos getRegionPos(Chunk chunk) {
         return new ChunkPos(chunk.getPos().x >> RegionSummary.REGION_POWER, chunk.getPos().z >> RegionSummary.REGION_POWER);

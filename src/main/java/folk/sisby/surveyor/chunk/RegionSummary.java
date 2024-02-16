@@ -30,11 +30,11 @@ public class RegionSummary {
     public static final String KEY_BLOCK_COLORS = "blockColors";
     public static final String KEY_CHUNKS = "chunks";
 
-    private final Int2ObjectBiMap<Block> blockPalette = Int2ObjectBiMap.create(255);
-    private final Int2ObjectBiMap<Biome> biomePalette = Int2ObjectBiMap.create(255);
-    ChunkSummary[][] chunks = new ChunkSummary[REGION_SIZE][REGION_SIZE];
+    protected final Int2ObjectBiMap<Biome> biomePalette = Int2ObjectBiMap.create(255);
+    protected final Int2ObjectBiMap<Block> blockPalette = Int2ObjectBiMap.create(255);
+    protected ChunkSummary[][] chunks = new ChunkSummary[REGION_SIZE][REGION_SIZE];
 
-    private boolean dirty = false;
+    protected boolean dirty = false;
 
     public static <T, O> List<O> mapPalette(IndexedIterable<T> palette, Function<T, O> mapper) {
         List<O> list = new ArrayList<>();
@@ -53,7 +53,7 @@ public class RegionSummary {
     }
 
     public void putChunk(World world, Chunk chunk) {
-        chunks[regionRelative(chunk.getPos().x)][regionRelative(chunk.getPos().z)] = new ChunkSummary(world, chunk, DimensionSupport.getSummaryLayers(world));
+        chunks[regionRelative(chunk.getPos().x)][regionRelative(chunk.getPos().z)] = new ChunkSummary(world, chunk, DimensionSupport.getSummaryLayers(world), biomePalette, blockPalette);
         dirty = true;
     }
 
@@ -64,7 +64,7 @@ public class RegionSummary {
         for (String posKey : chunksCompound.getKeys()) {
             int x = regionRelative(Integer.parseInt(posKey.split(",")[0]));
             int z = regionRelative(Integer.parseInt(posKey.split(",")[1]));
-            chunks[x][z] = new ChunkSummary(chunksCompound.getCompound(posKey), biomePalette, blockPalette);
+            chunks[x][z] = new ChunkSummary(chunksCompound.getCompound(posKey));
         }
         return this;
     }
@@ -79,7 +79,7 @@ public class RegionSummary {
         NbtCompound chunksCompound = new NbtCompound();
         for (int x = 0; x < REGION_SIZE; x++) {
             for (int z = 0; z < REGION_SIZE; z++) {
-                if (chunks[x][z] != null) chunksCompound.put("%s,%s".formatted((regionPos.x << REGION_POWER) + x, (regionPos.z << REGION_POWER) + z), chunks[x][z].writeNbt(new NbtCompound(), biomePalette, blockPalette));
+                if (chunks[x][z] != null) chunksCompound.put("%s,%s".formatted((regionPos.x << REGION_POWER) + x, (regionPos.z << REGION_POWER) + z), chunks[x][z].writeNbt(new NbtCompound()));
             }
         }
         nbt.put(KEY_CHUNKS, chunksCompound);
