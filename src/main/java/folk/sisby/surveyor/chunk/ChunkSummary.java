@@ -2,6 +2,7 @@ package folk.sisby.surveyor.chunk;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.MapColor;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.collection.IndexedIterable;
 import net.minecraft.util.collection.Int2ObjectBiMap;
@@ -45,7 +46,7 @@ public class ChunkSummary {
                 foundAir.setTrue();
                 continue;
             }
-            if (state.blocksMovement() || !state.getFluidState().isEmpty()) {
+            if (state.getMapColor(world, new BlockPos(x, y, z)) != MapColor.CLEAR && (state.blocksMovement() || !state.getFluidState().isEmpty())) {
                 if (foundFloor == null && foundAir.isTrue()) foundFloor = new FloorSummary(y, chunkSections[sectionIndex].getBiome(x & 3, y & 3, z & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y, z)));
                 foundAir.setFalse();
             }
