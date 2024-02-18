@@ -9,12 +9,14 @@ import net.minecraft.nbt.NbtInt;
 import net.minecraft.nbt.NbtIntArray;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
 import java.util.stream.IntStream;
 
 public interface UIntArray {
     int UINT_BYTE_OFFSET = 127;
+
+    static boolean fitsInByte(int value) {
+        return value >= -128 + UINT_BYTE_OFFSET && value < 127 + UINT_BYTE_OFFSET;
+    }
 
     int[] getUncompressed();
 
@@ -28,21 +30,21 @@ public interface UIntArray {
         return get((int) IntStream.range(0, i).filter(mask::isEmpty).count());
     }
 
-    static UIntArray readNbt(NbtElement nbt) {
+    static UIntArray readNbt(NbtElement nbt, Integer defaultValue) {
         if (nbt == null) return null;
-        return switch (nbt.getType()) {
+        return fromUInts((switch (nbt.getType()) { // Recompress on read.
             case NbtElement.BYTE_TYPE -> new ByteUInts(((NbtByte) nbt).byteValue());
             case NbtElement.BYTE_ARRAY_TYPE -> new ByteArrayUInts(((NbtByteArray) nbt).getByteArray());
             case NbtElement.INT_TYPE -> new IntUints(((NbtInt) nbt).intValue());
             case NbtElement.INT_ARRAY_TYPE -> new IntArrayUInts(((NbtIntArray) nbt).getIntArray());
             default -> throw new IllegalStateException("Unexpected value: " + nbt.getType());
-        };
+        }).getUncompressed(), defaultValue);
     }
 
-    static UIntArray fromUInts(int[] ints) {
+    static UIntArray fromUInts(int[] ints, Integer defaultValue) {
         long distinct = Arrays.stream(ints).distinct().count();
-        if (distinct == 0 || (distinct == 1 && ints[0] == -1)) return null;
-        boolean oneByte = Arrays.stream(ints).allMatch(i -> i >= -128 + UINT_BYTE_OFFSET && i < 127 + UINT_BYTE_OFFSET);
+        if (distinct == 1 && Integer.valueOf(ints[0]).equals(defaultValue)) return null;
+        boolean oneByte = Arrays.stream(ints).allMatch(UIntArray::fitsInByte);
         if (distinct == 1)
             if (oneByte) {
                 return new ByteUInts((byte) (ints[0] - UINT_BYTE_OFFSET));

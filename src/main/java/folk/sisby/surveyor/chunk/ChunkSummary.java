@@ -92,7 +92,7 @@ public class ChunkSummary {
     public @Nullable FloorSummary getTopFloor(int x, int z, IndexedIterable<Biome> biomePalette, IndexedIterable<Block> blockPalette) {
         for (Integer layerY : layers.descendingKeySet()) {
             LayerSummary layer = layers.get(layerY);
-            if (layer != null && layer.getFloor(layerY, x, z, biomePalette, blockPalette) != null) return layer.getFloor(layerY, x, z, biomePalette, blockPalette);
+            if (layer != null && !layer.isEmpty(x, z)) return layer.getFloor(layerY, x, z, biomePalette, blockPalette);
         }
         return null;
     }
@@ -101,7 +101,7 @@ public class ChunkSummary {
         SortedMap<Integer, FloorSummary> map = new TreeMap<>();
         for (Integer layerY : layers.descendingKeySet()) {
             LayerSummary layer = layers.get(layerY);
-            if (layer != null && layer.getFloor(layerY, x, z, biomePalette, blockPalette) != null) map.put(layerY, layer.getFloor(layerY, x, z, biomePalette, blockPalette));
+            if (layer != null && !layer.isEmpty(x, z)) map.put(layerY, layer.getFloor(layerY, x, z, biomePalette, blockPalette));
         }
         return map;
     }
