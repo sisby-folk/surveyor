@@ -23,6 +23,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 public class ChunkSummary {
+    public static final int MINIMUM_AIR_DEPTH = 2;
     public static final String KEY_LAYERS = "layers";
 
     protected final TreeMap<Integer, @Nullable LayerSummary> layers = new TreeMap<>();
@@ -31,7 +32,7 @@ public class ChunkSummary {
         TreeMap<Integer, FloorSummary[][]> uncompressedLayers = new TreeMap<>();
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
-                boolean foundAir = false;
+                int airDepth = 0;
                 int waterDepth = 0;
                 for (int i : layerYs.descendingSet()) {
                     if (!layerYs.first().equals(i)) {
@@ -41,22 +42,23 @@ public class ChunkSummary {
                         for (int y = i; y > bottomY; y--) {
                             int sectionIndex = chunk.getSectionIndex(y);
                             if (chunkSections[sectionIndex].isEmpty()) {
-                                foundAir = true;
+                                int chunkBottom = ChunkSectionPos.getBlockCoord(chunk.sectionIndexToCoord(sectionIndex));
+                                airDepth += (y - chunkBottom + 1);
                                 waterDepth = 0;
-                                y = ChunkSectionPos.getBlockCoord(chunk.sectionIndexToCoord(sectionIndex));
+                                y = chunkBottom;
                                 continue;
                             }
 
                             BlockState state = chunkSections[sectionIndex].getBlockState(x & 15, y & 15, z & 15);
                             if (state.isAir()) {
-                                foundAir = true;
+                                airDepth++;
                                 waterDepth = 0;
                                 continue;
                             }
 
                             if (state.getMapColor(world, new BlockPos(x, y, z)) != MapColor.CLEAR && (state.blocksMovement() || (!state.getFluidState().isEmpty() && !state.getFluidState().isIn(FluidTags.WATER)))) {
-                                if (foundFloor == null && foundAir) foundFloor = new FloorSummary(y, chunkSections[sectionIndex].getBiome(x & 3, y & 3, z & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y, z)), waterDepth);
-                                foundAir = false;
+                                if (foundFloor == null && airDepth > MINIMUM_AIR_DEPTH) foundFloor = new FloorSummary(y, chunkSections[sectionIndex].getBiome(x & 3, y & 3, z & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y, z)), waterDepth);
+                                airDepth = 0;
                                 waterDepth = 0;
                             } else if (state.getFluidState().isIn(FluidTags.WATER)) {
                                 waterDepth++;
