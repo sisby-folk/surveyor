@@ -17,14 +17,14 @@ public class NbtUtil {
     public static final int UINT_OFFSET = 127;
 
     public static int[] readUInts(NbtElement nbt) {
-        if (nbt == null) return Collections.nCopies(255, -1).stream().mapToInt(i -> i).toArray();
+        if (nbt == null) return Collections.nCopies(256, -1).stream().mapToInt(i -> i).toArray();
         return switch (nbt.getType()) {
-            case NbtElement.BYTE_TYPE -> Collections.nCopies(255, ((NbtByte) nbt).intValue() + UINT_OFFSET).stream().mapToInt(i -> i).toArray();
+            case NbtElement.BYTE_TYPE -> Collections.nCopies(256, ((NbtByte) nbt).intValue() + UINT_OFFSET).stream().mapToInt(i -> i).toArray();
             case NbtElement.BYTE_ARRAY_TYPE -> {
                 byte[] bytes = ((NbtByteArray) nbt).getByteArray();
                 yield IntStream.range(0, bytes.length).map(i -> bytes[i] + UINT_OFFSET).toArray();
             }
-            case NbtElement.INT_TYPE -> Collections.nCopies(255, ((NbtInt) nbt).intValue()).stream().mapToInt(i -> i).toArray();
+            case NbtElement.INT_TYPE -> Collections.nCopies(256, ((NbtInt) nbt).intValue()).stream().mapToInt(i -> i).toArray();
             case NbtElement.INT_ARRAY_TYPE -> ((NbtIntArray) nbt).getIntArray();
             default -> throw new IllegalStateException("Unexpected value: " + nbt.getType());
         };

@@ -7,7 +7,7 @@ import java.util.Collections;
 public record IntUints(int value) implements UIntArray {
     @Override
     public int[] getUncompressed() {
-        return Collections.nCopies(255, value).stream().mapToInt(i -> i).toArray();
+        return Collections.nCopies(256, value).stream().mapToInt(i -> i).toArray();
     }
 
     @Override

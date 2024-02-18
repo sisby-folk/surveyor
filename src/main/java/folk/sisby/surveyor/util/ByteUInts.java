@@ -7,7 +7,7 @@ import java.util.Collections;
 public record ByteUInts(byte value) implements UIntArray {
     @Override
     public int[] getUncompressed() {
-        return Collections.nCopies(255, value + UINT_BYTE_OFFSET).stream().mapToInt(i -> i).toArray();
+        return Collections.nCopies(256, value + UINT_BYTE_OFFSET).stream().mapToInt(i -> i).toArray();
     }
 
     @Override
