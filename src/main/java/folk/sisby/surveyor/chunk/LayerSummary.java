@@ -6,6 +6,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.collection.IndexedIterable;
 import net.minecraft.util.collection.Int2ObjectBiMap;
 import net.minecraft.world.biome.Biome;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
@@ -24,13 +25,13 @@ public class LayerSummary {
     public static final int LIGHT_DEFAULT = 0;
     public static final int WATER_DEFAULT = 0;
 
-    protected final @Nullable UIntArray depth; // Null Mask
+    protected final @NotNull UIntArray depth; // Null Mask
     protected final @Nullable UIntArray biome;
     protected final @Nullable UIntArray block;
     protected final @Nullable UIntArray light;
     protected final @Nullable UIntArray water;
 
-    protected LayerSummary(@Nullable UIntArray depth, @Nullable UIntArray biome, @Nullable UIntArray block, @Nullable UIntArray light, @Nullable UIntArray water) {
+    protected LayerSummary(@NotNull UIntArray depth, @Nullable UIntArray biome, @Nullable UIntArray block, @Nullable UIntArray light, @Nullable UIntArray water) {
         this.depth = depth;
         this.biome = biome;
         this.block = block;
@@ -64,7 +65,7 @@ public class LayerSummary {
     }
 
     public NbtCompound writeNbt(NbtCompound nbt) {
-        if (depth != null) this.depth.writeNbt(nbt, KEY_DEPTH);
+        this.depth.writeNbt(nbt, KEY_DEPTH);
         if (biome != null) this.biome.writeNbt(nbt, KEY_BIOME);
         if (block != null) this.block.writeNbt(nbt, KEY_BLOCK);
         if (light != null) this.light.writeNbt(nbt, KEY_LIGHT);
@@ -73,11 +74,11 @@ public class LayerSummary {
     }
 
     public boolean isEmpty(int x, int z) {
-        return depth == null || depth.isEmpty(x * 16 + z);
+        return depth.isEmpty(x * 16 + z);
     }
 
     public int getDepth(int x, int z) {
-        return isEmpty(x, z) ? DEPTH_DEFAULT : depth.get(x * 16 + z);
+        return depth.get(x * 16 + z);
     }
 
     public int getBiome(int x, int z) {
