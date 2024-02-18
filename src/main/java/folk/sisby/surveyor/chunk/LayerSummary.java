@@ -15,17 +15,20 @@ public class LayerSummary {
     public static final String KEY_BIOME = "biome";
     public static final String KEY_BLOCK = "block";
     public static final String KEY_LIGHT = "light";
+    public static final String KEY_WATER = "water";
 
     protected final UIntArray depth;
     protected final UIntArray biome;
     protected final UIntArray block;
     protected final UIntArray light;
+    protected final UIntArray water;
 
-    protected LayerSummary(UIntArray depth, UIntArray biome, UIntArray block, UIntArray light) {
+    protected LayerSummary(UIntArray depth, UIntArray biome, UIntArray block, UIntArray light, UIntArray water) {
         this.depth = depth;
         this.biome = biome;
         this.block = block;
         this.light = light;
+        this.water = water;
     }
 
     public static LayerSummary fromSummaries(FloorSummary[][] floorSummaries, int layerY, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Block> blockPalette) {
@@ -34,7 +37,8 @@ public class LayerSummary {
         UIntArray biome = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? null : biomePalette.getRawId(f.biome()) == -1 ? biomePalette.add(f.biome()) : biomePalette.getRawId(f.biome())).toList());
         UIntArray block = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? null : blockPalette.getRawId(f.block()) == -1 ? blockPalette.add(f.block()) : blockPalette.getRawId(f.block())).toList());
         UIntArray light = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? null : f.lightLevel()).toList());
-        return new LayerSummary(depth, biome, block, light);
+        UIntArray fluid = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? null : f.fluidDepth()).toList());
+        return new LayerSummary(depth, biome, block, light, fluid);
     }
 
     public static LayerSummary fromNbt(NbtCompound nbt) {
@@ -43,7 +47,8 @@ public class LayerSummary {
         UIntArray biome = UIntArray.readNbt(nbt.get(KEY_BIOME));
         UIntArray block = UIntArray.readNbt(nbt.get(KEY_BLOCK));
         UIntArray light = UIntArray.readNbt(nbt.get(KEY_LIGHT));
-        return new LayerSummary(depth, biome, block, light);
+        UIntArray water = UIntArray.readNbt(nbt.get(KEY_WATER));
+        return new LayerSummary(depth, biome, block, light, water);
     }
 
     public NbtCompound writeNbt(NbtCompound nbt) {
@@ -51,12 +56,13 @@ public class LayerSummary {
         this.biome.writeNbt(nbt, KEY_BIOME);
         this.block.writeNbt(nbt, KEY_BLOCK);
         this.light.writeNbt(nbt, KEY_LIGHT);
+        this.water.writeNbt(nbt, KEY_WATER);
         return nbt;
     }
 
     public @Nullable FloorSummary getFloor(int layerY, int x, int z, IndexedIterable<Biome> biomePalette, IndexedIterable<Block> blockPalette) {
         int i = x * 16 + z;
-        if (!depth.isEmpty(i)) return new FloorSummary(layerY + depth.get(i), biomePalette.get(biome.get(i)), blockPalette.get(block.get(i)), light.get(i));
+        if (!depth.isEmpty(i)) return new FloorSummary(layerY + depth.get(i), biomePalette.get(biome.get(i)), blockPalette.get(block.get(i)), light.get(i), water.get(i));
         return null;
     }
 }

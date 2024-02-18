@@ -4,6 +4,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.MapColor;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.util.collection.IndexedIterable;
 import net.minecraft.util.collection.Int2ObjectBiMap;
 import net.minecraft.util.math.BlockPos;
@@ -13,7 +14,6 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
-import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
@@ -27,40 +27,43 @@ public class ChunkSummary {
 
     protected final TreeMap<Integer, @Nullable LayerSummary> layers = new TreeMap<>();
 
-    public static FloorSummary getTopFloor(World world, Chunk chunk, int x, int topY, int bottomY, int z, MutableBoolean foundAir) {
-        ChunkSection[] chunkSections = chunk.getSectionArray();
-        FloorSummary foundFloor = null;
-        for (int y = topY; y > bottomY; y--) {
-            int sectionIndex = chunk.getSectionIndex(y);
-            if (foundAir.isFalse() && chunkSections[sectionIndex].nonEmptyBlockCount == 4096) {
-                y = ChunkSectionPos.getBlockCoord(chunk.sectionIndexToCoord(sectionIndex));
-                continue;
-            }
-            if (chunkSections[sectionIndex].isEmpty()) {
-                foundAir.setTrue();
-                y = ChunkSectionPos.getBlockCoord(chunk.sectionIndexToCoord(sectionIndex));
-                continue;
-            }
-            BlockState state = chunkSections[sectionIndex].getBlockState(x & 15, y & 15, z & 15);
-            if (state.isAir()) {
-                foundAir.setTrue();
-                continue;
-            }
-            if (state.getMapColor(world, new BlockPos(x, y, z)) != MapColor.CLEAR && (state.blocksMovement() || !state.getFluidState().isEmpty())) {
-                if (foundFloor == null && foundAir.isTrue()) foundFloor = new FloorSummary(y, chunkSections[sectionIndex].getBiome(x & 3, y & 3, z & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y, z)));
-                foundAir.setFalse();
-            }
-        }
-        return foundFloor;
-    }
-
     public ChunkSummary(World world, Chunk chunk, TreeSet<Integer> layerYs, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Block> blockPalette) {
         TreeMap<Integer, FloorSummary[][]> uncompressedLayers = new TreeMap<>();
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
-                MutableBoolean foundAir = new MutableBoolean(false);
+                boolean foundAir = false;
+                int waterDepth = 0;
                 for (int i : layerYs.descendingSet()) {
-                    if (!layerYs.first().equals(i)) uncompressedLayers.computeIfAbsent(i, k -> new FloorSummary[16][16])[x][z] = getTopFloor(world, chunk, x, i, layerYs.lower(i), z, foundAir);
+                    if (!layerYs.first().equals(i)) {
+                        int bottomY = layerYs.lower(i);
+                        ChunkSection[] chunkSections = chunk.getSectionArray();
+                        FloorSummary foundFloor = null;
+                        for (int y = i; y > bottomY; y--) {
+                            int sectionIndex = chunk.getSectionIndex(y);
+                            if (chunkSections[sectionIndex].isEmpty()) {
+                                foundAir = true;
+                                waterDepth = 0;
+                                y = ChunkSectionPos.getBlockCoord(chunk.sectionIndexToCoord(sectionIndex));
+                                continue;
+                            }
+
+                            BlockState state = chunkSections[sectionIndex].getBlockState(x & 15, y & 15, z & 15);
+                            if (state.isAir()) {
+                                foundAir = true;
+                                waterDepth = 0;
+                                continue;
+                            }
+
+                            if (state.getMapColor(world, new BlockPos(x, y, z)) != MapColor.CLEAR && (state.blocksMovement() || (!state.getFluidState().isEmpty() && !state.getFluidState().isIn(FluidTags.WATER)))) {
+                                if (foundFloor == null && foundAir) foundFloor = new FloorSummary(y, chunkSections[sectionIndex].getBiome(x & 3, y & 3, z & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y, z)), waterDepth);
+                                foundAir = false;
+                                waterDepth = 0;
+                            } else if (state.getFluidState().isIn(FluidTags.WATER)) {
+                                waterDepth++;
+                            }
+                        }
+                        uncompressedLayers.computeIfAbsent(i, k -> new FloorSummary[16][16])[x][z] = foundFloor;
+                    }
                 }
             }
         }
