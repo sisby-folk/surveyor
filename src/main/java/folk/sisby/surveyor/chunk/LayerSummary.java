@@ -18,18 +18,19 @@ public class LayerSummary {
     public static final String KEY_LIGHT = "light";
     public static final String KEY_WATER = "water";
 
+    public static final int DEPTH_DEFAULT = -1;
     public static final int BIOME_DEFAULT = 0;
     public static final int BLOCK_DEFAULT = 0;
     public static final int LIGHT_DEFAULT = 0;
     public static final int WATER_DEFAULT = 0;
 
-    protected final UIntArray depth; // Null Mask
-    protected final UIntArray biome;
-    protected final UIntArray block;
-    protected final UIntArray light;
-    protected final UIntArray water;
+    protected final @Nullable UIntArray depth; // Null Mask
+    protected final @Nullable UIntArray biome;
+    protected final @Nullable UIntArray block;
+    protected final @Nullable UIntArray light;
+    protected final @Nullable UIntArray water;
 
-    protected LayerSummary(UIntArray depth, UIntArray biome, UIntArray block, UIntArray light, UIntArray water) {
+    protected LayerSummary(@Nullable UIntArray depth, @Nullable UIntArray biome, @Nullable UIntArray block, @Nullable UIntArray light, @Nullable UIntArray water) {
         this.depth = depth;
         this.biome = biome;
         this.block = block;
@@ -43,7 +44,7 @@ public class LayerSummary {
     }
 
     public static LayerSummary fromSummaries(FloorSummary[][] floorSummaries, int layerY, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Block> blockPalette) {
-        UIntArray depth = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).mapToInt(f -> f == null ? -1 : layerY - f.y()).toArray(), null);
+        UIntArray depth = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).mapToInt(f -> f == null ? -1 : layerY - f.y()).toArray(), DEPTH_DEFAULT);
         if (depth == null) return null;
         UIntArray biome = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::biome).mapToInt(b -> idOrAdd(biomePalette, b)).toArray(), BIOME_DEFAULT);
         UIntArray block = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::block).mapToInt(b -> idOrAdd(blockPalette, b)).toArray(), BLOCK_DEFAULT);
@@ -53,7 +54,7 @@ public class LayerSummary {
     }
 
     public static LayerSummary fromNbt(NbtCompound nbt) {
-        UIntArray depth = UIntArray.readNbt(nbt.get(KEY_DEPTH), null);
+        UIntArray depth = UIntArray.readNbt(nbt.get(KEY_DEPTH), DEPTH_DEFAULT);
         if (depth == null) return null;
         UIntArray biome = UIntArray.readNbt(nbt.get(KEY_BIOME), BIOME_DEFAULT);
         UIntArray block = UIntArray.readNbt(nbt.get(KEY_BLOCK), BLOCK_DEFAULT);
@@ -63,7 +64,7 @@ public class LayerSummary {
     }
 
     public NbtCompound writeNbt(NbtCompound nbt) {
-        this.depth.writeNbt(nbt, KEY_DEPTH);
+        if (depth != null) this.depth.writeNbt(nbt, KEY_DEPTH);
         if (biome != null) this.biome.writeNbt(nbt, KEY_BIOME);
         if (block != null) this.block.writeNbt(nbt, KEY_BLOCK);
         if (light != null) this.light.writeNbt(nbt, KEY_LIGHT);
@@ -72,11 +73,11 @@ public class LayerSummary {
     }
 
     public boolean isEmpty(int x, int z) {
-        return depth.isEmpty(x * 16 + z);
+        return depth == null || depth.isEmpty(x * 16 + z);
     }
 
     public int getDepth(int x, int z) {
-        return depth.get(x * 16 + z);
+        return isEmpty(x, z) ? DEPTH_DEFAULT : depth.get(x * 16 + z);
     }
 
     public int getBiome(int x, int z) {
