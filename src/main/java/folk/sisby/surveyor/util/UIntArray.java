@@ -42,6 +42,7 @@ public interface UIntArray {
     }
 
     static UIntArray fromUInts(int[] ints, Integer defaultValue) {
+        if (ints.length == 0) return null;
         long distinct = Arrays.stream(ints).distinct().count();
         if (distinct == 1 && Integer.valueOf(ints[0]).equals(defaultValue)) return null;
         boolean oneByte = Arrays.stream(ints).allMatch(UIntArray::fitsInByte);
