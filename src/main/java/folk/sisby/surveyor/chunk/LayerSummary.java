@@ -9,6 +9,7 @@ import net.minecraft.world.biome.Biome;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 public class LayerSummary {
     public static final String KEY_DEPTH = "depth";
@@ -17,7 +18,7 @@ public class LayerSummary {
     public static final String KEY_LIGHT = "light";
     public static final String KEY_WATER = "water";
 
-    protected final UIntArray depth;
+    protected final UIntArray depth; // Null Mask
     protected final UIntArray biome;
     protected final UIntArray block;
     protected final UIntArray light;
@@ -31,13 +32,18 @@ public class LayerSummary {
         this.water = water;
     }
 
+    public static <T> int idOrAdd(Int2ObjectBiMap<T> palette, T value) {
+        int id = palette.getRawId(value);
+        return id == -1 ? palette.add(value) : id;
+    }
+
     public static LayerSummary fromSummaries(FloorSummary[][] floorSummaries, int layerY, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Block> blockPalette) {
-        UIntArray depth = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? -1 : layerY - f.y()).toList());
+        UIntArray depth = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).mapToInt(f -> f == null ? -1 : layerY - f.y()).toArray());
         if (depth == null) return null;
-        UIntArray biome = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? null : biomePalette.getRawId(f.biome()) == -1 ? biomePalette.add(f.biome()) : biomePalette.getRawId(f.biome())).toList());
-        UIntArray block = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? null : blockPalette.getRawId(f.block()) == -1 ? blockPalette.add(f.block()) : blockPalette.getRawId(f.block())).toList());
-        UIntArray light = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? null : f.lightLevel()).toList());
-        UIntArray fluid = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).map(f -> f == null ? null : f.fluidDepth()).toList());
+        UIntArray biome = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::biome).mapToInt(b -> idOrAdd(biomePalette, b)).toArray());
+        UIntArray block = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::block).mapToInt(b -> idOrAdd(blockPalette, b)).toArray());
+        UIntArray light = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(FloorSummary::lightLevel).toArray());
+        UIntArray fluid = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(FloorSummary::fluidDepth).toArray());
         return new LayerSummary(depth, biome, block, light, fluid);
     }
 
@@ -62,7 +68,7 @@ public class LayerSummary {
 
     public @Nullable FloorSummary getFloor(int layerY, int x, int z, IndexedIterable<Biome> biomePalette, IndexedIterable<Block> blockPalette) {
         int i = x * 16 + z;
-        if (!depth.isEmpty(i)) return new FloorSummary(layerY + depth.get(i), biomePalette.get(biome.get(i)), blockPalette.get(block.get(i)), light.get(i), water.get(i));
+        if (!depth.isEmpty(i)) return new FloorSummary(layerY + depth.getMasked(depth, i), biomePalette.get(biome.getMasked(depth, i)), blockPalette.get(block.getMasked(depth, i)), light.getMasked(depth, i), water.getMasked(depth, i));
         return null;
     }
 }
