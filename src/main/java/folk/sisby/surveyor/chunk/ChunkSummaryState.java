@@ -14,13 +14,19 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.WorldChunk;
+import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
 public class ChunkSummaryState {
+    public static final String SERVERS_FILE_NAME = "servers.txt";
+    public static final String DATA_SUBFOLDER = "data";
+
     public enum Type {
         SERVER,
         CLIENT
@@ -51,21 +57,29 @@ public class ChunkSummaryState {
 
     public static File getClientDirectory(ClientWorld world) {
         ServerInfo info = MinecraftClient.getInstance().getCurrentServerEntry();
-        String serverFolder = "%s_%s".formatted(info.name, info.address).replaceAll("[^A-Za-z0-9_.]", "_");
         String saveFolder = String.valueOf(world.getBiomeAccess().seed);
         String dimNamespace = world.getRegistryKey().getValue().getNamespace();
         String dimPath = world.getRegistryKey().getValue().getPath();
-        return FabricLoader.getInstance().getGameDir().resolve(Surveyor.ID).resolve(serverFolder).resolve(saveFolder).resolve(dimNamespace).resolve(dimPath).toFile();
+        Path savePath = FabricLoader.getInstance().getGameDir().resolve(DATA_SUBFOLDER).resolve(Surveyor.ID).resolve(saveFolder);
+        savePath.toFile().mkdirs();
+        File serversFile = savePath.resolve(SERVERS_FILE_NAME).toFile();
+        try {
+            if (!serversFile.exists() || !FileUtils.readFileToString(serversFile, StandardCharsets.UTF_8).contains(info.name + "\n" + info.address)) {
+                FileUtils.writeStringToFile(serversFile, info.name + "\n" + info.address + "\n", StandardCharsets.UTF_8, true);
+            }
+        } catch (IOException e) {
+            Surveyor.LOGGER.error("[Surveyor] Error writing servers file for save {}.", savePath, e);
+        }
+        return savePath.resolve(dimNamespace).resolve(dimPath).toFile();
     }
 
-    public void save(World world, File dataFolder) {
+    public void save(World world, File folder) {
         Surveyor.LOGGER.info("[Surveyor] Saving summaries for {}", world.getRegistryKey().getValue());
-        File surveyorFolder = new File(dataFolder, Surveyor.ID);
-        surveyorFolder.mkdirs();
+        folder.mkdirs();
         regions.forEach((pos, summary) -> {
             if (!summary.isDirty()) return;
             NbtCompound regionCompound = summary.writeNbt(manager, new NbtCompound(), pos);
-            File regionFile = new File(surveyorFolder, "c.%d.%d.dat".formatted(pos.x, pos.z));
+            File regionFile = new File(folder, "c.%d.%d.dat".formatted(pos.x, pos.z));
             try {
                 NbtIo.writeCompressed(regionCompound, regionFile);
             } catch (IOException e) {
@@ -77,7 +91,7 @@ public class ChunkSummaryState {
 
     public void save(ServerWorld world) {
         if (type != Type.SERVER) return;
-        save(world, world.getPersistentStateManager().directory);
+        save(world, new File(world.getPersistentStateManager().directory, Surveyor.ID));
     }
 
     public void save(ClientWorld world) {
@@ -85,10 +99,9 @@ public class ChunkSummaryState {
         save(world, getClientDirectory(world));
     }
 
-    public static ChunkSummaryState load(Type type, World world, File dataFolder) {
-        File surveyorFolder = new File(dataFolder, Surveyor.ID);
-        surveyorFolder.mkdirs();
-        File[] chunkFiles = surveyorFolder.listFiles((file, name) -> {
+    public static ChunkSummaryState load(Type type, World world, File folder) {
+        folder.mkdirs();
+        File[] chunkFiles = folder.listFiles((file, name) -> {
             String[] split = name.split("\\.");
             if (split.length == 4 && split[0].equals("c") && split[3].equals("dat")) {
                 try {
@@ -100,7 +113,8 @@ public class ChunkSummaryState {
             }
             return false;
         });
-        Map<ChunkPos, RegionSummary> regions; regions = new HashMap<>();
+        Map<ChunkPos, RegionSummary> regions;
+        regions = new HashMap<>();
         if (chunkFiles != null) {
             for (File regionFile : chunkFiles) {
                 ChunkPos regionPos = new ChunkPos(Integer.parseInt(regionFile.getName().split("\\.")[1]), Integer.parseInt(regionFile.getName().split("\\.")[2]));
@@ -117,7 +131,7 @@ public class ChunkSummaryState {
     }
 
     public static ChunkSummaryState load(ServerWorld world) {
-        return load(Type.SERVER, world, world.getPersistentStateManager().directory);
+        return load(Type.SERVER, world, new File(world.getPersistentStateManager().directory, Surveyor.ID));
     }
 
     public static ChunkSummaryState load(ClientWorld world) {
