@@ -9,7 +9,6 @@ import net.minecraft.nbt.NbtInt;
 import net.minecraft.nbt.NbtIntArray;
 
 import java.util.Arrays;
-import java.util.Map;
 import java.util.stream.IntStream;
 
 public interface UIntArray {
@@ -26,14 +25,6 @@ public interface UIntArray {
     boolean isEmpty(int i);
 
     int get(int i);
-
-    default UIntArray map(Map<Integer, Integer> mapping, Integer defaultValue) {
-        return fromUInts(Arrays.stream(getUncompressed()).map(mapping::get).toArray(), defaultValue);
-    }
-
-    static UIntArray map(UIntArray array, Map<Integer, Integer> mapping, Integer defaultValue) {
-        return array == null ? fromUInts(new int[]{defaultValue}, defaultValue) : array.map(mapping, defaultValue);
-    }
 
     default int getMasked(UIntArray mask, int i) {
         return get((int) IntStream.range(0, i).filter(mask::isEmpty).count());

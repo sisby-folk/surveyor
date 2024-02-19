@@ -1,6 +1,5 @@
 package folk.sisby.surveyor.chunk;
 
-import folk.sisby.surveyor.util.SimplePalette;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -9,14 +8,16 @@ import net.minecraft.nbt.NbtString;
 import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.collection.IndexedIterable;
+import net.minecraft.util.collection.Int2ObjectBiMap;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
 
 public class RegionSummary {
     public static final int REGION_POWER = 5;
@@ -29,11 +30,19 @@ public class RegionSummary {
     public static final String KEY_BLOCK_COLORS = "blockColors";
     public static final String KEY_CHUNKS = "chunks";
 
-    protected SimplePalette<Biome, ChunkPos> biomePalette = new SimplePalette<>();
-    protected SimplePalette<Block, ChunkPos> blockPalette = new SimplePalette<>();
+    protected final Int2ObjectBiMap<Biome> biomePalette = Int2ObjectBiMap.create(255);
+    protected final Int2ObjectBiMap<Block> blockPalette = Int2ObjectBiMap.create(255);
     protected ChunkSummary[][] chunks = new ChunkSummary[REGION_SIZE][REGION_SIZE];
 
     protected boolean dirty = false;
+
+    public static <T, O> List<O> mapPalette(IndexedIterable<T> palette, Function<T, O> mapper) {
+        List<O> list = new ArrayList<>();
+        for (int i = 0; i < palette.size(); i++) {
+            list.add(mapper.apply(palette.get(i)));
+        }
+        return list;
+    }
 
     public static int regionRelative(int xz) {
         return xz & (RegionSummary.REGION_SIZE - 1);
@@ -60,23 +69,13 @@ public class RegionSummary {
         return this;
     }
 
-    public void rePalette() {
-        Map<Integer, Integer> biomeMapping = biomePalette.remap();
-        Map<Integer, Integer> blockMapping = blockPalette.remap();
-        Arrays.stream(chunks).flatMap(Arrays::stream).filter(Objects::nonNull).forEach(s -> {
-            s.remapBiomes(biomeMapping);
-            s.remapBlocks(blockMapping);
-        });
-    }
-
     public NbtCompound writeNbt(DynamicRegistryManager manager, NbtCompound nbt, ChunkPos regionPos) {
-        rePalette();
-        nbt.put(KEY_BIOMES, new NbtList(biomePalette.getValues().stream().map(b -> (NbtElement) NbtString.of(manager.get(RegistryKeys.BIOME).getId(b).toString())).toList(), NbtElement.STRING_TYPE));
-        nbt.put(KEY_BLOCKS, new NbtList(blockPalette.getValues().stream().map(b -> (NbtElement) NbtString.of(manager.get(RegistryKeys.BLOCK).getId(b).toString())).toList(), NbtElement.STRING_TYPE));
-        nbt.putIntArray(KEY_BIOME_WATER, biomePalette.getValues().stream().mapToInt(Biome::getWaterColor).toArray());
-        nbt.putIntArray(KEY_BIOME_FOLIAGE, biomePalette.getValues().stream().mapToInt(Biome::getFoliageColor).toArray());
-        nbt.putIntArray(KEY_BIOME_GRASS, biomePalette.getValues().stream().mapToInt(b -> b.getGrassColorAt(0, 0)).toArray());
-        nbt.putIntArray(KEY_BLOCK_COLORS, blockPalette.getValues().stream().mapToInt(b -> b.getDefaultMapColor().color).toArray());
+        nbt.put(KEY_BIOMES, new NbtList(mapPalette(biomePalette, b -> NbtString.of(manager.get(RegistryKeys.BIOME).getId(b).toString())), NbtElement.STRING_TYPE));
+        nbt.put(KEY_BLOCKS, new NbtList(mapPalette(blockPalette, b -> NbtString.of(manager.get(RegistryKeys.BLOCK).getId(b).toString())), NbtElement.STRING_TYPE));
+        nbt.putIntArray(KEY_BIOME_WATER, mapPalette(biomePalette, Biome::getWaterColor));
+        nbt.putIntArray(KEY_BIOME_FOLIAGE, mapPalette(biomePalette, Biome::getFoliageColor));
+        nbt.putIntArray(KEY_BIOME_GRASS, mapPalette(biomePalette, b -> b.getGrassColorAt(0, 0)));
+        nbt.putIntArray(KEY_BLOCK_COLORS, mapPalette(blockPalette, b -> b.getDefaultMapColor().color));
         NbtCompound chunksCompound = new NbtCompound();
         for (int x = 0; x < REGION_SIZE; x++) {
             for (int z = 0; z < REGION_SIZE; z++) {

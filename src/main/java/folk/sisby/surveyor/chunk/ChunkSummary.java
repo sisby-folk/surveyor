@@ -1,13 +1,13 @@
 package folk.sisby.surveyor.chunk;
 
-import folk.sisby.surveyor.util.SimplePalette;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.MapColor;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.tag.FluidTags;
+import net.minecraft.util.collection.IndexedIterable;
+import net.minecraft.util.collection.Int2ObjectBiMap;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.world.LightType;
 import net.minecraft.world.World;
@@ -17,7 +17,6 @@ import net.minecraft.world.chunk.ChunkSection;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Objects;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -29,7 +28,7 @@ public class ChunkSummary {
 
     protected final TreeMap<Integer, @Nullable LayerSummary> layers = new TreeMap<>();
 
-    public ChunkSummary(World world, Chunk chunk, TreeSet<Integer> layerYs, SimplePalette<Biome, ChunkPos> biomePalette, SimplePalette<Block, ChunkPos> blockPalette) {
+    public ChunkSummary(World world, Chunk chunk, TreeSet<Integer> layerYs, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Block> blockPalette) {
         TreeMap<Integer, FloorSummary[][]> uncompressedLayers = new TreeMap<>();
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
@@ -70,9 +69,7 @@ public class ChunkSummary {
                 }
             }
         }
-        biomePalette.clearOccurrences(chunk.getPos());
-        blockPalette.clearOccurrences(chunk.getPos());
-        uncompressedLayers.forEach((layerY, floors) -> this.layers.put(layerY, Arrays.stream(floors).allMatch(Objects::isNull) ? null : LayerSummary.fromSummaries(floors, layerY, biomePalette, blockPalette, chunk.getPos())));
+        uncompressedLayers.forEach((layerY, floors) -> this.layers.put(layerY, Arrays.stream(floors).allMatch(Objects::isNull) ? null : LayerSummary.fromSummaries(floors, layerY, biomePalette, blockPalette)));
     }
 
     public ChunkSummary(NbtCompound nbt) {
@@ -94,15 +91,7 @@ public class ChunkSummary {
         return nbt;
     }
 
-    public void remapBiomes(Map<Integer, Integer> mapping) {
-        layers.values().stream().filter(Objects::nonNull).forEach(l -> l.remapBiomes(mapping));
-    }
-
-    public void remapBlocks(Map<Integer, Integer> mapping) {
-        layers.values().stream().filter(Objects::nonNull).forEach(l -> l.remapBlocks(mapping));
-    }
-
-    public @Nullable FloorSummary getTopFloor(int x, int z, SimplePalette<Biome, ChunkPos> biomePalette, SimplePalette<Block, ChunkPos> blockPalette) {
+    public @Nullable FloorSummary getTopFloor(int x, int z, IndexedIterable<Biome> biomePalette, IndexedIterable<Block> blockPalette) {
         for (Integer layerY : layers.descendingKeySet()) {
             LayerSummary layer = layers.get(layerY);
             if (layer != null && !layer.isEmpty(x, z)) return layer.getFloor(layerY, x, z, biomePalette, blockPalette);
@@ -110,7 +99,7 @@ public class ChunkSummary {
         return null;
     }
 
-    public SortedMap<Integer, FloorSummary> getFloors(int x, int z, SimplePalette<Biome, ChunkPos> biomePalette, SimplePalette<Block, ChunkPos> blockPalette) {
+    public SortedMap<Integer, FloorSummary> getFloors(int x, int z, IndexedIterable<Biome> biomePalette, IndexedIterable<Block> blockPalette) {
         SortedMap<Integer, FloorSummary> map = new TreeMap<>();
         for (Integer layerY : layers.descendingKeySet()) {
             LayerSummary layer = layers.get(layerY);
@@ -119,7 +108,7 @@ public class ChunkSummary {
         return map;
     }
 
-    public SortedMap<Integer, @Nullable FloorSummary> getLayers(int x, int z, SimplePalette<Biome, ChunkPos> biomePalette, SimplePalette<Block, ChunkPos> blockPalette) {
+    public SortedMap<Integer, @Nullable FloorSummary> getLayers(int x, int z, IndexedIterable<Biome> biomePalette, IndexedIterable<Block> blockPalette) {
         SortedMap<Integer, FloorSummary> map = new TreeMap<>();
         for (Integer layerY : layers.descendingKeySet()) {
             LayerSummary layer = layers.get(layerY);

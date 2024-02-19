@@ -1,16 +1,15 @@
 package folk.sisby.surveyor.chunk;
 
-import folk.sisby.surveyor.util.SimplePalette;
 import folk.sisby.surveyor.util.UIntArray;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.collection.IndexedIterable;
+import net.minecraft.util.collection.Int2ObjectBiMap;
 import net.minecraft.world.biome.Biome;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Objects;
 
 public class LayerSummary {
@@ -27,8 +26,8 @@ public class LayerSummary {
     public static final int WATER_DEFAULT = 0;
 
     protected final @NotNull UIntArray depth; // Null Mask
-    protected @Nullable UIntArray biome;
-    protected @Nullable UIntArray block;
+    protected final @Nullable UIntArray biome;
+    protected final @Nullable UIntArray block;
     protected final @Nullable UIntArray light;
     protected final @Nullable UIntArray water;
 
@@ -40,11 +39,16 @@ public class LayerSummary {
         this.water = water;
     }
 
-    public static LayerSummary fromSummaries(FloorSummary[][] floorSummaries, int layerY, SimplePalette<Biome, ChunkPos> biomePalette, SimplePalette<Block, ChunkPos> blockPalette, ChunkPos paletteKey) {
+    public static <T> int idOrAdd(Int2ObjectBiMap<T> palette, T value) {
+        int id = palette.getRawId(value);
+        return id == -1 ? palette.add(value) : id;
+    }
+
+    public static LayerSummary fromSummaries(FloorSummary[][] floorSummaries, int layerY, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Block> blockPalette) {
         UIntArray depth = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).mapToInt(f -> f == null ? -1 : layerY - f.y()).toArray(), DEPTH_DEFAULT);
         if (depth == null) return null;
-        UIntArray biome = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::biome).mapToInt(b -> biomePalette.addOccurrence(paletteKey, b)).toArray(), BIOME_DEFAULT);
-        UIntArray block = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::block).mapToInt(b -> blockPalette.addOccurrence(paletteKey, b)).toArray(), BLOCK_DEFAULT);
+        UIntArray biome = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::biome).mapToInt(b -> idOrAdd(biomePalette, b)).toArray(), BIOME_DEFAULT);
+        UIntArray block = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::block).mapToInt(b -> idOrAdd(blockPalette, b)).toArray(), BLOCK_DEFAULT);
         UIntArray light = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(FloorSummary::lightLevel).toArray(), LIGHT_DEFAULT);
         UIntArray fluid = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(FloorSummary::fluidDepth).toArray(), WATER_DEFAULT);
         return new LayerSummary(depth, biome, block, light, fluid);
@@ -93,23 +97,15 @@ public class LayerSummary {
         return water == null ? WATER_DEFAULT : isEmpty(x, z) ? -1 : water.getMasked(depth, x * 16 + z);
     }
 
-    public Biome getBiome(int x, int z, SimplePalette<Biome, ChunkPos> biomePalette) {
+    public Biome getBiome(int x, int z, IndexedIterable<Biome> biomePalette) {
         return biomePalette.get(getBiome(x, z));
     }
 
-    public Block getBlock(int x, int z, SimplePalette<Block, ChunkPos> blockPalette) {
+    public Block getBlock(int x, int z, IndexedIterable<Block> blockPalette) {
         return blockPalette.get(getBlock(x, z));
     }
-    
-    public void remapBiomes(Map<Integer, Integer> mapping) {
-        UIntArray.map(biome, mapping, BIOME_DEFAULT);
-    }
 
-    public void remapBlocks(Map<Integer, Integer> mapping) {
-        UIntArray.map(block, mapping, BLOCK_DEFAULT);
-    }
-
-    public @Nullable FloorSummary getFloor(int layerY, int x, int z, SimplePalette<Biome, ChunkPos> biomePalette, SimplePalette<Block, ChunkPos> blockPalette) {
+    public @Nullable FloorSummary getFloor(int layerY, int x, int z, IndexedIterable<Biome> biomePalette, IndexedIterable<Block> blockPalette) {
         if (isEmpty(x, z)) return null;
         return new FloorSummary(layerY + getDepth(x, z), getBiome(x, z, biomePalette), getBlock(x, z, blockPalette), getLight(x, z), getWater(x, z));
     }

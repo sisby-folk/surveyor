@@ -39,7 +39,6 @@ public class ChunkSummaryState {
     }
 
     public void save(ServerWorld world) {
-        Surveyor.LOGGER.info("[Surveyor] Saving summaries for {}", world.getRegistryKey().getValue());
         File dataFolder = world.getPersistentStateManager().directory;
         File surveyorFolder = new File(dataFolder, Surveyor.ID);
         surveyorFolder.mkdirs();
@@ -53,7 +52,6 @@ public class ChunkSummaryState {
                 Surveyor.LOGGER.error("Error writing region summary file {}.", regionFile.getName(), e);
             }
         });
-        Surveyor.LOGGER.info("[Surveyor] Finished saving data for {}", world.getRegistryKey().getValue());
     }
 
     public static ChunkSummaryState load(ServerWorld world) {
