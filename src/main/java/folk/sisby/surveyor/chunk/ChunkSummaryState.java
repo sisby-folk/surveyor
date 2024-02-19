@@ -50,7 +50,7 @@ public class ChunkSummaryState {
             try {
                 NbtIo.writeCompressed(regionCompound, regionFile);
             } catch (IOException e) {
-                Surveyor.LOGGER.error("Error writing region summary file {}.", regionFile.getName(), e);
+                Surveyor.LOGGER.error("[Surveyor] Error writing region summary file {}.", regionFile.getName(), e);
             }
         });
         Surveyor.LOGGER.info("[Surveyor] Finished saving data for {}", world.getRegistryKey().getValue());
@@ -80,7 +80,7 @@ public class ChunkSummaryState {
                 try {
                     regionCompound = NbtIo.readCompressed(regionFile);
                 } catch (IOException e) {
-                    Surveyor.LOGGER.error("Error loading region summary file {}.", regionFile.getName(), e);
+                    Surveyor.LOGGER.error("[Surveyor] Error loading region summary file {}.", regionFile.getName(), e);
                 }
                 if (regionCompound != null) regions.put(regionPos, new RegionSummary().readNbt(regionCompound, world.getRegistryManager()));
             }
