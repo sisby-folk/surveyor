@@ -2,6 +2,10 @@ package folk.sisby.surveyor.chunk;
 
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorWorld;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ServerInfo;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.registry.DynamicRegistryManager;
@@ -17,6 +21,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ChunkSummaryState {
+    public enum Type {
+        SERVER,
+        CLIENT
+    }
+
+    public final Type type;
     protected final Map<ChunkPos, RegionSummary> regions;
     protected final DynamicRegistryManager manager;
 
@@ -24,7 +34,8 @@ public class ChunkSummaryState {
         return new ChunkPos(chunk.getPos().x >> RegionSummary.REGION_POWER, chunk.getPos().z >> RegionSummary.REGION_POWER);
     }
 
-    public ChunkSummaryState(Map<ChunkPos, RegionSummary> regions, DynamicRegistryManager manager) {
+    public ChunkSummaryState(Type type, Map<ChunkPos, RegionSummary> regions, DynamicRegistryManager manager) {
+        this.type = type;
         this.regions = regions;
         this.manager = manager;
     }
@@ -38,9 +49,17 @@ public class ChunkSummaryState {
         regions.computeIfAbsent(getRegionPos(chunk), k -> new RegionSummary()).putChunk(world, chunk);
     }
 
-    public void save(ServerWorld world) {
+    public static File getClientDirectory(ClientWorld world) {
+        ServerInfo info = MinecraftClient.getInstance().getCurrentServerEntry();
+        String serverFolder = "%s_%s".formatted(info.name, info.address).replaceAll("[^A-Za-z0-9_.]", "_");
+        String saveFolder = String.valueOf(world.getBiomeAccess().seed);
+        String dimNamespace = world.getRegistryKey().getValue().getNamespace();
+        String dimPath = world.getRegistryKey().getValue().getPath();
+        return FabricLoader.getInstance().getGameDir().resolve(Surveyor.ID).resolve(serverFolder).resolve(saveFolder).resolve(dimNamespace).resolve(dimPath).toFile();
+    }
+
+    public void save(World world, File dataFolder) {
         Surveyor.LOGGER.info("[Surveyor] Saving summaries for {}", world.getRegistryKey().getValue());
-        File dataFolder = world.getPersistentStateManager().directory;
         File surveyorFolder = new File(dataFolder, Surveyor.ID);
         surveyorFolder.mkdirs();
         regions.forEach((pos, summary) -> {
@@ -56,8 +75,17 @@ public class ChunkSummaryState {
         Surveyor.LOGGER.info("[Surveyor] Finished saving data for {}", world.getRegistryKey().getValue());
     }
 
-    public static ChunkSummaryState load(ServerWorld world) {
-        File dataFolder = world.getPersistentStateManager().directory;
+    public void save(ServerWorld world) {
+        if (type != Type.SERVER) return;
+        save(world, world.getPersistentStateManager().directory);
+    }
+
+    public void save(ClientWorld world) {
+        if (type != Type.CLIENT) return;
+        save(world, getClientDirectory(world));
+    }
+
+    public static ChunkSummaryState load(Type type, World world, File dataFolder) {
         File surveyorFolder = new File(dataFolder, Surveyor.ID);
         surveyorFolder.mkdirs();
         File[] chunkFiles = surveyorFolder.listFiles((file, name) -> {
@@ -85,16 +113,26 @@ public class ChunkSummaryState {
                 if (regionCompound != null) regions.put(regionPos, new RegionSummary().readNbt(regionCompound, world.getRegistryManager()));
             }
         }
-        return new ChunkSummaryState(regions, world.getRegistryManager());
+        return new ChunkSummaryState(type, regions, world.getRegistryManager());
     }
 
-    public static void onChunkLoad(ServerWorld world, Chunk chunk) {
-        ChunkSummaryState state = ((SurveyorWorld) world).surveyor$getChunkSummaryState();
-        if (!state.contains(chunk)) state.putChunk(world, chunk);
+    public static ChunkSummaryState load(ServerWorld world) {
+        return load(Type.SERVER, world, world.getPersistentStateManager().directory);
     }
 
-    public static void onChunkUnload(ServerWorld world, WorldChunk chunk) {
+    public static ChunkSummaryState load(ClientWorld world) {
+        return load(Type.CLIENT, world, getClientDirectory(world));
+    }
+
+    public static void onChunkLoad(World world, Chunk chunk) {
+        Type type = world instanceof ServerWorld ? Type.SERVER : Type.CLIENT;
         ChunkSummaryState state = ((SurveyorWorld) world).surveyor$getChunkSummaryState();
-        if (chunk.needsSaving()) state.putChunk(world, chunk);
+        if (state.type == type && !state.contains(chunk)) state.putChunk(world, chunk);
+    }
+
+    public static void onChunkUnload(World world, WorldChunk chunk) {
+        Type type = world instanceof ServerWorld ? Type.SERVER : Type.CLIENT;
+        ChunkSummaryState state = ((SurveyorWorld) world).surveyor$getChunkSummaryState();
+        if (state.type == type && chunk.needsSaving()) state.putChunk(world, chunk);
     }
 }
