@@ -15,14 +15,14 @@ public class MinecraftClientMixin {
     void onJoinWorld(ClientWorld world, CallbackInfo ci) {
         ClientWorld currentWorld = MinecraftClient.getInstance().world;
         if (currentWorld instanceof SurveyorWorld csw) {
-            csw.surveyor$getChunkSummaryState().save(currentWorld);
-            if (world instanceof SurveyorWorld sw) sw.surveyor$getChunkSummaryState();
+            csw.surveyor$getWorldSummary().save(currentWorld);
+            if (world instanceof SurveyorWorld sw) sw.surveyor$getWorldSummary();
         }
     }
 
     @Inject(method = "disconnect(Lnet/minecraft/client/gui/screen/Screen;)V", at = @At("HEAD"))
     void onDisconnect(Screen screen, CallbackInfo ci) {
         ClientWorld currentWorld = MinecraftClient.getInstance().world;
-        if (currentWorld instanceof SurveyorWorld sw) sw.surveyor$getChunkSummaryState().save(currentWorld);
+        if (currentWorld instanceof SurveyorWorld sw) sw.surveyor$getWorldSummary().save(currentWorld);
     }
 }

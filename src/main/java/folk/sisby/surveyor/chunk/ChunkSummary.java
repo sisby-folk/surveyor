@@ -22,7 +22,6 @@ import java.util.Objects;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 public class ChunkSummary {
     public static final int MINIMUM_AIR_DEPTH = 2;
@@ -96,6 +95,10 @@ public class ChunkSummary {
         });
         nbt.put(KEY_LAYERS, layersCompound);
         return nbt;
+    }
+
+    public Integer getAirCount() {
+        return airCount;
     }
 
     public @Nullable FloorSummary getTopFloor(int x, int z, IndexedIterable<Biome> biomePalette, IndexedIterable<Block> blockPalette) {

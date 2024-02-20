@@ -1,7 +1,7 @@
-package folk.sisby.surveyor.chunk;
+package folk.sisby.surveyor;
 
-import folk.sisby.surveyor.Surveyor;
-import folk.sisby.surveyor.SurveyorWorld;
+import folk.sisby.surveyor.chunk.ChunkSummary;
+import folk.sisby.surveyor.chunk.RegionSummary;
 import folk.sisby.surveyor.util.ChunkUtil;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
@@ -24,7 +24,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ChunkSummaryState {
+public class WorldSummary {
     public static final String SERVERS_FILE_NAME = "servers.txt";
     public static final String DATA_SUBFOLDER = "data";
 
@@ -41,7 +41,7 @@ public class ChunkSummaryState {
         return new ChunkPos(pos.x >> RegionSummary.REGION_POWER, pos.z >> RegionSummary.REGION_POWER);
     }
 
-    public ChunkSummaryState(Type type, Map<ChunkPos, RegionSummary> regions, DynamicRegistryManager manager) {
+    public WorldSummary(Type type, Map<ChunkPos, RegionSummary> regions, DynamicRegistryManager manager) {
         this.type = type;
         this.regions = regions;
         this.manager = manager;
@@ -105,7 +105,7 @@ public class ChunkSummaryState {
         save(world, getClientDirectory(world));
     }
 
-    public static ChunkSummaryState load(Type type, World world, File folder) {
+    public static WorldSummary load(Type type, World world, File folder) {
         folder.mkdirs();
         File[] chunkFiles = folder.listFiles((file, name) -> {
             String[] split = name.split("\\.");
@@ -133,26 +133,26 @@ public class ChunkSummaryState {
                 if (regionCompound != null) regions.put(regionPos, new RegionSummary(type).readNbt(regionCompound, world.getRegistryManager()));
             }
         }
-        return new ChunkSummaryState(type, regions, world.getRegistryManager());
+        return new WorldSummary(type, regions, world.getRegistryManager());
     }
 
-    public static ChunkSummaryState load(ServerWorld world) {
+    public static WorldSummary load(ServerWorld world) {
         return load(Type.SERVER, world, new File(world.getPersistentStateManager().directory, Surveyor.ID));
     }
 
-    public static ChunkSummaryState load(ClientWorld world) {
+    public static WorldSummary load(ClientWorld world) {
         return load(Type.CLIENT, world, getClientDirectory(world));
     }
 
     public static void onChunkLoad(World world, Chunk chunk) {
         Type type = world instanceof ServerWorld ? Type.SERVER : Type.CLIENT;
-        ChunkSummaryState state = ((SurveyorWorld) world).surveyor$getChunkSummaryState();
-        if (state.type == type && (!state.contains(chunk.getPos()) || !ChunkUtil.airCount(chunk).equals(state.get(chunk.getPos()).airCount))) state.putChunk(world, chunk);
+        WorldSummary state = ((SurveyorWorld) world).surveyor$getWorldSummary();
+        if (state.type == type && (!state.contains(chunk.getPos()) || !ChunkUtil.airCount(chunk).equals(state.get(chunk.getPos()).getAirCount()))) state.putChunk(world, chunk);
     }
 
     public static void onChunkUnload(World world, WorldChunk chunk) {
         Type type = world instanceof ServerWorld ? Type.SERVER : Type.CLIENT;
-        ChunkSummaryState state = ((SurveyorWorld) world).surveyor$getChunkSummaryState();
+        WorldSummary state = ((SurveyorWorld) world).surveyor$getWorldSummary();
         if (state.type == type && chunk.needsSaving()) state.putChunk(world, chunk);
     }
 }
