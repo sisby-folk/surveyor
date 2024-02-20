@@ -18,10 +18,10 @@ import net.minecraft.world.chunk.ChunkSection;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
+import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 public class ChunkSummary {
     public static final int MINIMUM_AIR_DEPTH = 2;
@@ -31,7 +31,7 @@ public class ChunkSummary {
     protected final Integer airCount;
     protected final TreeMap<Integer, @Nullable LayerSummary> layers = new TreeMap<>();
 
-    public ChunkSummary(World world, Chunk chunk, TreeSet<Integer> layerYs, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Block> blockPalette, boolean countAir) {
+    public ChunkSummary(World world, Chunk chunk, NavigableSet<Integer> layerYs, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Block> blockPalette, boolean countAir) {
         this.airCount = countAir ? ChunkUtil.airCount(chunk) : null;
         TreeMap<Integer, FloorSummary[][]> uncompressedLayers = new TreeMap<>();
         for (int x = 0; x < 16; x++) {
@@ -43,39 +43,31 @@ public class ChunkSummary {
                         int bottomY = layerYs.lower(i);
                         ChunkSection[] chunkSections = chunk.getSectionArray();
                         FloorSummary foundFloor = null;
-                        BlockState prevState = null;
-                        for (int y = i - 1; y > bottomY - 1 && y > chunk.getBottomY(); y--) {
+                        for (int y = i; y > bottomY; y--) {
                             int sectionIndex = chunk.getSectionIndex(y);
                             if (chunkSections[sectionIndex].isEmpty()) {
                                 int chunkBottom = ChunkSectionPos.getBlockCoord(chunk.sectionIndexToCoord(sectionIndex));
                                 airDepth += (y - chunkBottom + 1);
                                 waterDepth = 0;
-                                prevState = null;
                                 y = chunkBottom;
                                 continue;
                             }
 
                             BlockState state = chunkSections[sectionIndex].getBlockState(x & 15, y & 15, z & 15);
-                            if (state.isAir()) {
+                            if (!state.blocksMovement()) { // The current block's air counts for space - a 2 block high walkway with a torch or grass is valid - the floor is the torch/grass.
                                 airDepth++;
                                 waterDepth = 0;
-                            } else {
-                                if (state.getMapColor(world, new BlockPos(x, y, z)) != MapColor.CLEAR && (state.blocksMovement() || (!state.getFluidState().isEmpty() && !state.getFluidState().isIn(FluidTags.WATER)))) {
-                                    if (foundFloor == null && airDepth > MINIMUM_AIR_DEPTH) {
-                                        int yAbove = y + 1;
-                                        if (prevState != null && prevState.getMapColor(world, new BlockPos(x, yAbove, z)) != MapColor.CLEAR && prevState.getFluidState().isEmpty()) { // Carpet Clause (Snow etc)
-                                            foundFloor = new FloorSummary(y, chunkSections[chunk.getSectionIndex(yAbove)].getBiome(x & 3, yAbove & 3, z & 3).value(), prevState.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, yAbove, z)), waterDepth);
-                                        } else {
-                                            foundFloor = new FloorSummary(y, chunkSections[sectionIndex].getBiome(x & 3, y & 3, z & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y, z)), waterDepth);
-                                        }
-                                    }
-                                    airDepth = 0;
-                                    waterDepth = 0;
-                                } else if (state.getFluidState().isIn(FluidTags.WATER)) {
-                                    waterDepth++;
-                                }
                             }
-                            prevState = state;
+
+                            if (state.getFluidState().isIn(FluidTags.WATER)) { // Floors can't be waterlogged, otherwise it ruins depth measurement.
+                                waterDepth++;
+                            } else if (state.getMapColor(world, new BlockPos(x, y, z)) != MapColor.CLEAR) {
+                                if (foundFloor == null && airDepth > MINIMUM_AIR_DEPTH) {
+                                    foundFloor = new FloorSummary(y, chunkSections[sectionIndex].getBiome(x & 3, y & 3, z & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y, z)), waterDepth);
+                                }
+                                airDepth = 0;
+                                waterDepth = 0;
+                            }
                         }
                         uncompressedLayers.computeIfAbsent(i, k -> new FloorSummary[16][16])[x][z] = foundFloor;
                     }
