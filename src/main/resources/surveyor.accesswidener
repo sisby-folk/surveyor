@@ -7,3 +7,4 @@ accessible method net/minecraft/nbt/NbtList <init> (Ljava/util/List;B)V
 accessible field net/minecraft/world/PersistentStateManager directory Ljava/io/File;
 accessible field net/minecraft/world/biome/source/BiomeAccess seed J
 accessible field net/minecraft/structure/pool/ListPoolElement elements Ljava/util/List;
+accessible field net/minecraft/structure/PoolStructurePiece structureTemplateManager Lnet/minecraft/structure/StructureTemplateManager;

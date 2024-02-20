@@ -120,9 +120,9 @@ public record StructureSummary(Collection<StructurePieceSummary> pieces) {
                 listElement.elements.forEach(e -> allSummaries.addAll(tryFromElement(e, piece)));
                 return allSummaries;
             } else if (poolElement instanceof SinglePoolElement singleElement && singleElement.location.left().isPresent()) {
-                return List.of(new JigsawSummary(StructurePoolElementType.SINGLE_POOL_ELEMENT, singleElement.location.left().orElseThrow(), piece.getBoundingBox(), piece.getJunctions()));
+                return List.of(new JigsawSummary(StructurePoolElementType.SINGLE_POOL_ELEMENT, singleElement.location.left().orElseThrow(), poolElement.getBoundingBox(piece.structureTemplateManager, piece.getPos(), piece.getRotation()), piece.getJunctions()));
             } else if (poolElement instanceof FeaturePoolElement featureElement && featureElement.feature.getKey().isPresent()) {
-                return List.of(new JigsawSummary(StructurePoolElementType.FEATURE_POOL_ELEMENT, featureElement.feature.getKey().orElseThrow().getValue(), piece.getBoundingBox(), piece.getJunctions()));
+                return List.of(new JigsawSummary(StructurePoolElementType.FEATURE_POOL_ELEMENT, featureElement.feature.getKey().orElseThrow().getValue(), poolElement.getBoundingBox(piece.structureTemplateManager, piece.getPos(), piece.getRotation()), piece.getJunctions()));
             }
             return List.of();
         }
