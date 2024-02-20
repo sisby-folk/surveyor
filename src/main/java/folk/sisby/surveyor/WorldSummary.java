@@ -2,6 +2,7 @@ package folk.sisby.surveyor;
 
 import folk.sisby.surveyor.chunk.ChunkSummary;
 import folk.sisby.surveyor.chunk.RegionSummary;
+import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.util.ChunkUtil;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
@@ -11,6 +12,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.structure.StructureStart;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
@@ -32,33 +34,42 @@ public class WorldSummary {
         SERVER,
         CLIENT
     }
-
     public final Type type;
-    protected final Map<ChunkPos, RegionSummary> regions;
-    protected final DynamicRegistryManager manager;
 
+    protected final Map<ChunkPos, RegionSummary> regions;
+    protected final WorldStructureSummary structures;
+    protected final DynamicRegistryManager manager;
     public static ChunkPos getRegionPos(ChunkPos pos) {
         return new ChunkPos(pos.x >> RegionSummary.REGION_POWER, pos.z >> RegionSummary.REGION_POWER);
     }
 
-    public WorldSummary(Type type, Map<ChunkPos, RegionSummary> regions, DynamicRegistryManager manager) {
+    public WorldSummary(Type type, Map<ChunkPos, RegionSummary> regions, WorldStructureSummary structures, DynamicRegistryManager manager) {
         this.type = type;
         this.regions = regions;
+        this.structures = structures;
         this.manager = manager;
     }
 
-    public boolean contains(ChunkPos pos) {
+    public boolean containsChunk(ChunkPos pos) {
         ChunkPos regionPos = getRegionPos(pos);
         return regions.containsKey(regionPos) && regions.get(regionPos).contains(pos);
     }
 
-    public ChunkSummary get(ChunkPos pos) {
+    public boolean containsStructure(World world, StructureStart start) {
+        return structures.contains(world, start);
+    }
+
+    public ChunkSummary getChunk(ChunkPos pos) {
         ChunkPos regionPos = getRegionPos(pos);
         return regions.get(regionPos).get(pos);
     }
 
     public void putChunk(World world, Chunk chunk) {
         regions.computeIfAbsent(getRegionPos(chunk.getPos()), k -> new RegionSummary(type)).putChunk(world, chunk);
+    }
+
+    private void putStructure(World world, StructureStart start) {
+        structures.putStructure(world, start);
     }
 
     public static File getClientDirectory(ClientWorld world) {
@@ -92,6 +103,14 @@ public class WorldSummary {
                 Surveyor.LOGGER.error("[Surveyor] Error writing region summary file {}.", regionFile.getName(), e);
             }
         });
+        if (structures.isDirty()) {
+            File structureFile = new File(folder, "structures.dat");
+            try {
+                NbtIo.writeCompressed(structures.writeNbt(new NbtCompound()), structureFile);
+            } catch (IOException e) {
+                Surveyor.LOGGER.error("[Surveyor] Error writing structure summary file for {}.", world.getRegistryKey().getValue(), e);
+            }
+        }
         Surveyor.LOGGER.info("[Surveyor] Finished saving data for {}", world.getRegistryKey().getValue());
     }
 
@@ -133,7 +152,17 @@ public class WorldSummary {
                 if (regionCompound != null) regions.put(regionPos, new RegionSummary(type).readNbt(regionCompound, world.getRegistryManager()));
             }
         }
-        return new WorldSummary(type, regions, world.getRegistryManager());
+        NbtCompound structureNbt = new NbtCompound();
+        File structureFile = new File(folder, "structures.dat");
+        if (structureFile.exists()) {
+            try {
+                structureNbt = NbtIo.readCompressed(structureFile);
+            } catch (IOException e) {
+                Surveyor.LOGGER.error("[Surveyor] Error loading structure summary file for {}.", world.getRegistryKey().getValue(), e);
+            }
+        }
+        WorldStructureSummary structures = WorldStructureSummary.readNbt(structureNbt);
+        return new WorldSummary(type, regions, structures, world.getRegistryManager());
     }
 
     public static WorldSummary load(ServerWorld world) {
@@ -147,12 +176,20 @@ public class WorldSummary {
     public static void onChunkLoad(World world, Chunk chunk) {
         Type type = world instanceof ServerWorld ? Type.SERVER : Type.CLIENT;
         WorldSummary state = ((SurveyorWorld) world).surveyor$getWorldSummary();
-        if (state.type == type && (!state.contains(chunk.getPos()) || !ChunkUtil.airCount(chunk).equals(state.get(chunk.getPos()).getAirCount()))) state.putChunk(world, chunk);
+        if (state.type == type && (!state.containsChunk(chunk.getPos()) || !ChunkUtil.airCount(chunk).equals(state.getChunk(chunk.getPos()).getAirCount()))) state.putChunk(world, chunk);
+        chunk.getStructureStarts().forEach((structure, start) -> {
+            if (!state.containsStructure(world, start)) state.putStructure(world, start);
+        });
     }
 
     public static void onChunkUnload(World world, WorldChunk chunk) {
         Type type = world instanceof ServerWorld ? Type.SERVER : Type.CLIENT;
         WorldSummary state = ((SurveyorWorld) world).surveyor$getWorldSummary();
         if (state.type == type && chunk.needsSaving()) state.putChunk(world, chunk);
+    }
+
+    public static void onStructurePlace(World world, StructureStart start) {
+        WorldSummary state = ((SurveyorWorld) world).surveyor$getWorldSummary();
+        if (!state.containsStructure(world, start)) state.putStructure(world, start);
     }
 }

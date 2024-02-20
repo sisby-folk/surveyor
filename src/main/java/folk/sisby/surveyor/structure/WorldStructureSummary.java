@@ -6,20 +6,17 @@ import net.minecraft.nbt.NbtList;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructureStart;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.PersistentState;
-import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.Structure;
 import net.minecraft.world.gen.structure.StructureType;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class StructureSummaryState extends PersistentState {
-    public static final String STATE_KEY = "surveyor_structure_summary";
+public class WorldStructureSummary {
     public static final String KEY_STRUCTURES = "structures";
     public static final String KEY_X = "x";
     public static final String KEY_Z = "z";
@@ -29,19 +26,23 @@ public class StructureSummaryState extends PersistentState {
 
     private final Map<ChunkPos, Map<StructureKey, StructureSummary>> structures;
 
-    public StructureSummaryState(Map<ChunkPos, Map<StructureKey, StructureSummary>> structures) {
+    protected boolean dirty = false;
+
+    public WorldStructureSummary(Map<ChunkPos, Map<StructureKey, StructureSummary>> structures) {
         this.structures = structures;
     }
 
-    public void addStructure(ServerWorld world, StructureStart start) {
-        RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElseThrow();
-        structures.computeIfAbsent(start.getPos(), p -> new HashMap<>()).computeIfAbsent(new StructureKey(key, start.getStructure().getType()), k -> {
-            markDirty();
+    public boolean contains(World world, StructureStart start) {
+        return structures.containsKey(start.getPos()) && structures.get(start.getPos()).containsKey(new StructureKey(world, start));
+    }
+
+    public void putStructure(World world, StructureStart start) {
+        structures.computeIfAbsent(start.getPos(), p -> new HashMap<>()).computeIfAbsent(new StructureKey(world, start), k -> {
+            dirty = true;
             return StructureSummary.fromStart(start);
         });
     }
 
-    @Override
     public NbtCompound writeNbt(NbtCompound nbt) {
         Map<StructureKey, Map<ChunkPos, StructureSummary>> perStructure = new HashMap<>();
         structures.forEach((pos, map) -> map.forEach((structure, summary) -> {
@@ -66,12 +67,12 @@ public class StructureSummaryState extends PersistentState {
         return nbt;
     }
 
-    public static StructureSummaryState readNbt(NbtCompound nbt) {
+    public static WorldStructureSummary readNbt(NbtCompound nbt) {
         Map<ChunkPos, Map<StructureKey, StructureSummary>> structures = new HashMap<>();
         for (String structureId : nbt.getCompound(KEY_STRUCTURES).getKeys()) {
             RegistryKey<Structure> key = RegistryKey.of(RegistryKeys.STRUCTURE, new Identifier(structureId));
             StructureType<?> type = Registries.STRUCTURE_TYPE.get(new Identifier(nbt.getCompound(structureId).getString(KEY_TYPE)));
-            NbtList startList = nbt.getCompound(KEY_STRUCTURES).getList(structureId, NbtElement.COMPOUND_TYPE);
+            NbtList startList = nbt.getCompound(structureId).getCompound(KEY_STARTS).getList(structureId, NbtElement.COMPOUND_TYPE);
             for (NbtElement startElement : startList) {
                 NbtCompound startCompound = (NbtCompound) startElement;
                 ChunkPos pos = new ChunkPos(startCompound.getInt(KEY_X), startCompound.getInt(KEY_Z));
@@ -79,28 +80,16 @@ public class StructureSummaryState extends PersistentState {
                 structures.computeIfAbsent(pos, p -> new HashMap<>()).put(new StructureKey(key, type), summary);
             }
         }
-        return new StructureSummaryState(structures);
+        return new WorldStructureSummary(structures);
     }
 
-    public static StructureSummaryState getOrCreate(ServerWorld world) {
-        return world.getPersistentStateManager().getOrCreate(StructureSummaryState::readNbt, () -> {
-            StructureSummaryState state = new StructureSummaryState(new HashMap<>());
-            state.markDirty();
-            return state;
-        }, STATE_KEY);
-    }
-
-    public static void onStructurePlace(ServerWorld world, StructureStart start) {
-        StructureSummaryState state = StructureSummaryState.getOrCreate(world);
-        state.addStructure(world, start);
-    }
-
-    public static void onChunkLoad(ServerWorld world, Chunk chunk) {
-        StructureSummaryState state = StructureSummaryState.getOrCreate(world);
-        chunk.getStructureStarts().forEach((structure, start) -> state.addStructure(world, start));
+    public boolean isDirty() {
+        return dirty;
     }
 
     public record StructureKey(RegistryKey<Structure> key, StructureType<?> type) {
-
+        StructureKey(World world, StructureStart start) {
+            this(world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElseThrow(), start.getStructure().getType());
+        }
     }
 }
