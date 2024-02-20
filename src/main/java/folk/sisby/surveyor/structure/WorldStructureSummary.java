@@ -1,8 +1,6 @@
 package folk.sisby.surveyor.structure;
 
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
@@ -18,11 +16,8 @@ import java.util.Map;
 
 public class WorldStructureSummary {
     public static final String KEY_STRUCTURES = "structures";
-    public static final String KEY_X = "x";
-    public static final String KEY_Z = "z";
     public static final String KEY_TYPE = "type";
     public static final String KEY_STARTS = "starts";
-    public static final String KEY_SUMMARY = "summary";
 
     private final Map<ChunkPos, Map<StructureKey, StructureSummary>> structures;
 
@@ -45,22 +40,17 @@ public class WorldStructureSummary {
 
     public NbtCompound writeNbt(NbtCompound nbt) {
         Map<StructureKey, Map<ChunkPos, StructureSummary>> perStructure = new HashMap<>();
-        structures.forEach((pos, map) -> map.forEach((structure, summary) -> {
-            perStructure.computeIfAbsent(structure, p -> new HashMap<>()).put(pos, summary);
-        }));
+        structures.forEach((pos, map) -> map.forEach((structure, summary) -> perStructure.computeIfAbsent(structure, p -> new HashMap<>()).put(pos, summary)));
         NbtCompound structuresCompound = new NbtCompound();
         perStructure.forEach((structure, map) -> {
             NbtCompound structureCompound = new NbtCompound();
             structureCompound.putString(KEY_TYPE, Registries.STRUCTURE_TYPE.getId(structure.type).toString());
-            NbtList startList = new NbtList();
+            NbtCompound startsCompound = new NbtCompound();
             map.forEach((pos, summary) -> {
-                NbtCompound startCompound = new NbtCompound();
-                startCompound.putInt(KEY_X, pos.x);
-                startCompound.putInt(KEY_Z, pos.z);
-                startCompound.put(KEY_SUMMARY, summary.writeNbt(new NbtCompound()));
-                startList.add(startCompound);
+                NbtCompound startCompound = summary.writeNbt(new NbtCompound());
+                startsCompound.put("%s,%s".formatted(pos.x, pos.z), startCompound);
             });
-            structureCompound.put(KEY_STARTS, startList);
+            structureCompound.put(KEY_STARTS, startsCompound);
             structuresCompound.put(structure.key.getValue().toString(), structureCompound);
         });
         nbt.put(KEY_STRUCTURES, structuresCompound);
@@ -69,15 +59,17 @@ public class WorldStructureSummary {
 
     public static WorldStructureSummary readNbt(NbtCompound nbt) {
         Map<ChunkPos, Map<StructureKey, StructureSummary>> structures = new HashMap<>();
-        for (String structureId : nbt.getCompound(KEY_STRUCTURES).getKeys()) {
+        NbtCompound structuresCompound = nbt.getCompound(KEY_STRUCTURES);
+        for (String structureId : structuresCompound.getKeys()) {
             RegistryKey<Structure> key = RegistryKey.of(RegistryKeys.STRUCTURE, new Identifier(structureId));
-            StructureType<?> type = Registries.STRUCTURE_TYPE.get(new Identifier(nbt.getCompound(structureId).getString(KEY_TYPE)));
-            NbtList startList = nbt.getCompound(structureId).getCompound(KEY_STARTS).getList(structureId, NbtElement.COMPOUND_TYPE);
-            for (NbtElement startElement : startList) {
-                NbtCompound startCompound = (NbtCompound) startElement;
-                ChunkPos pos = new ChunkPos(startCompound.getInt(KEY_X), startCompound.getInt(KEY_Z));
-                StructureSummary summary = StructureSummary.fromNbt(startCompound.getCompound(KEY_SUMMARY));
-                structures.computeIfAbsent(pos, p -> new HashMap<>()).put(new StructureKey(key, type), summary);
+            NbtCompound structureCompound = structuresCompound.getCompound(structureId);
+            StructureType<?> type = Registries.STRUCTURE_TYPE.get(new Identifier(structureCompound.getString(KEY_TYPE)));
+            NbtCompound startsCompound = structureCompound.getCompound(KEY_STARTS);
+            for (String posKey : startsCompound.getKeys()) {
+                int x = Integer.parseInt(posKey.split(",")[0]);
+                int z = Integer.parseInt(posKey.split(",")[1]);
+                NbtCompound startCompound = startsCompound.getCompound(posKey);
+                structures.computeIfAbsent(new ChunkPos(x, z), p -> new HashMap<>()).put(new StructureKey(key, type), StructureSummary.fromNbt(startCompound));
             }
         }
         return new WorldStructureSummary(structures);

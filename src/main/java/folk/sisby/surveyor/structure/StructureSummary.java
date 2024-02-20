@@ -15,7 +15,9 @@ import net.minecraft.structure.StructurePiece;
 import net.minecraft.structure.StructurePieceType;
 import net.minecraft.structure.StructureStart;
 import net.minecraft.structure.pool.FeaturePoolElement;
+import net.minecraft.structure.pool.ListPoolElement;
 import net.minecraft.structure.pool.SinglePoolElement;
+import net.minecraft.structure.pool.StructurePoolElement;
 import net.minecraft.structure.pool.StructurePoolElementType;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockBox;
@@ -24,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public record StructureSummary(Collection<StructurePieceSummary> pieces) {
     public static final String KEY_BOX = "BB";
@@ -33,14 +34,18 @@ public record StructureSummary(Collection<StructurePieceSummary> pieces) {
     public static StructureSummary fromStart(StructureStart start) {
         List<StructurePieceSummary> pieces = new ArrayList<>();
         for (StructurePiece piece : start.getChildren()) {
-            pieces.add(JigsawSummary.tryFromPiece(piece).orElseGet(() -> StructurePieceSummary.fromPiece(piece)));
+            if (piece.getType().equals(StructurePieceType.JIGSAW)) {
+                pieces.addAll(JigsawSummary.tryFromPiece(piece));
+            } else {
+                pieces.add(StructurePieceSummary.fromPiece(piece));
+            }
         }
         return new StructureSummary(pieces);
     }
 
     public static StructureSummary fromNbt(NbtCompound nbt) {
         Collection<StructurePieceSummary> pieces = new ArrayList<>();
-        for (NbtElement pieceElement : nbt.getList(KEY_PIECES, NbtElement.STRING_TYPE)) {
+        for (NbtElement pieceElement : nbt.getList(KEY_PIECES, NbtElement.COMPOUND_TYPE)) {
             if (((NbtCompound) pieceElement).getString(StructurePieceSummary.KEY_TYPE).equals(Registries.STRUCTURE_PIECE.getId(StructurePieceType.JIGSAW).toString())) {
                 pieces.add(JigsawSummary.fromNbt((NbtCompound) pieceElement));
             } else {
@@ -93,6 +98,8 @@ public record StructureSummary(Collection<StructurePieceSummary> pieces) {
             "feature", StructurePoolElementType.FEATURE_POOL_ELEMENT
         ));
         public static final String KEY_JUNCTIONS = "junctions";
+        public static final String KEY_JUNCTION_X = "source_x";
+        public static final String KEY_JUNCTION_Z = "source_z";
         public final StructurePoolElementType<?> jigsawType;
         public final Identifier id;
         public final BlockBox boundingBox;
@@ -106,15 +113,25 @@ public record StructureSummary(Collection<StructurePieceSummary> pieces) {
             this.junctions = junctions;
         }
 
-        public static Optional<StructurePieceSummary> tryFromPiece(StructurePiece piece) {
-            if (piece instanceof PoolStructurePiece poolPiece) {
-                if (poolPiece.getPoolElement() instanceof SinglePoolElement poolElement && poolElement.location.left().isPresent()) {
-                    return Optional.of(new JigsawSummary(StructurePoolElementType.SINGLE_POOL_ELEMENT, poolElement.location.left().orElseThrow(), piece.getBoundingBox(), poolPiece.getJunctions()));
-                } else if (poolPiece.getPoolElement() instanceof FeaturePoolElement poolElement && poolElement.feature.getKey().isPresent()) {
-                    return Optional.of(new JigsawSummary(StructurePoolElementType.FEATURE_POOL_ELEMENT, poolElement.feature.getKey().orElseThrow().getValue(), piece.getBoundingBox(), poolPiece.getJunctions()));
-                }
+
+        public static List<StructurePieceSummary> tryFromElement(StructurePoolElement poolElement, PoolStructurePiece piece) {
+            if (poolElement instanceof ListPoolElement listElement) {
+                List<StructurePieceSummary> allSummaries = new ArrayList<>();
+                listElement.elements.forEach(e -> allSummaries.addAll(tryFromElement(e, piece)));
+                return allSummaries;
+            } else if (poolElement instanceof SinglePoolElement singleElement && singleElement.location.left().isPresent()) {
+                return List.of(new JigsawSummary(StructurePoolElementType.SINGLE_POOL_ELEMENT, singleElement.location.left().orElseThrow(), piece.getBoundingBox(), piece.getJunctions()));
+            } else if (poolElement instanceof FeaturePoolElement featureElement && featureElement.feature.getKey().isPresent()) {
+                return List.of(new JigsawSummary(StructurePoolElementType.FEATURE_POOL_ELEMENT, featureElement.feature.getKey().orElseThrow().getValue(), piece.getBoundingBox(), piece.getJunctions()));
             }
-            return Optional.empty();
+            return List.of();
+        }
+
+        public static List<StructurePieceSummary> tryFromPiece(StructurePiece piece) {
+            if (piece instanceof PoolStructurePiece poolPiece) {
+                return tryFromElement(poolPiece.getPoolElement(), poolPiece);
+            }
+            return List.of();
         }
 
         public static JigsawSummary fromNbt(NbtCompound nbt) {
@@ -137,7 +154,12 @@ public record StructureSummary(Collection<StructurePieceSummary> pieces) {
             super.writeNbt(nbt);
             String idKey = TYPE_KEYS.inverse().get(jigsawType);
             nbt.putString(idKey, id.toString());
-            NbtList junctionList = new NbtList(junctions.stream().map(j -> j.serialize(NbtOps.INSTANCE).getValue()).toList(), NbtElement.COMPOUND_TYPE);
+            NbtList junctionList = new NbtList(junctions.stream().map(j -> {
+                NbtCompound junctionCompound = new NbtCompound();
+                junctionCompound.putInt(KEY_JUNCTION_X, j.getSourceX());
+                junctionCompound.putInt(KEY_JUNCTION_Z, j.getSourceZ());
+                return (NbtElement) junctionCompound;
+            }).toList(), NbtElement.COMPOUND_TYPE);
             if (!junctionList.isEmpty()) nbt.put(KEY_JUNCTIONS, junctionList);
             return nbt;
         }
