@@ -1,5 +1,6 @@
 package folk.sisby.surveyor.chunk;
 
+import folk.sisby.surveyor.util.ChunkUtil;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.MapColor;
@@ -21,14 +22,18 @@ import java.util.Objects;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 public class ChunkSummary {
     public static final int MINIMUM_AIR_DEPTH = 2;
+    public static final String KEY_AIR_COUNT = "air";
     public static final String KEY_LAYERS = "layers";
 
+    protected final Integer airCount;
     protected final TreeMap<Integer, @Nullable LayerSummary> layers = new TreeMap<>();
 
-    public ChunkSummary(World world, Chunk chunk, TreeSet<Integer> layerYs, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Block> blockPalette) {
+    public ChunkSummary(World world, Chunk chunk, TreeSet<Integer> layerYs, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Block> blockPalette, boolean countAir) {
+        this.airCount = countAir ? ChunkUtil.airCount(chunk) : null;
         TreeMap<Integer, FloorSummary[][]> uncompressedLayers = new TreeMap<>();
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
@@ -73,6 +78,7 @@ public class ChunkSummary {
     }
 
     public ChunkSummary(NbtCompound nbt) {
+        this.airCount = nbt.contains(KEY_AIR_COUNT) ? nbt.getInt(KEY_AIR_COUNT) : null;
         NbtCompound layersCompound = nbt.getCompound(KEY_LAYERS);
         for (String key : layersCompound.getKeys()) {
             int layerY = Integer.parseInt(key);
@@ -81,6 +87,7 @@ public class ChunkSummary {
     }
 
     public NbtCompound writeNbt(NbtCompound nbt) {
+        if (this.airCount != null) nbt.putInt(KEY_AIR_COUNT, this.airCount);
         NbtCompound layersCompound = new NbtCompound();
         layers.forEach((layerY, layerSummary) -> {
             NbtCompound layerCompound = new NbtCompound();

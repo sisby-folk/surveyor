@@ -30,11 +30,16 @@ public class RegionSummary {
     public static final String KEY_BLOCK_COLORS = "blockColors";
     public static final String KEY_CHUNKS = "chunks";
 
+    protected final ChunkSummaryState.Type type;
     protected final Int2ObjectBiMap<Biome> biomePalette = Int2ObjectBiMap.create(255);
     protected final Int2ObjectBiMap<Block> blockPalette = Int2ObjectBiMap.create(255);
     protected ChunkSummary[][] chunks = new ChunkSummary[REGION_SIZE][REGION_SIZE];
 
     protected boolean dirty = false;
+
+    public RegionSummary(ChunkSummaryState.Type type) {
+        this.type = type;
+    }
 
     public static <T, O> List<O> mapPalette(IndexedIterable<T> palette, Function<T, O> mapper) {
         List<O> list = new ArrayList<>();
@@ -48,12 +53,16 @@ public class RegionSummary {
         return xz & (RegionSummary.REGION_SIZE - 1);
     }
 
-    public boolean contains(Chunk chunk) {
-        return chunks[regionRelative(chunk.getPos().x)][regionRelative(chunk.getPos().z)] != null;
+    public boolean contains(ChunkPos pos) {
+        return chunks[regionRelative(pos.x)][regionRelative(pos.z)] != null;
+    }
+
+    public ChunkSummary get(ChunkPos pos) {
+        return chunks[regionRelative(pos.x)][regionRelative(pos.z)];
     }
 
     public void putChunk(World world, Chunk chunk) {
-        chunks[regionRelative(chunk.getPos().x)][regionRelative(chunk.getPos().z)] = new ChunkSummary(world, chunk, DimensionSupport.getSummaryLayers(world), biomePalette, blockPalette);
+        chunks[regionRelative(chunk.getPos().x)][regionRelative(chunk.getPos().z)] = new ChunkSummary(world, chunk, DimensionSupport.getSummaryLayers(world), biomePalette, blockPalette, type == ChunkSummaryState.Type.CLIENT);
         dirty = true;
     }
 
