@@ -5,6 +5,7 @@ import folk.sisby.surveyor.chunk.RegionSummary;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.util.ChunkUtil;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.block.Block;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ServerInfo;
 import net.minecraft.client.world.ClientWorld;
@@ -13,8 +14,10 @@ import net.minecraft.nbt.NbtIo;
 import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructureStart;
+import net.minecraft.util.collection.IndexedIterable;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
+import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.WorldChunk;
 import org.apache.commons.io.FileUtils;
@@ -63,6 +66,16 @@ public class WorldSummary {
     public ChunkSummary getChunk(ChunkPos pos) {
         ChunkPos regionPos = getRegionPos(pos);
         return regions.get(regionPos).get(pos);
+    }
+
+    public IndexedIterable<Biome> getBiomePalette(ChunkPos pos) {
+        ChunkPos regionPos = getRegionPos(pos);
+        return regions.get(regionPos).getBiomePalette();
+    }
+
+    public IndexedIterable<Block> getBlockPalette(ChunkPos pos) {
+        ChunkPos regionPos = getRegionPos(pos);
+        return regions.get(regionPos).getBlockPalette();
     }
 
     public void putChunk(World world, Chunk chunk) {

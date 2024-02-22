@@ -99,4 +99,12 @@ public class RegionSummary {
     public boolean isDirty() {
         return dirty;
     }
+
+    public IndexedIterable<Biome> getBiomePalette() {
+        return biomePalette;
+    }
+
+    public IndexedIterable<Block> getBlockPalette() {
+        return blockPalette;
+    }
 }

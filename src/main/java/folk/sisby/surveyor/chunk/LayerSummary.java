@@ -97,6 +97,10 @@ public class LayerSummary {
         return water == null ? WATER_DEFAULT : isEmpty(x, z) ? -1 : water.getMasked(depth, x * 16 + z);
     }
 
+    public int getHeight(int x, int z, int layerHeight) {
+        return layerHeight - depth.get(x * 16 + z);
+    }
+
     public Biome getBiome(int x, int z, IndexedIterable<Biome> biomePalette) {
         return biomePalette.get(getBiome(x, z));
     }
@@ -108,5 +112,17 @@ public class LayerSummary {
     public @Nullable FloorSummary getFloor(int layerY, int x, int z, IndexedIterable<Biome> biomePalette, IndexedIterable<Block> blockPalette) {
         if (isEmpty(x, z)) return null;
         return new FloorSummary(layerY + getDepth(x, z), getBiome(x, z, biomePalette), getBlock(x, z, blockPalette), getLight(x, z), getWater(x, z));
+    }
+
+    public void fillEmptyFloors(int depthOffset, Integer maxDepth, int[] outHeight, int[] outBiome, int[] outBlock, int[] outLight, int[] outWater) {
+        for (int i = 0; i < 256; i++) {
+            if (!depth.isEmpty(i) && outHeight[i] != -1 && (maxDepth == null || depth.get(i) + depthOffset <= maxDepth)) {
+                outHeight[i] = depth.get(i) + depthOffset;
+                outBiome[i] = biome == null ? BIOME_DEFAULT : biome.getMasked(depth, i);
+                outBlock[i] = block == null ? BIOME_DEFAULT : block.getMasked(depth, i);
+                outLight[i] = light == null ? BIOME_DEFAULT : light.getMasked(depth, i);
+                outWater[i] = water == null ? BIOME_DEFAULT :  water.getMasked(depth, i);
+            }
+        }
     }
 }

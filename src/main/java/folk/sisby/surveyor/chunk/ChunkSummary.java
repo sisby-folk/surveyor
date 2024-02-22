@@ -1,12 +1,13 @@
 package folk.sisby.surveyor.chunk;
 
+import folk.sisby.surveyor.util.ArrayUtil;
 import folk.sisby.surveyor.util.ChunkUtil;
+import folk.sisby.surveyor.util.UIntArray;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.MapColor;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.tag.FluidTags;
-import net.minecraft.util.collection.IndexedIterable;
 import net.minecraft.util.collection.Int2ObjectBiMap;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkSectionPos;
@@ -20,8 +21,13 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 import java.util.NavigableSet;
 import java.util.Objects;
-import java.util.SortedMap;
 import java.util.TreeMap;
+
+import static folk.sisby.surveyor.chunk.LayerSummary.BIOME_DEFAULT;
+import static folk.sisby.surveyor.chunk.LayerSummary.BLOCK_DEFAULT;
+import static folk.sisby.surveyor.chunk.LayerSummary.DEPTH_DEFAULT;
+import static folk.sisby.surveyor.chunk.LayerSummary.LIGHT_DEFAULT;
+import static folk.sisby.surveyor.chunk.LayerSummary.WATER_DEFAULT;
 
 public class ChunkSummary {
     public static final int MINIMUM_AIR_DEPTH = 2;
@@ -103,29 +109,31 @@ public class ChunkSummary {
         return airCount;
     }
 
-    public @Nullable FloorSummary getTopFloor(int x, int z, IndexedIterable<Biome> biomePalette, IndexedIterable<Block> blockPalette) {
-        for (Integer layerY : layers.descendingKeySet()) {
-            LayerSummary layer = layers.get(layerY);
-            if (layer != null && !layer.isEmpty(x, z)) return layer.getFloor(layerY, x, z, biomePalette, blockPalette);
-        }
-        return null;
-    }
-
-    public SortedMap<Integer, FloorSummary> getFloors(int x, int z, IndexedIterable<Biome> biomePalette, IndexedIterable<Block> blockPalette) {
-        SortedMap<Integer, FloorSummary> map = new TreeMap<>();
-        for (Integer layerY : layers.descendingKeySet()) {
-            LayerSummary layer = layers.get(layerY);
-            if (layer != null && !layer.isEmpty(x, z)) map.put(layerY, layer.getFloor(layerY, x, z, biomePalette, blockPalette));
-        }
-        return map;
-    }
-
-    public SortedMap<Integer, @Nullable FloorSummary> getLayers(int x, int z, IndexedIterable<Biome> biomePalette, IndexedIterable<Block> blockPalette) {
-        SortedMap<Integer, FloorSummary> map = new TreeMap<>();
-        for (Integer layerY : layers.descendingKeySet()) {
-            LayerSummary layer = layers.get(layerY);
-            map.put(layerY, layer == null ? null : layer.getFloor(layerY, x, z, biomePalette, blockPalette));
-        }
-        return map;
+    /**
+     * Gets a compressed layer of the topmost floor found for each X,Z column within the specified range.
+     * @param minY the minimum (inclusive) height of floors to include in the layer.
+     * @param maxY the maximum (inclusive) height of floors to include in the layer.
+     * @param worldHeight the maximum height of the world - or any layer height > maxY to be reused in LayerSummary#getHeight() later.
+     * @return A layer summary of top floors.
+     */
+    public @Nullable LayerSummary toSingleLayer(Integer minY, Integer maxY, int worldHeight) {
+        int[] depth = ArrayUtil.ofSingle(-1, 256);
+        int[] biome = new int[256];
+        int[] block = new int[256];
+        int[] light = new int[256];
+        int[] water = new int[256];
+        layers.descendingMap().forEach((y, layer) -> {
+            if (layer != null && (maxY == null || y <= maxY)) {
+                layer.fillEmptyFloors(worldHeight - y, minY == null ? null : worldHeight - minY, depth, biome, block, light, water);
+            }
+        });
+        UIntArray compressedDepth = UIntArray.fromUInts(depth, DEPTH_DEFAULT);
+        return compressedDepth == null ? null : new LayerSummary(
+            compressedDepth,
+            UIntArray.fromUInts(biome, BIOME_DEFAULT),
+            UIntArray.fromUInts(block, BLOCK_DEFAULT),
+            UIntArray.fromUInts(light, LIGHT_DEFAULT),
+            UIntArray.fromUInts(water, WATER_DEFAULT)
+        );
     }
 }

@@ -2,12 +2,10 @@ package folk.sisby.surveyor.util;
 
 import net.minecraft.nbt.NbtCompound;
 
-import java.util.Collections;
-
 public record ByteUInts(byte value) implements UIntArray {
     @Override
     public int[] getUncompressed() {
-        return Collections.nCopies(256, value + UINT_BYTE_OFFSET).stream().mapToInt(i -> i).toArray();
+        return ArrayUtil.ofSingle(value + UINT_BYTE_OFFSET, 256);
     }
 
     @Override
