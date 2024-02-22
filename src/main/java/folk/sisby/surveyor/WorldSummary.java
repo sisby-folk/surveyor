@@ -39,6 +39,7 @@ public class WorldSummary {
     protected final Map<ChunkPos, RegionSummary> regions;
     protected final WorldStructureSummary structures;
     protected final DynamicRegistryManager manager;
+
     public static ChunkPos getRegionPos(ChunkPos pos) {
         return new ChunkPos(pos.x >> RegionSummary.REGION_POWER, pos.z >> RegionSummary.REGION_POWER);
     }

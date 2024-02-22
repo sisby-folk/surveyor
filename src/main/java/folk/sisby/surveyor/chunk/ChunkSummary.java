@@ -56,7 +56,6 @@ public class ChunkSummary {
                             BlockState state = chunkSections[sectionIndex].getBlockState(x & 15, y & 15, z & 15);
                             if (!state.blocksMovement()) { // The current block's air counts for space - a 2 block high walkway with a torch or grass is valid - the floor is the torch/grass.
                                 airDepth++;
-                                waterDepth = 0;
                             }
 
                             if (state.getFluidState().isIn(FluidTags.WATER)) { // Floors can't be waterlogged, otherwise it ruins depth measurement.
@@ -66,6 +65,8 @@ public class ChunkSummary {
                                     foundFloor = new FloorSummary(y, chunkSections[sectionIndex].getBiome(x & 3, y & 3, z & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y, z)), waterDepth);
                                 }
                                 airDepth = 0;
+                                waterDepth = 0;
+                            } else {
                                 waterDepth = 0;
                             }
                         }
