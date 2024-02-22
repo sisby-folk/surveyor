@@ -26,6 +26,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -66,6 +68,12 @@ public class WorldSummary {
     public ChunkSummary getChunk(ChunkPos pos) {
         ChunkPos regionPos = getRegionPos(pos);
         return regions.get(regionPos).get(pos);
+    }
+
+    public Collection<ChunkPos> getChunks() {
+        Collection<ChunkPos> chunkPosCollection = new ArrayList<>();
+        regions.forEach((p, r) -> chunkPosCollection.addAll(r.getChunks(p)));
+        return chunkPosCollection;
     }
 
     public IndexedIterable<Biome> getBiomePalette(ChunkPos pos) {

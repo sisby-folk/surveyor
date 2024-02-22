@@ -17,6 +17,7 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
@@ -60,6 +61,16 @@ public class RegionSummary {
 
     public ChunkSummary get(ChunkPos pos) {
         return chunks[regionRelative(pos.x)][regionRelative(pos.z)];
+    }
+
+    public Collection<ChunkPos> getChunks(ChunkPos regionPos) {
+        Collection<ChunkPos> chunkPosCollection = new ArrayList<>();
+        for (int x = 0; x < REGION_SIZE; x++) {
+            for (int z = 0; z < REGION_SIZE; z++) {
+                if (chunks[x][z] != null) chunkPosCollection.add(new ChunkPos(regionPos.x << REGION_POWER + x, regionPos.x << REGION_POWER + z));
+            }
+        }
+        return chunkPosCollection;
     }
 
     public void putChunk(World world, Chunk chunk) {
