@@ -116,7 +116,7 @@ public class LayerSummary {
 
     public void fillEmptyFloors(int depthOffset, Integer maxDepth, int[] outHeight, int[] outBiome, int[] outBlock, int[] outLight, int[] outWater) {
         for (int i = 0; i < 256; i++) {
-            if (!depth.isEmpty(i) && outHeight[i] != -1 && (maxDepth == null || depth.get(i) + depthOffset <= maxDepth)) {
+            if (!depth.isEmpty(i) && outHeight[i] == -1 && (maxDepth == null || depth.get(i) + depthOffset <= maxDepth)) {
                 outHeight[i] = depth.get(i) + depthOffset;
                 outBiome[i] = biome == null ? BIOME_DEFAULT : biome.getMasked(depth, i);
                 outBlock[i] = block == null ? BIOME_DEFAULT : block.getMasked(depth, i);
