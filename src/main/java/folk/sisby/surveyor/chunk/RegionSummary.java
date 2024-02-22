@@ -68,7 +68,7 @@ public class RegionSummary {
         for (int x = 0; x < REGION_SIZE; x++) {
             for (int z = 0; z < REGION_SIZE; z++) {
                 if (chunks[x][z] != null) {
-                    chunkPosCollection.add(new ChunkPos((regionPos.x << REGION_POWER) + x, (regionPos.x << REGION_POWER) + z));
+                    chunkPosCollection.add(new ChunkPos((regionPos.x << REGION_POWER) + x, (regionPos.z << REGION_POWER) + z));
                 }
             }
         }
