@@ -1,7 +1,7 @@
 **Surveyor is still a work in progress! When it's ready for production mods, this notice will be removed!**
  - Terrain summaries are accessible, generated on both the server and client, and can be reasonably accessed via the API.
  - Structure summaries are generated on the server, but not fully fleshed out in the API.
- - Restoring map exploration progress from the server & map sharing are not yet implemented.
+ - Syncing structures, restoring map exploration progress from the server, and map sharing are not yet implemented.
  - The planned "Point of Interest" system and API is not yet implemented.
 
 **When releases are ready for early developer testing, they'll appear in github releases!**
