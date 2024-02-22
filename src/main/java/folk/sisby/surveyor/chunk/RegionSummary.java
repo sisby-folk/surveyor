@@ -23,7 +23,7 @@ import java.util.function.Function;
 
 public class RegionSummary {
     public static final int REGION_POWER = 5;
-    public static final int REGION_SIZE = 2 << REGION_POWER;
+    public static final int REGION_SIZE = 1 << REGION_POWER;
     public static final String KEY_BIOMES = "biomes";
     public static final String KEY_BLOCKS = "blocks";
     public static final String KEY_BIOME_WATER = "biomeWater";
@@ -68,7 +68,8 @@ public class RegionSummary {
         for (int x = 0; x < REGION_SIZE; x++) {
             for (int z = 0; z < REGION_SIZE; z++) {
                 if (chunks[x][z] != null) {
-                    chunkPosCollection.add(new ChunkPos((regionPos.x << REGION_POWER) + x, (regionPos.z << REGION_POWER) + z));
+                    ChunkPos pos = new ChunkPos((regionPos.x << REGION_POWER) + x, (regionPos.z << REGION_POWER) + z);
+                    chunkPosCollection.add(pos);
                 }
             }
         }
