@@ -27,7 +27,7 @@ public interface UIntArray {
     int get(int i);
 
     default int getMasked(UIntArray mask, int i) {
-        return get((int) IntStream.range(0, i).filter(mask::isEmpty).count());
+        return get(i - (int) IntStream.range(0, i).filter(mask::isEmpty).count());
     }
 
     static UIntArray readNbt(NbtElement nbt, Integer defaultValue) {

@@ -2,6 +2,7 @@ package folk.sisby.surveyor.chunk;
 
 import folk.sisby.surveyor.util.UIntArray;
 import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.collection.IndexedIterable;
 import net.minecraft.util.collection.Int2ObjectBiMap;
@@ -97,21 +98,16 @@ public class LayerSummary {
         return water == null ? WATER_DEFAULT : isEmpty(x, z) ? -1 : water.getMasked(depth, x * 16 + z);
     }
 
-    public int getHeight(int x, int z, int layerHeight) {
-        return layerHeight - depth.get(x * 16 + z);
+    public int getHeight(int x, int z, int layerHeight, boolean ignoreWater) {
+        return layerHeight - getDepth(x, z) + (ignoreWater ? 0 : getWater(x, z));
     }
 
     public Biome getBiome(int x, int z, IndexedIterable<Biome> biomePalette) {
         return biomePalette.get(getBiome(x, z));
     }
 
-    public Block getBlock(int x, int z, IndexedIterable<Block> blockPalette) {
-        return blockPalette.get(getBlock(x, z));
-    }
-
-    public @Nullable FloorSummary getFloor(int layerY, int x, int z, IndexedIterable<Biome> biomePalette, IndexedIterable<Block> blockPalette) {
-        if (isEmpty(x, z)) return null;
-        return new FloorSummary(layerY + getDepth(x, z), getBiome(x, z, biomePalette), getBlock(x, z, blockPalette), getLight(x, z), getWater(x, z));
+    public Block getBlock(int x, int z, IndexedIterable<Block> blockPalette, boolean ignoreWater) {
+        return (ignoreWater || getWater(x, z) == 0) ? blockPalette.get(getBlock(x, z)) : Blocks.WATER;
     }
 
     public void fillEmptyFloors(int depthOffset, Integer maxDepth, int[] outHeight, int[] outBiome, int[] outBlock, int[] outLight, int[] outWater) {
