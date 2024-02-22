@@ -123,8 +123,8 @@ public class ChunkSummary {
         int[] light = new int[256];
         int[] water = new int[256];
         layers.descendingMap().forEach((y, layer) -> {
-            if (layer != null && (maxY == null || y <= maxY)) {
-                layer.fillEmptyFloors(worldHeight - y, minY == null ? null : worldHeight - minY, depth, biome, block, light, water);
+            if (layer != null) {
+                layer.fillEmptyFloors(worldHeight - y, minY == null ? null : worldHeight - minY, maxY == null ? null : worldHeight - maxY, depth, biome, block, light, water);
             }
         });
         UIntArray compressedDepth = UIntArray.fromUInts(depth, DEPTH_DEFAULT);

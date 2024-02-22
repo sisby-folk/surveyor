@@ -110,9 +110,9 @@ public class LayerSummary {
         return (ignoreWater || getWater(x, z) == 0) ? blockPalette.get(getBlock(x, z)) : Blocks.WATER;
     }
 
-    public void fillEmptyFloors(int depthOffset, Integer maxDepth, int[] outHeight, int[] outBiome, int[] outBlock, int[] outLight, int[] outWater) {
+    public void fillEmptyFloors(int depthOffset, Integer maxDepth, Integer minDepth, int[] outHeight, int[] outBiome, int[] outBlock, int[] outLight, int[] outWater) {
         for (int i = 0; i < 256; i++) {
-            if (!depth.isEmpty(i) && outHeight[i] == -1 && (maxDepth == null || depth.get(i) + depthOffset <= maxDepth)) {
+            if (!depth.isEmpty(i) && outHeight[i] == -1 && (maxDepth == null || depth.get(i) + depthOffset <= maxDepth) && (minDepth == null || depth.get(i) + depthOffset >= minDepth)) {
                 outHeight[i] = depth.get(i) + depthOffset;
                 outBiome[i] = biome == null ? BIOME_DEFAULT : biome.getMasked(depth, i);
                 outBlock[i] = block == null ? BIOME_DEFAULT : block.getMasked(depth, i);
