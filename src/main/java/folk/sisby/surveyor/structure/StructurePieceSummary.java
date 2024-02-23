@@ -12,8 +12,9 @@ import net.minecraft.util.math.BlockBox;
 public class StructurePieceSummary {
     public static final String KEY_TYPE = "type";
     public static final String KEY_BOX = "BB";
-    public final StructurePieceType type;
-    public final BlockBox boundingBox;
+
+    protected final StructurePieceType type;
+    protected final BlockBox boundingBox;
 
     public StructurePieceSummary(StructurePieceType type, BlockBox boundingBox) {
         this.type = type;
@@ -38,5 +39,13 @@ public class StructurePieceSummary {
         nbt.putString(KEY_TYPE, Registries.STRUCTURE_PIECE.getId(type).toString());
         BlockBox.CODEC.encodeStart(NbtOps.INSTANCE, this.boundingBox).resultOrPartial(Surveyor.LOGGER::error).ifPresent(element -> nbt.put(KEY_BOX, element));
         return nbt;
+    }
+
+    public StructurePieceType getType() {
+        return type;
+    }
+
+    public BlockBox getBoundingBox() {
+        return boundingBox;
     }
 }

@@ -31,16 +31,15 @@ public class JigsawPieceSummary extends StructurePieceSummary {
     public static final String KEY_JUNCTIONS = "junctions";
     public static final String KEY_JUNCTION_X = "source_x";
     public static final String KEY_JUNCTION_Z = "source_z";
-    public final StructurePoolElementType<?> jigsawType;
-    public final Identifier id;
-    public final BlockBox boundingBox;
-    public final List<JigsawJunction> junctions;
 
-    public JigsawPieceSummary(StructurePoolElementType<?> jigsawType, Identifier id, BlockBox boundingBox, List<JigsawJunction> junctions) {
+    protected final StructurePoolElementType<?> elementType;
+    protected final Identifier id;
+    protected final List<JigsawJunction> junctions;
+
+    public JigsawPieceSummary(StructurePoolElementType<?> elementType, Identifier id, BlockBox boundingBox, List<JigsawJunction> junctions) {
         super(StructurePieceType.JIGSAW, boundingBox);
-        this.jigsawType = jigsawType;
+        this.elementType = elementType;
         this.id = id;
-        this.boundingBox = boundingBox;
         this.junctions = junctions;
     }
 
@@ -82,7 +81,7 @@ public class JigsawPieceSummary extends StructurePieceSummary {
     @Override
     public NbtCompound writeNbt(NbtCompound nbt) {
         super.writeNbt(nbt);
-        String idKey = TYPE_KEYS.inverse().get(jigsawType);
+        String idKey = TYPE_KEYS.inverse().get(elementType);
         nbt.putString(idKey, id.toString());
         NbtList junctionList = new NbtList(junctions.stream().map(j -> {
             NbtCompound junctionCompound = new NbtCompound();
@@ -92,5 +91,17 @@ public class JigsawPieceSummary extends StructurePieceSummary {
         }).toList(), NbtElement.COMPOUND_TYPE);
         if (!junctionList.isEmpty()) nbt.put(KEY_JUNCTIONS, junctionList);
         return nbt;
+    }
+
+    public StructurePoolElementType<?> getElementType() {
+        return elementType;
+    }
+
+    public Identifier getId() {
+        return id;
+    }
+
+    public List<JigsawJunction> getJunctions() {
+        return junctions;
     }
 }
