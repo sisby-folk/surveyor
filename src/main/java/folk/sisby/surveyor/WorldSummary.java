@@ -15,6 +15,7 @@ import net.minecraft.nbt.NbtIo;
 import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructureStart;
+import net.minecraft.util.WorldSavePath;
 import net.minecraft.util.collection.IndexedIterable;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -99,6 +100,10 @@ public class WorldSummary {
         structures.putStructure(world, start);
     }
 
+    public static File getServerDirectory(ServerWorld world) {
+        return world.getServer().getSavePath(WorldSavePath.ROOT).resolve(DATA_SUBFOLDER).resolve(Surveyor.ID).toFile();
+    }
+
     public static File getClientDirectory(ClientWorld world) {
         ServerInfo info = MinecraftClient.getInstance().getCurrentServerEntry();
         String saveFolder = String.valueOf(world.getBiomeAccess().seed);
@@ -143,7 +148,7 @@ public class WorldSummary {
 
     public void save(ServerWorld world) {
         if (type != Type.SERVER) return;
-        save(world, new File(world.getPersistentStateManager().directory, Surveyor.ID));
+        save(world, getServerDirectory(world));
     }
 
     public void save(ClientWorld world) {
@@ -151,7 +156,9 @@ public class WorldSummary {
         save(world, getClientDirectory(world));
     }
 
-    public static WorldSummary load(Type type, World world, File folder) {
+    public static WorldSummary load(World world) {
+        Type type = world instanceof ServerWorld ? Type.SERVER : Type.CLIENT;
+        File folder = world instanceof ServerWorld sw ? getServerDirectory(sw) : getClientDirectory((ClientWorld) world);
         folder.mkdirs();
         File[] chunkFiles = folder.listFiles((file, name) -> {
             String[] split = name.split("\\.");
@@ -190,14 +197,6 @@ public class WorldSummary {
         }
         WorldStructureSummary structures = WorldStructureSummary.readNbt(structureNbt);
         return new WorldSummary(type, regions, structures, world.getRegistryManager());
-    }
-
-    public static WorldSummary load(ServerWorld world) {
-        return load(Type.SERVER, world, new File(world.getPersistentStateManager().directory, Surveyor.ID));
-    }
-
-    public static WorldSummary load(ClientWorld world) {
-        return load(Type.CLIENT, world, getClientDirectory(world));
     }
 
     public static void onChunkLoad(World world, Chunk chunk) {

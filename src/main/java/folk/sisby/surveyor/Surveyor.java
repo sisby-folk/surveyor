@@ -3,7 +3,6 @@ package folk.sisby.surveyor;
 import folk.sisby.surveyor.network.SurveyorNetworking;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,9 +15,6 @@ public class Surveyor implements ModInitializer {
     @Override
     public void onInitialize() {
         SurveyorNetworking.init();
-
-        ServerWorldEvents.LOAD.register((s, world) -> ((SurveyorWorld) world).surveyor$getWorldSummary());
-
         ServerChunkEvents.CHUNK_LOAD.register(WorldSummary::onChunkLoad);
         ServerChunkEvents.CHUNK_UNLOAD.register(WorldSummary::onChunkUnload);
     }

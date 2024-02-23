@@ -12,16 +12,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(MinecraftClient.class)
 public class MinecraftClientMixin {
     @Inject(method = "joinWorld", at = @At("HEAD"))
-    void onJoinWorld(ClientWorld world, CallbackInfo ci) {
-        ClientWorld currentWorld = MinecraftClient.getInstance().world;
-        if (currentWorld instanceof SurveyorWorld csw) {
-            csw.surveyor$getWorldSummary().save(currentWorld);
-            if (world instanceof SurveyorWorld sw) sw.surveyor$getWorldSummary();
+    void saveSummaryOnLeaveWorld(ClientWorld world, CallbackInfo ci) {
+        if (MinecraftClient.getInstance().world instanceof SurveyorWorld csw) {
+            csw.surveyor$getWorldSummary().save(MinecraftClient.getInstance().world);
         }
     }
 
     @Inject(method = "disconnect(Lnet/minecraft/client/gui/screen/Screen;)V", at = @At("HEAD"))
-    void onDisconnect(Screen screen, CallbackInfo ci) {
+    void saveSummaryOnDisconnect(Screen screen, CallbackInfo ci) {
         ClientWorld currentWorld = MinecraftClient.getInstance().world;
         if (currentWorld instanceof SurveyorWorld sw) sw.surveyor$getWorldSummary().save(currentWorld);
     }
