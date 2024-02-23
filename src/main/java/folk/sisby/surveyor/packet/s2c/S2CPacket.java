@@ -1,6 +1,6 @@
-package folk.sisby.surveyor.network.s2c;
+package folk.sisby.surveyor.packet.s2c;
 
-import folk.sisby.surveyor.network.SurveyorPacket;
+import folk.sisby.surveyor.packet.SurveyorPacket;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;

@@ -11,11 +11,11 @@ import java.util.Collection;
 public class StructureSummary {
     protected final ChunkPos pos;
     protected final RegistryKey<Structure> key;
-    protected final StructureType<?> type;
+    protected final RegistryKey<StructureType<?>> type;
     protected final Collection<StructurePieceSummary> children;
     protected BlockBox boundingBox;
 
-    public StructureSummary(ChunkPos pos, RegistryKey<Structure> key, StructureType<?> type, Collection<StructurePieceSummary> children) {
+    public StructureSummary(ChunkPos pos, RegistryKey<Structure> key, RegistryKey<StructureType<?>> type, Collection<StructurePieceSummary> children) {
         this.pos = pos;
         this.key = key;
         this.type = type;
@@ -37,7 +37,7 @@ public class StructureSummary {
         return key;
     }
 
-    public StructureType<?> getType() {
+    public RegistryKey<StructureType<?>> getType() {
         return type;
     }
 

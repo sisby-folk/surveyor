@@ -2,51 +2,44 @@ package folk.sisby.surveyor;
 
 import folk.sisby.surveyor.chunk.ChunkSummary;
 import folk.sisby.surveyor.chunk.RegionSummary;
+import folk.sisby.surveyor.structure.StructurePieceSummary;
 import folk.sisby.surveyor.structure.StructureSummary;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.util.ChunkUtil;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ServerInfo;
-import net.minecraft.client.world.ClientWorld;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructureStart;
-import net.minecraft.util.WorldSavePath;
 import net.minecraft.util.collection.IndexedIterable;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.WorldChunk;
-import org.apache.commons.io.FileUtils;
+import net.minecraft.world.gen.structure.Structure;
+import net.minecraft.world.gen.structure.StructureType;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class WorldSummary {
-    public static final String SERVERS_FILE_NAME = "servers.txt";
-    public static final String DATA_SUBFOLDER = "data";
-
     public enum Type {
         SERVER,
         CLIENT
     }
-    public final Type type;
 
+    public final Type type;
     protected final Map<ChunkPos, RegionSummary> regions;
     protected final WorldStructureSummary structures;
     protected final DynamicRegistryManager manager;
-
     public static ChunkPos getRegionPos(ChunkPos pos) {
         return new ChunkPos(pos.x >> RegionSummary.REGION_POWER, pos.z >> RegionSummary.REGION_POWER);
     }
@@ -67,6 +60,10 @@ public class WorldSummary {
         return structures.contains(world, start);
     }
 
+    public boolean containsStructure(ChunkPos pos, RegistryKey<Structure> structure) {
+        return structures.contains(pos, structure);
+    }
+
     public Collection<StructureSummary> getStructures() {
         return structures.getStructures();
     }
@@ -76,8 +73,12 @@ public class WorldSummary {
         return regions.get(regionPos).get(pos);
     }
 
-    public Collection<ChunkPos> getChunks() {
-        Collection<ChunkPos> chunkPosCollection = new ArrayList<>();
+    public Map<RegistryKey<Structure>, Set<ChunkPos>> getStructureKeys() {
+        return structures.getStructureKeys();
+    }
+
+    public Set<ChunkPos> getChunks() {
+        Set<ChunkPos> chunkPosCollection = new HashSet<>();
         regions.forEach((p, r) -> chunkPosCollection.addAll(r.getChunks(p)));
         return chunkPosCollection;
     }
@@ -96,30 +97,12 @@ public class WorldSummary {
         regions.computeIfAbsent(getRegionPos(chunk.getPos()), k -> new RegionSummary(type)).putChunk(world, chunk);
     }
 
+    public void putStructureSummary(ChunkPos pos, RegistryKey<Structure> structure, RegistryKey<StructureType<?>> type, Collection<StructurePieceSummary> pieces) {
+        structures.putStructureSummary(pos, structure, type, pieces);
+    }
+
     private void putStructure(World world, StructureStart start) {
         structures.putStructure(world, start);
-    }
-
-    public static File getServerDirectory(ServerWorld world) {
-        return world.getServer().getSavePath(WorldSavePath.ROOT).resolve(DATA_SUBFOLDER).resolve(Surveyor.ID).toFile();
-    }
-
-    public static File getClientDirectory(ClientWorld world) {
-        ServerInfo info = MinecraftClient.getInstance().getCurrentServerEntry();
-        String saveFolder = String.valueOf(world.getBiomeAccess().seed);
-        String dimNamespace = world.getRegistryKey().getValue().getNamespace();
-        String dimPath = world.getRegistryKey().getValue().getPath();
-        Path savePath = FabricLoader.getInstance().getGameDir().resolve(DATA_SUBFOLDER).resolve(Surveyor.ID).resolve(saveFolder);
-        savePath.toFile().mkdirs();
-        File serversFile = savePath.resolve(SERVERS_FILE_NAME).toFile();
-        try {
-            if (!serversFile.exists() || !FileUtils.readFileToString(serversFile, StandardCharsets.UTF_8).contains(info.name + "\n" + info.address)) {
-                FileUtils.writeStringToFile(serversFile, info.name + "\n" + info.address + "\n", StandardCharsets.UTF_8, true);
-            }
-        } catch (IOException e) {
-            Surveyor.LOGGER.error("[Surveyor] Error writing servers file for save {}.", savePath, e);
-        }
-        return savePath.resolve(dimNamespace).resolve(dimPath).toFile();
     }
 
     public void save(World world, File folder) {
@@ -146,19 +129,7 @@ public class WorldSummary {
         Surveyor.LOGGER.info("[Surveyor] Finished saving data for {}", world.getRegistryKey().getValue());
     }
 
-    public void save(ServerWorld world) {
-        if (type != Type.SERVER) return;
-        save(world, getServerDirectory(world));
-    }
-
-    public void save(ClientWorld world) {
-        if (type != Type.CLIENT) return;
-        save(world, getClientDirectory(world));
-    }
-
-    public static WorldSummary load(World world) {
-        Type type = world instanceof ServerWorld ? Type.SERVER : Type.CLIENT;
-        File folder = world instanceof ServerWorld sw ? getServerDirectory(sw) : getClientDirectory((ClientWorld) world);
+    public static WorldSummary load(Type type, World world, File folder) {
         folder.mkdirs();
         File[] chunkFiles = folder.listFiles((file, name) -> {
             String[] split = name.split("\\.");

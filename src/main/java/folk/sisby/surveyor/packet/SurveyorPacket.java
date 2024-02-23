@@ -1,4 +1,4 @@
-package folk.sisby.surveyor.network;
+package folk.sisby.surveyor.packet;
 
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.PacketByteBuf;
