@@ -27,7 +27,7 @@ public record OnJoinWorldC2SPacket(Set<ChunkPos> terrainKeys, Map<RegistryKey<St
             b.writeVarInt(pos.z);
         });
         buf.writeMap(structureKeys, (b, s) -> {
-            b.writeString(s.toString());
+            b.writeString(s.getValue().toString());
         }, (b, stars) -> {
             b.writeCollection(stars, (b2, pos) -> {
                 b.writeVarInt(pos.x);
