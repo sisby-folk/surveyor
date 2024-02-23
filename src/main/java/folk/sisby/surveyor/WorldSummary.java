@@ -2,6 +2,7 @@ package folk.sisby.surveyor;
 
 import folk.sisby.surveyor.chunk.ChunkSummary;
 import folk.sisby.surveyor.chunk.RegionSummary;
+import folk.sisby.surveyor.structure.StructureSummary;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.util.ChunkUtil;
 import net.fabricmc.loader.api.FabricLoader;
@@ -63,6 +64,10 @@ public class WorldSummary {
 
     public boolean containsStructure(World world, StructureStart start) {
         return structures.contains(world, start);
+    }
+
+    public Collection<StructureSummary> getStructures() {
+        return structures.getStructures();
     }
 
     public ChunkSummary getChunk(ChunkPos pos) {
