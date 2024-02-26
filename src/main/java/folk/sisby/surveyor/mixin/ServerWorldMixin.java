@@ -3,7 +3,13 @@ package folk.sisby.surveyor.mixin;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorWorld;
 import folk.sisby.surveyor.WorldSummary;
+import folk.sisby.surveyor.landmark.NetherPortalLandmark;
+import folk.sisby.surveyor.landmark.PointOfInterestLandmark;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.poi.PointOfInterestType;
+import net.minecraft.world.poi.PointOfInterestTypes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -27,5 +33,17 @@ public class ServerWorldMixin implements SurveyorWorld {
     @Inject(method = "saveLevel", at = @At("TAIL"))
     public void saveSummary(CallbackInfo ci) {
         if (surveyor$worldSummary != null) surveyor$worldSummary.save((ServerWorld) (Object) this, Surveyor.getSavePath((ServerWorld) (Object) this));
+    }
+
+    @Inject(method = "method_19499", at = @At("HEAD"))
+    public void onPointOfInterestAdded(BlockPos blockPos, RegistryEntry<PointOfInterestType> poiType, CallbackInfo ci) {
+        if (poiType.getKey().orElse(null) == PointOfInterestTypes.NETHER_PORTAL) {
+            surveyor$getWorldSummary().putLandmark(new NetherPortalLandmark(blockPos.toImmutable()));
+        }
+    }
+
+    @Inject(method = "method_39222", at = @At("HEAD"))
+    public void onPointOfInterestRemoved(BlockPos blockPos, CallbackInfo ci) {
+        surveyor$getWorldSummary().removeLandmarksMatching(PointOfInterestLandmark.class, blockPos);
     }
 }

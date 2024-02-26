@@ -3,6 +3,7 @@ package folk.sisby.surveyor;
 import folk.sisby.surveyor.chunk.ChunkSummary;
 import folk.sisby.surveyor.chunk.RegionSummary;
 import folk.sisby.surveyor.landmark.Landmark;
+import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.landmark.Landmarks;
 import folk.sisby.surveyor.structure.StructurePieceSummary;
 import folk.sisby.surveyor.structure.StructureSummary;
@@ -16,6 +17,7 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructureStart;
 import net.minecraft.util.collection.IndexedIterable;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
@@ -41,7 +43,7 @@ public class WorldSummary {
     public final Type type;
     protected final Map<ChunkPos, RegionSummary> regions;
     protected final WorldStructureSummary structures;
-    protected final Set<Landmark<?>> landmarks;
+    protected final Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks;
 
     protected boolean landmarksDirty = true;
 
@@ -51,7 +53,7 @@ public class WorldSummary {
         return new ChunkPos(pos.x >> RegionSummary.REGION_POWER, pos.z >> RegionSummary.REGION_POWER);
     }
 
-    public WorldSummary(Type type, Map<ChunkPos, RegionSummary> regions, WorldStructureSummary structures, Set<Landmark<?>> landmarks, DynamicRegistryManager manager) {
+    public WorldSummary(Type type, Map<ChunkPos, RegionSummary> regions, WorldStructureSummary structures, Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks, DynamicRegistryManager manager) {
         this.type = type;
         this.regions = regions;
         this.structures = structures;
@@ -111,6 +113,24 @@ public class WorldSummary {
 
     private void putStructure(World world, StructureStart start) {
         structures.putStructure(world, start);
+    }
+
+    public void putLandmark(Landmark<?> landmark) {
+        landmarks.computeIfAbsent(landmark.type(), t -> new HashMap<>()).put(landmark.pos(), landmark);
+    }
+
+    public void removeLandmark(LandmarkType<?> type, BlockPos pos) {
+        if (landmarks.containsKey(type)) {
+            landmarks.get(type).remove(pos);
+        }
+    }
+
+    public void removeLandmarksMatching(Class<?> clazz, BlockPos pos) {
+        landmarks.forEach((type, map) -> {
+            if (map.containsKey(pos) && map.get(pos).getClass().isAssignableFrom(clazz)) {
+                map.remove(pos);
+            }
+        });
     }
 
     public void save(World world, File folder) {
@@ -192,7 +212,7 @@ public class WorldSummary {
                 Surveyor.LOGGER.error("[Surveyor] Error loading landmarks file for {}.", world.getRegistryKey().getValue(), e);
             }
         }
-        Set<Landmark<?>> landmarks = Landmarks.fromNbt(landmarkNbt);
+        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks = Landmarks.fromNbt(landmarkNbt);
         return new WorldSummary(type, regions, structures, landmarks, world.getRegistryManager());
     }
 

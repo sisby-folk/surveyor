@@ -1,61 +1,67 @@
 package folk.sisby.surveyor.landmark;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import folk.sisby.surveyor.Surveyor;
+import folk.sisby.surveyor.util.DispatchMapCodec;
+import folk.sisby.surveyor.util.SurveyorCodecs;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 
 public class Landmarks {
     public static final String KEY_LANDMARKS = "landmarks";
+    public static final Codec<LandmarkType<?>> TYPE_CODEC = Identifier.CODEC.comapFlatMap(Landmarks::decode, LandmarkType::id);
 
-    private static final Map<Identifier, Codec<? extends Landmark<?>>> CODECS = new HashMap<>();
+    public static final Codec<Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>>> CODEC = DispatchMapCodec.of(
+        TYPE_CODEC,
+        Landmarks::typedCodec
+    );
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Landmark<T>> Codec<Map<BlockPos, Landmark<?>>> typedCodec(LandmarkType<T> type) {
+        return DispatchMapCodec.of(
+            SurveyorCodecs.STRINGIFIED_BLOCKPOS,
+            pos -> (Codec<Landmark<?>>) type.createCodec(pos)
+        );
+    }
+
+    private static final Map<Identifier, LandmarkType<?>> TYPES = new HashMap<>();
+
+    private static DataResult<? extends LandmarkType<?>> decode(Identifier id) {
+        return Optional.ofNullable(TYPES.get(id))
+            .map(DataResult::success)
+            .orElse(DataResult.error(() -> "No landmark type found with id " + id));
+    }
 
     public static boolean containsType(Identifier id) {
-        return CODECS.containsKey(id);
+        return TYPES.containsKey(id);
     }
 
-    public static Codec<? extends Landmark<?>> getCodec(Identifier id) {
-        return CODECS.get(id);
-    }
-
-    public static NbtCompound writeNbt(Set<Landmark<?>> landmarks, NbtCompound nbt) {
-        NbtList landmarkList = new NbtList();
-        for (Landmark<?> landmark : landmarks) {
-            // TODO landmarkList.add(landmark.codec().encodeStart(NbtOps.INSTANCE, landmark).getOrThrow(false, Surveyor.LOGGER::error));
-        }
-        nbt.put(KEY_LANDMARKS, landmarkList);
+    public static NbtCompound writeNbt(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks, NbtCompound nbt) {
+        nbt.put(KEY_LANDMARKS, CODEC.encodeStart(NbtOps.INSTANCE, landmarks).getOrThrow(false, Surveyor.LOGGER::error));
         return nbt;
     }
 
-    public static Landmark<?> landmarkFromNbt(NbtCompound nbt) {
-        Identifier type = new Identifier(nbt.getString("type"));
-        return getCodec(type).decode(NbtOps.INSTANCE, nbt).getOrThrow(false, Surveyor.LOGGER::error).getFirst();
+    public static Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> fromNbt(NbtCompound nbt) {
+        return new HashMap<>(CODEC.decode(NbtOps.INSTANCE, nbt.getCompound(KEY_LANDMARKS)).getOrThrow(false, Surveyor.LOGGER::error).getFirst());
     }
 
-    public static Set<Landmark<?>> fromNbt(NbtCompound nbt) {
-        Set<Landmark<?>> outSet = new HashSet<>();
-        for (NbtElement landmarkElement : nbt.getList(KEY_LANDMARKS, NbtElement.COMPOUND_TYPE)) {
-            outSet.add(landmarkFromNbt((NbtCompound) landmarkElement));
+    public static void register(LandmarkType<?> type) {
+        if (containsType(type.id())) {
+            throw new IllegalArgumentException("Multiple landmark types registered to the same ID: %s".formatted(type.id()));
         }
-        return outSet;
-    }
-
-    public static void register(Identifier id, Codec<? extends Landmark<?>> codec) {
-        if (containsType(id)) {
-            throw new IllegalArgumentException("Multiple landmark types registered to the same ID: %s".formatted(id));
-        }
-        CODECS.put(id, codec);
+        TYPES.put(type.id(), type);
     }
 
     static {
-        register(SimplePointLandmark.ID, SimplePointLandmark.CODEC);
+        register(SimplePointLandmark.TYPE);
+        register(SimplePointOfInterestLandmark.TYPE);
+        register(NetherPortalLandmark.TYPE);
     }
 }

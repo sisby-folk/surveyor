@@ -1,7 +1,7 @@
 package folk.sisby.surveyor.landmark;
 
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.mojang.serialization.DataResult;
 import folk.sisby.surveyor.Surveyor;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.text.Text;
@@ -12,19 +12,14 @@ import net.minecraft.world.poi.PointOfInterestType;
 import net.minecraft.world.poi.PointOfInterestTypes;
 
 public record NetherPortalLandmark(BlockPos pos) implements PointOfInterestLandmark<NetherPortalLandmark> {
-    public static final Identifier ID = new Identifier(Surveyor.ID, "poi/nether_portal");
-    public static final Codec<NetherPortalLandmark> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-        BlockPos.CODEC.fieldOf("pos").forGetter(NetherPortalLandmark::pos)
-    ).apply(instance, NetherPortalLandmark::new));
+    public static LandmarkType<NetherPortalLandmark> TYPE = new SimpleLandmarkType<>(
+            new Identifier(Surveyor.ID, "poi/nether_portal"),
+            pos -> Codec.EMPTY.codec().comapFlatMap(u -> DataResult.success(new NetherPortalLandmark(pos)), u -> null)
+    );
 
     @Override
-    public Identifier type() {
-        return ID;
-    }
-
-    @Override
-    public Codec<NetherPortalLandmark> codec() {
-        return CODEC;
+    public LandmarkType<NetherPortalLandmark> type() {
+        return TYPE;
     }
 
     @Override
