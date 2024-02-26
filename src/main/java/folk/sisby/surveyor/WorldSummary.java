@@ -2,6 +2,8 @@ package folk.sisby.surveyor;
 
 import folk.sisby.surveyor.chunk.ChunkSummary;
 import folk.sisby.surveyor.chunk.RegionSummary;
+import folk.sisby.surveyor.landmark.Landmark;
+import folk.sisby.surveyor.landmark.Landmarks;
 import folk.sisby.surveyor.structure.StructurePieceSummary;
 import folk.sisby.surveyor.structure.StructureSummary;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
@@ -39,15 +41,21 @@ public class WorldSummary {
     public final Type type;
     protected final Map<ChunkPos, RegionSummary> regions;
     protected final WorldStructureSummary structures;
+    protected final Set<Landmark<?>> landmarks;
+
+    protected boolean landmarksDirty = true;
+
     protected final DynamicRegistryManager manager;
+
     public static ChunkPos getRegionPos(ChunkPos pos) {
         return new ChunkPos(pos.x >> RegionSummary.REGION_POWER, pos.z >> RegionSummary.REGION_POWER);
     }
 
-    public WorldSummary(Type type, Map<ChunkPos, RegionSummary> regions, WorldStructureSummary structures, DynamicRegistryManager manager) {
+    public WorldSummary(Type type, Map<ChunkPos, RegionSummary> regions, WorldStructureSummary structures, Set<Landmark<?>> landmarks, DynamicRegistryManager manager) {
         this.type = type;
         this.regions = regions;
         this.structures = structures;
+        this.landmarks = landmarks;
         this.manager = manager;
     }
 
@@ -126,6 +134,14 @@ public class WorldSummary {
                 Surveyor.LOGGER.error("[Surveyor] Error writing structure summary file for {}.", world.getRegistryKey().getValue(), e);
             }
         }
+        if (landmarksDirty) {
+            File landmarksFile = new File(folder, "landmarks.dat");
+            try {
+                NbtIo.writeCompressed(Landmarks.writeNbt(landmarks, new NbtCompound()), landmarksFile);
+            } catch (IOException e) {
+                Surveyor.LOGGER.error("[Surveyor] Error writing landmarks file for {}.", world.getRegistryKey().getValue(), e);
+            }
+        }
         Surveyor.LOGGER.info("[Surveyor] Finished saving data for {}", world.getRegistryKey().getValue());
     }
 
@@ -158,16 +174,26 @@ public class WorldSummary {
             }
         }
         NbtCompound structureNbt = new NbtCompound();
-        File structureFile = new File(folder, "structures.dat");
-        if (structureFile.exists()) {
+        File structuresFile = new File(folder, "structures.dat");
+        if (structuresFile.exists()) {
             try {
-                structureNbt = NbtIo.readCompressed(structureFile);
+                structureNbt = NbtIo.readCompressed(structuresFile);
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error loading structure summary file for {}.", world.getRegistryKey().getValue(), e);
             }
         }
         WorldStructureSummary structures = WorldStructureSummary.readNbt(structureNbt);
-        return new WorldSummary(type, regions, structures, world.getRegistryManager());
+        NbtCompound landmarkNbt = new NbtCompound();
+        File landmarksFile = new File(folder, "landmarks.dat");
+        if (landmarksFile.exists()) {
+            try {
+                landmarkNbt = NbtIo.readCompressed(landmarksFile);
+            } catch (IOException e) {
+                Surveyor.LOGGER.error("[Surveyor] Error loading landmarks file for {}.", world.getRegistryKey().getValue(), e);
+            }
+        }
+        Set<Landmark<?>> landmarks = Landmarks.fromNbt(landmarkNbt);
+        return new WorldSummary(type, regions, structures, landmarks, world.getRegistryManager());
     }
 
     public static void onChunkLoad(World world, Chunk chunk) {
