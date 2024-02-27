@@ -1,5 +1,6 @@
 package folk.sisby.surveyor.mixin;
 
+import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorWorld;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.client.SurveyorClient;
@@ -10,14 +11,18 @@ import org.spongepowered.asm.mixin.Unique;
 
 @Mixin(ClientWorld.class)
 public class ClientWorldMixin implements SurveyorWorld {
-    @Unique private WorldSummary surveyor$worldSummary = null;
+    @Unique
+    private WorldSummary surveyor$worldSummary = null;
 
     @Override
     public WorldSummary surveyor$getWorldSummary() {
         if (surveyor$worldSummary == null) {
-            surveyor$worldSummary = MinecraftClient.getInstance().isIntegratedServerRunning() ?
-                ((SurveyorWorld) MinecraftClient.getInstance().getServer().getWorld(((ClientWorld) (Object) this).getRegistryKey())).surveyor$getWorldSummary() :
-                WorldSummary.load(WorldSummary.Type.CLIENT, (ClientWorld) (Object) this, SurveyorClient.getSavePath((ClientWorld) (Object) this));
+            if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
+                surveyor$worldSummary = ((SurveyorWorld) MinecraftClient.getInstance().getServer().getWorld(((ClientWorld) (Object) this).getRegistryKey())).surveyor$getWorldSummary();
+            } else {
+                surveyor$worldSummary = WorldSummary.load(WorldSummary.Type.CLIENT, (ClientWorld) (Object) this, SurveyorClient.getSavePath((ClientWorld) (Object) this));
+                SurveyorEvents.Invokers.worldLoad((ClientWorld) (Object) this, surveyor$worldSummary);
+            }
         }
         return surveyor$worldSummary;
     }

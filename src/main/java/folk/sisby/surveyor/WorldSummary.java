@@ -125,18 +125,22 @@ public class WorldSummary {
 
     public void putChunk(World world, Chunk chunk) {
         regions.computeIfAbsent(getRegionPos(chunk.getPos()), k -> new RegionSummary(type)).putChunk(world, chunk);
+        SurveyorEvents.Invokers.chunkAdded(world, this, chunk.getPos(), getChunk(chunk.getPos()));
     }
 
-    public void putStructureSummary(ChunkPos pos, RegistryKey<Structure> structure, RegistryKey<StructureType<?>> type, Collection<StructurePieceSummary> pieces) {
+    public void putStructureSummary(World world, ChunkPos pos, RegistryKey<Structure> structure, RegistryKey<StructureType<?>> type, Collection<StructurePieceSummary> pieces) {
         structures.putStructureSummary(pos, structure, type, pieces);
+        SurveyorEvents.Invokers.structureAdded(world, this, new StructureSummary(pos, structure, type, pieces));
     }
 
     private void putStructure(World world, StructureStart start) {
-        structures.putStructure(world, start);
+        StructureSummary summary = structures.putStructure(world, start);
+        if (summary != null) SurveyorEvents.Invokers.structureAdded(world, this, summary);
     }
 
-    public void putLandmark(Landmark<?> landmark) {
+    public void putLandmark(World world, Landmark<?> landmark) {
         landmarks.computeIfAbsent(landmark.type(), t -> new HashMap<>()).put(landmark.pos(), landmark);
+        SurveyorEvents.Invokers.landmarkAdded(world, this, landmark);
     }
 
     public void removeLandmark(LandmarkType<?> type, BlockPos pos) {

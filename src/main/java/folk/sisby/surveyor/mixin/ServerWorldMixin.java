@@ -1,6 +1,7 @@
 package folk.sisby.surveyor.mixin;
 
 import folk.sisby.surveyor.Surveyor;
+import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorWorld;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.landmark.NetherPortalLandmark;
@@ -28,6 +29,7 @@ public class ServerWorldMixin implements SurveyorWorld {
     @Inject(method = "<init>", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/dimension/DimensionOptions;chunkGenerator()Lnet/minecraft/world/gen/chunk/ChunkGenerator;"))
     public void loadSummary(CallbackInfo ci) {
         surveyor$worldSummary = WorldSummary.load(WorldSummary.Type.SERVER, (ServerWorld) (Object) this, Surveyor.getSavePath((ServerWorld) (Object) this));
+        SurveyorEvents.Invokers.worldLoad((ServerWorld) (Object) this, surveyor$worldSummary);
     }
 
     @Inject(method = "saveLevel", at = @At("TAIL"))
@@ -38,7 +40,7 @@ public class ServerWorldMixin implements SurveyorWorld {
     @Inject(method = "method_19499", at = @At("HEAD"))
     public void onPointOfInterestAdded(BlockPos blockPos, RegistryEntry<PointOfInterestType> poiType, CallbackInfo ci) {
         if (poiType.getKey().orElse(null) == PointOfInterestTypes.NETHER_PORTAL) {
-            surveyor$getWorldSummary().putLandmark(new NetherPortalLandmark(blockPos.toImmutable()));
+            surveyor$getWorldSummary().putLandmark((ServerWorld) (Object) this, new NetherPortalLandmark(blockPos.toImmutable()));
         }
     }
 

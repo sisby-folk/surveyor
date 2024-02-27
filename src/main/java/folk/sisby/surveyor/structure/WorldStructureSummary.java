@@ -70,11 +70,15 @@ public class WorldStructureSummary {
         return outMap;
     }
 
-    public void putStructure(World world, StructureStart start) {
-        structures.computeIfAbsent(start.getPos(), p -> new HashMap<>()).computeIfAbsent(world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElseThrow(), k -> {
+    public StructureSummary putStructure(World world, StructureStart start) {
+        structures.computeIfAbsent(start.getPos(), p -> new HashMap<>());
+        RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElseThrow();
+        if (!structures.get(start.getPos()).containsKey(key)) {
+            structures.get(start.getPos()).put(key, Pair.of(world.getRegistryManager().get(RegistryKeys.STRUCTURE_TYPE).getKey(start.getStructure().getType()).orElseThrow(), summarisePieces(start)));
             dirty = true;
-            return Pair.of(world.getRegistryManager().get(RegistryKeys.STRUCTURE_TYPE).getKey(start.getStructure().getType()).orElseThrow(), summarisePieces(start));
-        });
+            return new StructureSummary(start.getPos(), key, structures.get(start.getPos()).get(key).left(), structures.get(start.getPos()).get(key).right());
+        }
+        return null;
     }
 
     public void putStructureSummary(ChunkPos pos, RegistryKey<Structure> structure, RegistryKey<StructureType<?>> type, Collection<StructurePieceSummary> pieces) {
