@@ -3,6 +3,7 @@ package folk.sisby.surveyor;
 import folk.sisby.surveyor.chunk.ChunkSummary;
 import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.structure.StructureSummary;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -12,13 +13,17 @@ import java.util.Map;
 
 public class SurveyorEvents {
     private static final Map<Identifier, WorldLoad> worldLoadHandlers = new HashMap<>();
+    private static final Map<Identifier, ClientWorldLoad> clientWorldLoadHandlers = new HashMap<>();
     private static final Map<Identifier, ChunkAdded> chunkAddedHandlers = new HashMap<>();
     private static final Map<Identifier, StructureAdded> structureAddedHandlers = new HashMap<>();
     private static final Map<Identifier, LandmarkAdded> landmarkAddedHandlers = new HashMap<>();
 
     public static class Invokers {
-        public static void worldLoad(World world, WorldSummary worldSummary) {
+        public static void worldLoad(ServerWorld world, WorldSummary worldSummary) {
             worldLoadHandlers.forEach((id, handler) -> handler.onWorldLoad(world, worldSummary));
+        }
+        public static void clientWorldLoad(World world, WorldSummary worldSummary) {
+            clientWorldLoadHandlers.forEach((id, handler) -> handler.onClientWorldLoad(world, worldSummary));
         }
 
         public static void chunkAdded(World world, WorldSummary worldSummary, ChunkPos pos, ChunkSummary chunkSummary) {
@@ -38,6 +43,10 @@ public class SurveyorEvents {
         worldLoadHandlers.put(id, handler);
     }
 
+    public static void registerClientOnWorldLoad(Identifier id, ClientWorldLoad handler) {
+        clientWorldLoadHandlers.put(id, handler);
+    }
+
     public static void registerOnChunkAdded(Identifier id, ChunkAdded handler) {
         chunkAddedHandlers.put(id, handler);
     }
@@ -52,7 +61,12 @@ public class SurveyorEvents {
 
     @FunctionalInterface
     public interface WorldLoad {
-        void onWorldLoad(World world, WorldSummary worldSummary);
+        void onWorldLoad(ServerWorld world, WorldSummary worldSummary);
+    }
+
+    @FunctionalInterface
+    public interface ClientWorldLoad {
+        void onClientWorldLoad(World world, WorldSummary worldSummary);
     }
 
     @FunctionalInterface

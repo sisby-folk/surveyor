@@ -21,7 +21,7 @@ public class ClientWorldMixin implements SurveyorWorld {
                 surveyor$worldSummary = ((SurveyorWorld) MinecraftClient.getInstance().getServer().getWorld(((ClientWorld) (Object) this).getRegistryKey())).surveyor$getWorldSummary();
             } else {
                 surveyor$worldSummary = WorldSummary.load(WorldSummary.Type.CLIENT, (ClientWorld) (Object) this, SurveyorClient.getSavePath((ClientWorld) (Object) this));
-                SurveyorEvents.Invokers.worldLoad((ClientWorld) (Object) this, surveyor$worldSummary);
+                SurveyorEvents.Invokers.clientWorldLoad((ClientWorld) (Object) this, surveyor$worldSummary);
             }
         }
         return surveyor$worldSummary;
