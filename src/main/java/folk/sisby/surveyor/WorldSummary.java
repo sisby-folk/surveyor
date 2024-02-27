@@ -1,5 +1,7 @@
 package folk.sisby.surveyor;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.chunk.ChunkSummary;
 import folk.sisby.surveyor.chunk.RegionSummary;
 import folk.sisby.surveyor.landmark.Landmark;
@@ -83,6 +85,18 @@ public class WorldSummary {
         return regions.get(regionPos).get(pos);
     }
 
+    @SuppressWarnings("unchecked")
+    public <T extends Landmark<T>> Landmark<T> getLandmark(LandmarkType<T> type, BlockPos pos) {
+        return (Landmark<T>) landmarks.get(type).get(pos);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends Landmark<T>> Map<BlockPos, Landmark<T>> getLandmarks(LandmarkType<T> type) {
+        Map<BlockPos, Landmark<T>> outMap = new HashMap<>();
+        if (landmarks.containsKey(type)) landmarks.get(type).forEach((pos, landmark) -> outMap.put(pos, (Landmark<T>) landmark));
+        return outMap;
+    }
+
     public Map<RegistryKey<Structure>, Set<ChunkPos>> getStructureKeys() {
         return structures.getStructureKeys();
     }
@@ -91,6 +105,12 @@ public class WorldSummary {
         Set<ChunkPos> chunkPosCollection = new HashSet<>();
         regions.forEach((p, r) -> chunkPosCollection.addAll(r.getChunks(p)));
         return chunkPosCollection;
+    }
+
+    public Multimap<LandmarkType<?>, BlockPos> getLandmarks() {
+        Multimap<LandmarkType<?>, BlockPos> outMap = HashMultimap.create();
+        landmarks.forEach((type, map) -> outMap.putAll(type, map.keySet()));
+        return outMap;
     }
 
     public IndexedIterable<Biome> getBiomePalette(ChunkPos pos) {
