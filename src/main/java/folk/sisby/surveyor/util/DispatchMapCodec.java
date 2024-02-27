@@ -11,6 +11,7 @@ import com.mojang.serialization.Lifecycle;
 import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -53,7 +54,7 @@ public class DispatchMapCodec<K, V> implements Codec<Map<K, V>> {
             (r1, r2) -> r1.apply2stable((u1, u2) -> u1, r2)
         );
 
-        final Map<K, V> elements = read.build();
+        final Map<K, V> elements = new HashMap<>(read.build());
         final T errors = ops.createMap(failed.build().stream());
 
         return result.map(unit -> elements).setPartial(elements).mapError(e -> e + " missed input: " + errors);
