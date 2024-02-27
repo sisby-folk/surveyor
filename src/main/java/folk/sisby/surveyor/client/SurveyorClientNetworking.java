@@ -21,7 +21,7 @@ public class SurveyorClientNetworking {
     }
 
     private static void handleOnJoinWorld(ClientWorld world, WorldSummary summary, OnJoinWorldS2CPacket packet) {
-        packet.structures().forEach((pos, structures) -> structures.forEach((structure, pair) -> summary.putStructureSummary(pos, structure, pair.left(), pair.right())));
+        packet.structures().forEach((pos, structures) -> structures.forEach((structure, pair) -> summary.putStructureSummary(world, pos, structure, pair.left(), pair.right())));
     }
 
     private static <T extends S2CPacket> void handleClient(PacketByteBuf buf, Function<PacketByteBuf, T> reader, ClientPacketHandler<T> handler) {
