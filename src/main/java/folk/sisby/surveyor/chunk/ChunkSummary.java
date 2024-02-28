@@ -2,7 +2,6 @@ package folk.sisby.surveyor.chunk;
 
 import folk.sisby.surveyor.util.ArrayUtil;
 import folk.sisby.surveyor.util.ChunkUtil;
-import folk.sisby.surveyor.util.UIntArray;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.MapColor;
@@ -22,12 +21,6 @@ import java.util.Arrays;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.TreeMap;
-
-import static folk.sisby.surveyor.chunk.LayerSummary.BIOME_DEFAULT;
-import static folk.sisby.surveyor.chunk.LayerSummary.BLOCK_DEFAULT;
-import static folk.sisby.surveyor.chunk.LayerSummary.DEPTH_DEFAULT;
-import static folk.sisby.surveyor.chunk.LayerSummary.LIGHT_DEFAULT;
-import static folk.sisby.surveyor.chunk.LayerSummary.WATER_DEFAULT;
 
 public class ChunkSummary {
     public static final int MINIMUM_AIR_DEPTH = 2;
@@ -117,7 +110,7 @@ public class ChunkSummary {
      * @param worldHeight the maximum height of the world - or any layer height > maxY to be reused in LayerSummary#getHeight() later.
      * @return A layer summary of top floors.
      */
-    public @Nullable LayerSummary.Raw toSingleLayerRaw(Integer minY, Integer maxY, int worldHeight) {
+    public @Nullable LayerSummary.Raw toSingleLayer(Integer minY, Integer maxY, int worldHeight) {
         int[] depth = ArrayUtil.ofSingle(-1, 256);
         int[] biome = new int[256];
         int[] block = new int[256];
@@ -134,17 +127,5 @@ public class ChunkSummary {
             }
         });
         return depth[0] == -1 && ArrayUtil.distinctCount(depth) == 1 ? null : new LayerSummary.Raw(depth, biome, block, light, water);
-    }
-
-    @SuppressWarnings("DataFlowIssue")
-    public @Nullable LayerSummary toSingleLayer(Integer minY, Integer maxY, int worldHeight) {
-        LayerSummary.Raw raw = toSingleLayerRaw(minY, maxY, worldHeight);
-        return raw == null ? null : new LayerSummary(
-            UIntArray.fromUInts(raw.depths(), DEPTH_DEFAULT),
-            UIntArray.fromUInts(raw.biomes(), BIOME_DEFAULT),
-            UIntArray.fromUInts(raw.blocks(), BLOCK_DEFAULT),
-            UIntArray.fromUInts(raw.lightLevels(), LIGHT_DEFAULT),
-            UIntArray.fromUInts(raw.waterDepths(), WATER_DEFAULT)
-        );
     }
 }
