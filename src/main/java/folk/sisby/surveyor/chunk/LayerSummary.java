@@ -136,7 +136,7 @@ public class LayerSummary {
         return water == null ? WATER_DEFAULT_ARRAY : water.getUnmasked(depth);
     }
 
-    public void fillEmptyFloors(int heightOffset, int maxDepth, int minDepth, int[] outHeight, int[] outBiome, int[] outBlock, int[] outLight, int[] outWater) {
+    public void fillEmptyFloors(int heightOffset, int minDepth, int maxDepth, int[] outHeight, int[] outBiome, int[] outBlock, int[] outLight, int[] outWater) {
         int[] depthFull = rawDepths();
         int[] biomeFull = rawBiomes();
         int[] blockFull = rawBlocks();
