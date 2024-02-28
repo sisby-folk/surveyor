@@ -7,16 +7,20 @@ import folk.sisby.surveyor.chunk.RegionSummary;
 import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.landmark.Landmarks;
+import folk.sisby.surveyor.packet.c2s.OnLandmarkAddedC2SPacket;
+import folk.sisby.surveyor.packet.s2c.OnLandmarkAddedS2CPacket;
 import folk.sisby.surveyor.packet.s2c.OnStructureAddedS2CPacket;
 import folk.sisby.surveyor.structure.StructurePieceSummary;
 import folk.sisby.surveyor.structure.StructureSummary;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.util.ChunkUtil;
 import net.minecraft.block.Block;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructureStart;
 import net.minecraft.util.collection.IndexedIterable;
@@ -142,9 +146,27 @@ public class WorldSummary {
         }
     }
 
-    public void putLandmark(World world, Landmark<?> landmark) {
+    public void putLandmarkNoSync(World world, Landmark<?> landmark) {
         landmarks.computeIfAbsent(landmark.type(), t -> new HashMap<>()).put(landmark.pos(), landmark);
         SurveyorEvents.Invokers.landmarkAdded(world, this, landmark);
+    }
+
+    public void putLandmark(World world, Landmark<?> landmark) {
+        putLandmarkNoSync(world, landmark);
+        if (world instanceof ServerWorld sw) {
+            new OnLandmarkAddedS2CPacket(landmark).send(sw);
+        } else {
+            new OnLandmarkAddedC2SPacket(landmark).send();
+        }
+    }
+
+    public void putLandmark(PlayerEntity sender, ServerWorld world, Landmark<?> landmark) {
+        putLandmarkNoSync(world, landmark);
+        OnLandmarkAddedS2CPacket packet = new OnLandmarkAddedS2CPacket(landmark);
+        for (ServerPlayerEntity player : world.getPlayers()) {
+            if (player.equals(sender)) continue;
+            packet.send(player);
+        }
     }
 
     public void removeLandmark(LandmarkType<?> type, BlockPos pos) {

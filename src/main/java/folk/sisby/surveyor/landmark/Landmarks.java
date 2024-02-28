@@ -24,7 +24,7 @@ public class Landmarks {
     );
 
     @SuppressWarnings("unchecked")
-    private static <T extends Landmark<T>> Codec<Map<BlockPos, Landmark<?>>> typedCodec(LandmarkType<T> type) {
+    public static <T extends Landmark<T>> Codec<Map<BlockPos, Landmark<?>>> typedCodec(LandmarkType<T> type) {
         return DispatchMapCodec.of(
             SurveyorCodecs.STRINGIFIED_BLOCKPOS,
             pos -> (Codec<Landmark<?>>) type.createCodec(pos)
