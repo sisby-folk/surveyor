@@ -132,7 +132,7 @@ public class LayerSummary {
         return light == null ? LIGHT_DEFAULT_ARRAY : light.getUnmasked(depth);
     }
 
-    public int[] getWaterDepths() {
+    public int[] rawWaterDepths() {
         return water == null ? WATER_DEFAULT_ARRAY : water.getUnmasked(depth);
     }
 
@@ -141,7 +141,7 @@ public class LayerSummary {
         int[] biomeFull = rawBiomes();
         int[] blockFull = rawBlocks();
         int[] lightFull = rawLightLevels();
-        int[] waterFull = getWaterDepths();
+        int[] waterFull = rawWaterDepths();
         for (int i = 0; i < 256; i++) {
             if (outHeight[i] == -1 && depthFull[i] != -1 && depthFull[i] <= maxDepth && depthFull[i] >= minDepth) {
                 outHeight[i] = depthFull[i] + heightOffset;
