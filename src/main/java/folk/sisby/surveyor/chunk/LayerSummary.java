@@ -153,5 +153,5 @@ public class LayerSummary {
         }
     }
 
-    public record Uncompressed(int[] depth, int[] biome, int[] block, int[] light, int[] water) {};
+    public record Raw(int[] depths, int[] biomes, int[] blocks, int[] lightLevels, int[] waterDepths) { }
 }
