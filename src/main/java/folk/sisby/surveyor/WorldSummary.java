@@ -8,7 +8,9 @@ import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.landmark.Landmarks;
 import folk.sisby.surveyor.packet.c2s.OnLandmarkAddedC2SPacket;
+import folk.sisby.surveyor.packet.c2s.OnLandmarkRemovedC2SPacket;
 import folk.sisby.surveyor.packet.s2c.OnLandmarkAddedS2CPacket;
+import folk.sisby.surveyor.packet.s2c.OnLandmarkRemovedS2CPacket;
 import folk.sisby.surveyor.packet.s2c.OnStructureAddedS2CPacket;
 import folk.sisby.surveyor.structure.StructurePieceSummary;
 import folk.sisby.surveyor.structure.StructureSummary;
@@ -169,18 +171,34 @@ public class WorldSummary {
         }
     }
 
-    public void removeLandmark(LandmarkType<?> type, BlockPos pos) {
-        if (landmarks.containsKey(type)) {
-            landmarks.get(type).remove(pos);
+    public Landmark<?> removeLandmarkNoSync(LandmarkType<?> type, BlockPos pos) {
+        return landmarks.get(type).remove(pos);
+    }
+
+    public void removeLandmark(World world, LandmarkType<?> type, BlockPos pos) {
+        removeLandmarkNoSync(type, pos);
+        if (world instanceof ServerWorld sw) {
+            new OnLandmarkRemovedS2CPacket(type, pos).send(sw);
+        } else {
+            new OnLandmarkRemovedC2SPacket(type, pos).send();
         }
     }
 
-    public void removeLandmarksMatching(Class<?> clazz, BlockPos pos) {
+    public void removeLandmarksMatching(World world, Class<?> clazz, BlockPos pos) {
         landmarks.forEach((type, map) -> {
             if (map.containsKey(pos) && map.get(pos).getClass().isAssignableFrom(clazz)) {
-                map.remove(pos);
+                removeLandmark(world, map.get(pos).type(), pos);
             }
         });
+    }
+
+    public void removeLandmark(ServerPlayerEntity sender, ServerWorld world, LandmarkType<?> type, BlockPos pos) {
+        removeLandmarkNoSync(type, pos);
+        OnLandmarkRemovedS2CPacket packet = new OnLandmarkRemovedS2CPacket(type, pos);
+        for (ServerPlayerEntity player : world.getPlayers()) {
+            if (player.equals(sender)) continue;
+            packet.send(player);
+        }
     }
 
     public void save(World world, File folder) {

@@ -46,6 +46,6 @@ public class ServerWorldMixin implements SurveyorWorld {
 
     @Inject(method = "method_39222", at = @At("HEAD"))
     public void onPointOfInterestRemoved(BlockPos blockPos, CallbackInfo ci) {
-        surveyor$getWorldSummary().removeLandmarksMatching(PointOfInterestLandmark.class, blockPos);
+        surveyor$getWorldSummary().removeLandmarksMatching((ServerWorld) (Object) this, PointOfInterestLandmark.class, blockPos);
     }
 }

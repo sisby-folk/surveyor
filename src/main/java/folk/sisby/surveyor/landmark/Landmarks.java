@@ -52,6 +52,10 @@ public class Landmarks {
         return CODEC.decode(NbtOps.INSTANCE, nbt.getCompound(KEY_LANDMARKS)).getOrThrow(false, Surveyor.LOGGER::error).getFirst();
     }
 
+    public static LandmarkType<?> getType(Identifier id) {
+        return TYPES.get(id);
+    }
+
     public static void register(LandmarkType<?> type) {
         if (containsType(type.id())) {
             throw new IllegalArgumentException("Multiple landmark types registered to the same ID: %s".formatted(type.id()));
