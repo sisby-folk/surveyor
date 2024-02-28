@@ -30,7 +30,7 @@ public record IntArrayUInts(int[] value) implements UIntArray {
 
     @Override
     public boolean isEmpty(int i) {
-        return i > value.length || value[i] == -1;
+        return i > value.length - 1 || value[i] == -1;
     }
 
     @Override

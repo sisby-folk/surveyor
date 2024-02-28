@@ -32,7 +32,7 @@ public record ByteArrayUInts(byte[] value) implements UIntArray {
 
     @Override
     public boolean isEmpty(int i) {
-        return i > value.length || value[i] == -128;
+        return i > value.length - 1 || value[i] == -128;
     }
 
     @Override
