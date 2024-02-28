@@ -29,7 +29,7 @@ public class ServerWorldMixin implements SurveyorWorld {
     @Inject(method = "<init>", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/dimension/DimensionOptions;chunkGenerator()Lnet/minecraft/world/gen/chunk/ChunkGenerator;"))
     public void loadSummary(CallbackInfo ci) {
         surveyor$worldSummary = WorldSummary.load(WorldSummary.Type.SERVER, (ServerWorld) (Object) this, Surveyor.getSavePath((ServerWorld) (Object) this));
-        SurveyorEvents.Invokers.worldLoad((ServerWorld) (Object) this, surveyor$worldSummary);
+        SurveyorEvents.Invoke.worldLoad((ServerWorld) (Object) this, surveyor$worldSummary);
     }
 
     @Inject(method = "saveLevel", at = @At("TAIL"))

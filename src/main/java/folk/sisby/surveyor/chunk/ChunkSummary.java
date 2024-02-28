@@ -61,7 +61,7 @@ public class ChunkSummary {
                                 waterDepth++;
                             } else if (state.getMapColor(world, new BlockPos(x, y, z)) != MapColor.CLEAR) {
                                 if (foundFloor == null && airDepth > MINIMUM_AIR_DEPTH) {
-                                    foundFloor = new FloorSummary(y, chunkSections[sectionIndex].getBiome(x & 3, y & 3, z & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y, z)), waterDepth);
+                                    foundFloor = new FloorSummary(y, chunkSections[sectionIndex].getBiome(x & 3, y & 3, z & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y - 1, z)), waterDepth);
                                 }
                                 airDepth = 0;
                                 waterDepth = 0;

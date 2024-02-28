@@ -132,25 +132,25 @@ public class WorldSummary {
 
     public void putChunk(World world, Chunk chunk) {
         regions.computeIfAbsent(getRegionPos(chunk.getPos()), k -> new RegionSummary(type)).putChunk(world, chunk);
-        SurveyorEvents.Invokers.chunkAdded(world, this, chunk.getPos(), getChunk(chunk.getPos()));
+        SurveyorEvents.Invoke.chunkAdded(world, this, chunk.getPos(), getChunk(chunk.getPos()));
     }
 
     public void putStructureSummary(World world, ChunkPos pos, RegistryKey<Structure> structure, RegistryKey<StructureType<?>> type, Collection<StructurePieceSummary> pieces) {
         structures.putStructureSummary(pos, structure, type, pieces);
-        SurveyorEvents.Invokers.structureAdded(world, this, new StructureSummary(pos, structure, type, pieces));
+        SurveyorEvents.Invoke.structureAdded(world, this, new StructureSummary(pos, structure, type, pieces));
     }
 
     private void putStructure(World world, StructureStart start) {
         StructureSummary summary = structures.putStructure(world, start);
         if (summary != null) {
-            SurveyorEvents.Invokers.structureAdded(world, this, summary);
+            SurveyorEvents.Invoke.structureAdded(world, this, summary);
             if (type == Type.SERVER) new OnStructureAddedS2CPacket(summary.getPos(), summary.getKey(), summary.getType(), summary.getChildren()).send((ServerWorld) world);
         }
     }
 
     public void putLandmarkNoSync(World world, Landmark<?> landmark) {
         landmarks.computeIfAbsent(landmark.type(), t -> new HashMap<>()).put(landmark.pos(), landmark);
-        SurveyorEvents.Invokers.landmarkAdded(world, this, landmark);
+        SurveyorEvents.Invoke.landmarkAdded(world, this, landmark);
     }
 
     public void putLandmark(World world, Landmark<?> landmark) {

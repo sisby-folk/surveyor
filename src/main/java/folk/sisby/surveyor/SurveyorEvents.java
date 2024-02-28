@@ -18,10 +18,11 @@ public class SurveyorEvents {
     private static final Map<Identifier, StructureAdded> structureAddedHandlers = new HashMap<>();
     private static final Map<Identifier, LandmarkAdded> landmarkAddedHandlers = new HashMap<>();
 
-    public static class Invokers {
+    public static class Invoke {
         public static void worldLoad(ServerWorld world, WorldSummary worldSummary) {
             worldLoadHandlers.forEach((id, handler) -> handler.onWorldLoad(world, worldSummary));
         }
+
         public static void clientWorldLoad(World world, WorldSummary worldSummary) {
             clientWorldLoadHandlers.forEach((id, handler) -> handler.onClientWorldLoad(world, worldSummary));
         }
@@ -39,24 +40,26 @@ public class SurveyorEvents {
         }
     }
 
-    public static void registerOnWorldLoad(Identifier id, WorldLoad handler) {
-        worldLoadHandlers.put(id, handler);
-    }
+    public static class Register {
+        public static void worldLoad(Identifier id, WorldLoad handler) {
+            worldLoadHandlers.put(id, handler);
+        }
 
-    public static void registerClientOnWorldLoad(Identifier id, ClientWorldLoad handler) {
-        clientWorldLoadHandlers.put(id, handler);
-    }
+        public static void clientWorldLoad(Identifier id, ClientWorldLoad handler) {
+            clientWorldLoadHandlers.put(id, handler);
+        }
 
-    public static void registerOnChunkAdded(Identifier id, ChunkAdded handler) {
-        chunkAddedHandlers.put(id, handler);
-    }
+        public static void chunkAdded(Identifier id, ChunkAdded handler) {
+            chunkAddedHandlers.put(id, handler);
+        }
 
-    public static void registerOnStructureAdded(Identifier id, StructureAdded handler) {
-        structureAddedHandlers.put(id, handler);
-    }
+        public static void structureAdded(Identifier id, StructureAdded handler) {
+            structureAddedHandlers.put(id, handler);
+        }
 
-    public static void registerOnLandmarkAdded(Identifier id, LandmarkAdded handler) {
-        landmarkAddedHandlers.put(id, handler);
+        public static void landmarkAdded(Identifier id, LandmarkAdded handler) {
+            landmarkAddedHandlers.put(id, handler);
+        }
     }
 
     @FunctionalInterface
