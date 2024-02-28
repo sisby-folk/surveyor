@@ -9,7 +9,6 @@ import net.minecraft.nbt.NbtInt;
 import net.minecraft.nbt.NbtIntArray;
 
 import java.util.Arrays;
-import java.util.stream.IntStream;
 
 public interface UIntArray {
     int UINT_BYTE_OFFSET = 127;
@@ -20,6 +19,8 @@ public interface UIntArray {
 
     int[] getUncompressed();
 
+    int[] getUnmasked(UIntArray mask);
+
     void writeNbt(NbtCompound nbt, String key);
 
     boolean isEmpty(int i);
@@ -27,10 +28,14 @@ public interface UIntArray {
     int get(int i);
 
     default int getMasked(UIntArray mask, int i) {
-        return get(i - (int) IntStream.range(0, i).filter(mask::isEmpty).count());
+        int empty = 0;
+        for (int j = 0; j < i; j++) {
+            if (mask.isEmpty(j)) empty++;
+        }
+        return get(i - empty);
     }
 
-    static UIntArray readNbt(NbtElement nbt, Integer defaultValue) {
+    static UIntArray readNbt(NbtElement nbt, int defaultValue) {
         if (nbt == null) return null;
         return fromUInts((switch (nbt.getType()) { // Recompress on read.
             case NbtElement.BYTE_TYPE -> new ByteUInts(((NbtByte) nbt).byteValue());
@@ -41,10 +46,10 @@ public interface UIntArray {
         }).getUncompressed(), defaultValue);
     }
 
-    static UIntArray fromUInts(int[] ints, Integer defaultValue) {
+    static UIntArray fromUInts(int[] ints, int defaultValue) {
         if (ints.length == 0) return null;
-        long distinct = Arrays.stream(ints).distinct().count();
-        if (distinct == 1 && Integer.valueOf(ints[0]).equals(defaultValue)) return null;
+        long distinct = ArrayUtil.distinctCount(ints);
+        if (distinct == 1 && ints[0] == defaultValue) return null;
         boolean oneByte = Arrays.stream(ints).allMatch(UIntArray::fitsInByte);
         if (distinct == 1)
             if (oneByte) {

@@ -11,6 +11,17 @@ public record ByteArrayUInts(byte[] value) implements UIntArray {
     }
 
     @Override
+    public int[] getUnmasked(UIntArray mask) {
+        int[] unmasked = new int[256];
+        int empty = 0;
+        for (int i = 0; i < 256; i++) {
+            unmasked[i] = value[i - empty] + UINT_BYTE_OFFSET;
+            if (mask.isEmpty(i)) empty++;
+        }
+        return unmasked;
+    }
+
+    @Override
     public void writeNbt(NbtCompound nbt, String key) {
         nbt.putByteArray(key, value);
     }

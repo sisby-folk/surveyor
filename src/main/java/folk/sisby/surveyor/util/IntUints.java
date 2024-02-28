@@ -9,6 +9,11 @@ public record IntUints(int value) implements UIntArray {
     }
 
     @Override
+    public int[] getUnmasked(UIntArray mask) {
+        return ArrayUtil.ofSingle(value, 256);
+    }
+
+    @Override
     public void writeNbt(NbtCompound nbt, String key) {
         if (value != -1) nbt.putInt(key, value);
     }

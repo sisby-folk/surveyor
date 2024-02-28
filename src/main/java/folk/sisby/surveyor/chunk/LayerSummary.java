@@ -1,5 +1,6 @@
 package folk.sisby.surveyor.chunk;
 
+import folk.sisby.surveyor.util.ArrayUtil;
 import folk.sisby.surveyor.util.UIntArray;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
@@ -25,6 +26,11 @@ public class LayerSummary {
     public static final int BLOCK_DEFAULT = 0;
     public static final int LIGHT_DEFAULT = 0;
     public static final int WATER_DEFAULT = 0;
+
+    public static final int[] BIOME_DEFAULT_ARRAY = ArrayUtil.ofSingle(BIOME_DEFAULT, 256);
+    public static final int[] BLOCK_DEFAULT_ARRAY = ArrayUtil.ofSingle(BLOCK_DEFAULT, 256);
+    public static final int[] LIGHT_DEFAULT_ARRAY = ArrayUtil.ofSingle(LIGHT_DEFAULT, 256);
+    public static final int[] WATER_DEFAULT_ARRAY = ArrayUtil.ofSingle(WATER_DEFAULT, 256);
 
     protected final @NotNull UIntArray depth; // Null Mask
     protected final @Nullable UIntArray biome;
@@ -110,14 +116,39 @@ public class LayerSummary {
         return (ignoreWater || getWater(x, z) == 0) ? blockPalette.get(getBlock(x, z)) : Blocks.WATER;
     }
 
-    public void fillEmptyFloors(int depthOffset, Integer maxDepth, Integer minDepth, int[] outHeight, int[] outBiome, int[] outBlock, int[] outLight, int[] outWater) {
+    public int[] rawDepths() {
+        return depth.getUncompressed();
+    }
+
+    public int[] rawLightLevels() {
+        return light == null ? LIGHT_DEFAULT_ARRAY : light.getUnmasked(depth);
+    }
+
+    public int[] rawBlocks() {
+        return block == null ? BLOCK_DEFAULT_ARRAY : block.getUnmasked(depth);
+    }
+
+    public int[] rawBiomes() {
+        return biome == null ? BIOME_DEFAULT_ARRAY : biome.getUnmasked(depth);
+    }
+
+    private int[] getWaterDepths() {
+        return water == null ? WATER_DEFAULT_ARRAY : water.getUnmasked(depth);
+    }
+
+    public void fillEmptyFloors(int heightOffset, int maxDepth, int minDepth, int[] outHeight, int[] outBiome, int[] outBlock, int[] outLight, int[] outWater) {
+        int[] depthFull = rawDepths();
+        int[] biomeFull = rawBiomes();
+        int[] blockFull = rawBlocks();
+        int[] lightFull = rawLightLevels();
+        int[] waterFull = getWaterDepths();
         for (int i = 0; i < 256; i++) {
-            if (!depth.isEmpty(i) && outHeight[i] == -1 && (maxDepth == null || depth.get(i) + depthOffset <= maxDepth) && (minDepth == null || depth.get(i) + depthOffset >= minDepth)) {
-                outHeight[i] = depth.get(i) + depthOffset;
-                outBiome[i] = biome == null ? BIOME_DEFAULT : biome.getMasked(depth, i);
-                outBlock[i] = block == null ? BIOME_DEFAULT : block.getMasked(depth, i);
-                outLight[i] = light == null ? BIOME_DEFAULT : light.getMasked(depth, i);
-                outWater[i] = water == null ? BIOME_DEFAULT :  water.getMasked(depth, i);
+            if (outHeight[i] == -1 && depthFull[i] != -1 && depthFull[i] <= maxDepth && depthFull[i] >= minDepth) {
+                outHeight[i] = depthFull[i] + heightOffset;
+                outBiome[i] = biomeFull[i];
+                outBlock[i] = blockFull[i];
+                outLight[i] = lightFull[i];
+                outWater[i] = waterFull[i];
             }
         }
     }

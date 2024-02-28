@@ -9,6 +9,11 @@ public record ByteUInts(byte value) implements UIntArray {
     }
 
     @Override
+    public int[] getUnmasked(UIntArray mask) {
+        return ArrayUtil.ofSingle(value + UINT_BYTE_OFFSET, 256);
+    }
+
+    @Override
     public void writeNbt(NbtCompound nbt, String key) {
         if (value != -128) nbt.putByte(key, value);
     }
