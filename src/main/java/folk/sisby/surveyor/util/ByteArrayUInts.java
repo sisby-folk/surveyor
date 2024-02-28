@@ -13,10 +13,12 @@ public record ByteArrayUInts(byte[] value) implements UIntArray {
     @Override
     public int[] getUnmasked(UIntArray mask) {
         int[] unmasked = new int[256];
-        int empty = 0;
+        int maskedIndex = 0;
         for (int i = 0; i < 256; i++) {
-            unmasked[i] = value[i - empty] + UINT_BYTE_OFFSET;
-            if (mask.isEmpty(i)) empty++;
+            if (!mask.isEmpty(i)) {
+                unmasked[i] = value[maskedIndex] + UINT_BYTE_OFFSET;
+                maskedIndex++;
+            }
         }
         return unmasked;
     }
