@@ -4,6 +4,7 @@ import folk.sisby.surveyor.SurveyorNetworking;
 import folk.sisby.surveyor.SurveyorWorld;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.packet.s2c.OnJoinWorldS2CPacket;
+import folk.sisby.surveyor.packet.s2c.OnStructureAddedS2CPacket;
 import folk.sisby.surveyor.packet.s2c.S2CPacket;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
@@ -18,10 +19,15 @@ public class SurveyorClientNetworking {
             ClientPlayNetworking.send(p.getId(), p.toBuf());
         };
         ClientPlayNetworking.registerGlobalReceiver(SurveyorNetworking.S2C_ON_JOIN_WORLD, (c, h, b, s) -> handleClient(b, OnJoinWorldS2CPacket::new, SurveyorClientNetworking::handleOnJoinWorld));
+        ClientPlayNetworking.registerGlobalReceiver(SurveyorNetworking.S2C_ON_STRUCTURE_ADDED, (c, h, b, s) -> handleClient(b, OnStructureAddedS2CPacket::new, SurveyorClientNetworking::handleOnStructureAdded));
     }
 
     private static void handleOnJoinWorld(ClientWorld world, WorldSummary summary, OnJoinWorldS2CPacket packet) {
         packet.structures().forEach((pos, structures) -> structures.forEach((structure, pair) -> summary.putStructureSummary(world, pos, structure, pair.left(), pair.right())));
+    }
+
+    private static void handleOnStructureAdded(ClientWorld world, WorldSummary summary, OnStructureAddedS2CPacket packet) {
+        summary.putStructureSummary(world, packet.pos(), packet.key(), packet.type(), packet.pieces());
     }
 
     private static <T extends S2CPacket> void handleClient(PacketByteBuf buf, Function<PacketByteBuf, T> reader, ClientPacketHandler<T> handler) {

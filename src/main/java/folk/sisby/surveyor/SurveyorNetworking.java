@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 public class SurveyorNetworking {
     public static final Identifier C2S_ON_JOIN_WORLD = new Identifier(Surveyor.ID, "c2s_on_join_world");
     public static final Identifier S2C_ON_JOIN_WORLD = new Identifier(Surveyor.ID, "s2c_on_join_world");
+    public static final Identifier S2C_ON_STRUCTURE_ADDED = new Identifier(Surveyor.ID, "s2c_on_structure_added");
     public static Consumer<C2SPacket> C2S_SENDER = p -> {};
 
     public static void init() {

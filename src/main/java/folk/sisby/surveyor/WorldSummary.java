@@ -7,6 +7,7 @@ import folk.sisby.surveyor.chunk.RegionSummary;
 import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.landmark.Landmarks;
+import folk.sisby.surveyor.packet.s2c.OnStructureAddedS2CPacket;
 import folk.sisby.surveyor.structure.StructurePieceSummary;
 import folk.sisby.surveyor.structure.StructureSummary;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
@@ -135,7 +136,10 @@ public class WorldSummary {
 
     private void putStructure(World world, StructureStart start) {
         StructureSummary summary = structures.putStructure(world, start);
-        if (summary != null) SurveyorEvents.Invokers.structureAdded(world, this, summary);
+        if (summary != null) {
+            SurveyorEvents.Invokers.structureAdded(world, this, summary);
+            if (type == Type.SERVER) new OnStructureAddedS2CPacket(summary.getPos(), summary.getKey(), summary.getType(), summary.getChildren()).send((ServerWorld) world);
+        }
     }
 
     public void putLandmark(World world, Landmark<?> landmark) {
