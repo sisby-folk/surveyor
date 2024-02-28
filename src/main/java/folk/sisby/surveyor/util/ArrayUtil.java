@@ -22,4 +22,11 @@ public class ArrayUtil {
         }
         return count;
     }
+
+    public static int trimIndex(int[] ints, int value) {
+        for (int i = ints.length - 1; i >= 0; i--) {
+            if (ints[i] != value) return i + 1;
+        }
+        return 0;
+    }
 }

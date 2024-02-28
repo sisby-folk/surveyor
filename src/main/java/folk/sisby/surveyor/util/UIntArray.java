@@ -58,10 +58,11 @@ public interface UIntArray {
                 return new IntUints(ints[0]);
             }
         else {
+            int lastIndex = ArrayUtil.trimIndex(ints, -1);
             if (oneByte) {
-                return new ByteArrayUInts(Bytes.toArray(Arrays.stream(ints).mapToObj(i -> (byte) (i - UINT_BYTE_OFFSET)).toList()));
+                return new ByteArrayUInts(Bytes.toArray(Arrays.stream(ints).mapToObj(i -> (byte) (i - UINT_BYTE_OFFSET)).toList().subList(0, lastIndex)));
             } else {
-                return new IntArrayUInts(ints);
+                return new IntArrayUInts(Arrays.copyOfRange(ints,0, lastIndex));
             }
         }
     }

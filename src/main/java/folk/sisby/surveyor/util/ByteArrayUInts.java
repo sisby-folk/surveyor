@@ -2,12 +2,14 @@ package folk.sisby.surveyor.util;
 
 import net.minecraft.nbt.NbtCompound;
 
-import java.util.stream.IntStream;
-
 public record ByteArrayUInts(byte[] value) implements UIntArray {
     @Override
     public int[] getUncompressed() {
-        return IntStream.range(0, value.length).map(i -> value[i] + UINT_BYTE_OFFSET).toArray();
+        int[] uncompressed = ArrayUtil.ofSingle(-1, 256);
+        for (int i = 0; i < value.length; i++) {
+            uncompressed[i] = value[i] + UINT_BYTE_OFFSET;
+        }
+        return uncompressed;
     }
 
     @Override
@@ -30,7 +32,7 @@ public record ByteArrayUInts(byte[] value) implements UIntArray {
 
     @Override
     public boolean isEmpty(int i) {
-        return value[i] == -128;
+        return i > value.length || value[i] == -128;
     }
 
     @Override

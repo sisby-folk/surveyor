@@ -5,7 +5,9 @@ import net.minecraft.nbt.NbtCompound;
 public record IntArrayUInts(int[] value) implements UIntArray {
     @Override
     public int[] getUncompressed() {
-        return value;
+        int[] uncompressed = ArrayUtil.ofSingle(-1, 256);
+        System.arraycopy(value, 0, uncompressed, 0, value.length);
+        return uncompressed;
     }
 
     @Override
@@ -28,7 +30,7 @@ public record IntArrayUInts(int[] value) implements UIntArray {
 
     @Override
     public boolean isEmpty(int i) {
-        return value[i] == -1;
+        return i > value.length || value[i] == -1;
     }
 
     @Override
