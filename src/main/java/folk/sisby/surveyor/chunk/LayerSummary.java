@@ -120,19 +120,19 @@ public class LayerSummary {
         return depth.getUncompressed();
     }
 
-    public int[] rawLightLevels() {
-        return light == null ? LIGHT_DEFAULT_ARRAY : light.getUnmasked(depth);
+    public int[] rawBiomes() {
+        return biome == null ? BIOME_DEFAULT_ARRAY : biome.getUnmasked(depth);
     }
 
     public int[] rawBlocks() {
         return block == null ? BLOCK_DEFAULT_ARRAY : block.getUnmasked(depth);
     }
 
-    public int[] rawBiomes() {
-        return biome == null ? BIOME_DEFAULT_ARRAY : biome.getUnmasked(depth);
+    public int[] rawLightLevels() {
+        return light == null ? LIGHT_DEFAULT_ARRAY : light.getUnmasked(depth);
     }
 
-    private int[] getWaterDepths() {
+    public int[] getWaterDepths() {
         return water == null ? WATER_DEFAULT_ARRAY : water.getUnmasked(depth);
     }
 
