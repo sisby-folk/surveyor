@@ -109,15 +109,7 @@ public class ChunkSummary {
         return airCount;
     }
 
-    /**
-     * Gets a compressed layer of the topmost floor found for each X,Z column within the specified range.
-     *
-     * @param minY        the minimum (inclusive) height of floors to include in the layer.
-     * @param maxY        the maximum (inclusive) height of floors to include in the layer.
-     * @param worldHeight the maximum height of the world - or any layer height > maxY to be reused in LayerSummary#getHeight() later.
-     * @return A layer summary of top floors.
-     */
-    public @Nullable LayerSummary toSingleLayer(Integer minY, Integer maxY, int worldHeight) {
+    public @Nullable LayerSummary.Uncompressed toSingleLayerRaw(Integer minY, Integer maxY, int worldHeight) {
         int[] depth = ArrayUtil.ofSingle(-1, 256);
         int[] biome = new int[256];
         int[] block = new int[256];
@@ -133,13 +125,26 @@ public class ChunkSummary {
                 );
             }
         });
-        UIntArray compressedDepth = UIntArray.fromUInts(depth, DEPTH_DEFAULT);
-        return compressedDepth == null ? null : new LayerSummary(
-            compressedDepth,
-            UIntArray.fromUInts(biome, BIOME_DEFAULT),
-            UIntArray.fromUInts(block, BLOCK_DEFAULT),
-            UIntArray.fromUInts(light, LIGHT_DEFAULT),
-            UIntArray.fromUInts(water, WATER_DEFAULT)
+        return depth[0] == -1 && ArrayUtil.distinctCount(depth) == 1 ? null : new LayerSummary.Uncompressed(depth, biome, block, light, water);
+    }
+
+    /**
+     * Gets a compressed layer of the topmost floor found for each X,Z column within the specified range.
+     *
+     * @param minY        the minimum (inclusive) height of floors to include in the layer.
+     * @param maxY        the maximum (inclusive) height of floors to include in the layer.
+     * @param worldHeight the maximum height of the world - or any layer height > maxY to be reused in LayerSummary#getHeight() later.
+     * @return A layer summary of top floors.
+     */
+    @SuppressWarnings("DataFlowIssue")
+    public @Nullable LayerSummary toSingleLayer(Integer minY, Integer maxY, int worldHeight) {
+        LayerSummary.Uncompressed raw = toSingleLayerRaw(minY, maxY, worldHeight);
+        return raw == null ? null : new LayerSummary(
+            UIntArray.fromUInts(raw.depth(), DEPTH_DEFAULT),
+            UIntArray.fromUInts(raw.biome(), BIOME_DEFAULT),
+            UIntArray.fromUInts(raw.block(), BLOCK_DEFAULT),
+            UIntArray.fromUInts(raw.light(), LIGHT_DEFAULT),
+            UIntArray.fromUInts(raw.water(), WATER_DEFAULT)
         );
     }
 }
