@@ -171,12 +171,14 @@ public class WorldSummary {
         }
     }
 
-    public Landmark<?> removeLandmarkNoSync(LandmarkType<?> type, BlockPos pos) {
-        return landmarks.get(type).remove(pos);
+    public Landmark<?> removeLandmarkNoSync(World world, LandmarkType<?> type, BlockPos pos) {
+        Landmark<?> landmark = landmarks.get(type).remove(pos);
+        SurveyorEvents.Invoke.landmarkRemoved(world, this, type, pos);
+        return landmark;
     }
 
     public void removeLandmark(World world, LandmarkType<?> type, BlockPos pos) {
-        removeLandmarkNoSync(type, pos);
+        removeLandmarkNoSync(world, type, pos);
         if (world instanceof ServerWorld sw) {
             new OnLandmarkRemovedS2CPacket(type, pos).send(sw);
         } else {
@@ -193,7 +195,7 @@ public class WorldSummary {
     }
 
     public void removeLandmark(ServerPlayerEntity sender, ServerWorld world, LandmarkType<?> type, BlockPos pos) {
-        removeLandmarkNoSync(type, pos);
+        removeLandmarkNoSync(world, type, pos);
         OnLandmarkRemovedS2CPacket packet = new OnLandmarkRemovedS2CPacket(type, pos);
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (player.equals(sender)) continue;

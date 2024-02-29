@@ -39,7 +39,7 @@ public class SurveyorClientNetworking {
     }
 
     private static void handleOnLandmarkRemoved(ClientWorld world, WorldSummary summary, OnLandmarkRemovedS2CPacket packet) {
-        summary.removeLandmarkNoSync(packet.type(), packet.pos());
+        summary.removeLandmarkNoSync(world, packet.type(), packet.pos());
     }
 
     private static <T extends S2CPacket> void handleClient(PacketByteBuf buf, Function<PacketByteBuf, T> reader, ClientPacketHandler<T> handler) {
