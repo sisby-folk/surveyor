@@ -34,7 +34,7 @@ Surveyor is a map library that:
   * Landmarks can generically represent all other positional map data - e.g. waypoints, POIs, or faction claims.
 * Syncs structure and POI data to the client for use on maps.
 * Syncs player-made waypoints (landmarks) with other players.
-* Removes the need to include saving data or networking in map mods at all.
+* Removes the need to implement saving data or networking in a most dependent map mods.
 
 ## Developers
 
