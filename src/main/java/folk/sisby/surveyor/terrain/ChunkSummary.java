@@ -1,4 +1,4 @@
-package folk.sisby.surveyor.chunk;
+package folk.sisby.surveyor.terrain;
 
 import folk.sisby.surveyor.util.ArrayUtil;
 import folk.sisby.surveyor.util.ChunkUtil;

@@ -2,8 +2,8 @@ package folk.sisby.surveyor;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import folk.sisby.surveyor.chunk.ChunkSummary;
-import folk.sisby.surveyor.chunk.RegionSummary;
+import folk.sisby.surveyor.terrain.ChunkSummary;
+import folk.sisby.surveyor.terrain.RegionSummary;
 import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.landmark.Landmarks;
@@ -79,12 +79,8 @@ public class WorldSummary {
         return structures.contains(world, start);
     }
 
-    public boolean containsStructure(ChunkPos pos, RegistryKey<Structure> structure) {
-        return structures.contains(pos, structure);
-    }
-
-    public Collection<StructureSummary> getStructures() {
-        return structures.getStructures();
+    public boolean containsStructure(RegistryKey<Structure> key, ChunkPos pos) {
+        return structures.contains(pos, key);
     }
 
     public ChunkSummary getChunk(ChunkPos pos) {
@@ -92,9 +88,23 @@ public class WorldSummary {
         return regions.get(regionPos).get(pos);
     }
 
+    public StructureSummary getStructure(RegistryKey<Structure> key, ChunkPos pos) {
+        return structures.getStructure(key, pos);
+    }
+
     @SuppressWarnings("unchecked")
     public <T extends Landmark<T>> Landmark<T> getLandmark(LandmarkType<T> type, BlockPos pos) {
         return (Landmark<T>) landmarks.get(type).get(pos);
+    }
+
+    public Set<ChunkPos> getChunks() {
+        Set<ChunkPos> chunkPosCollection = new HashSet<>();
+        regions.forEach((p, r) -> chunkPosCollection.addAll(r.getChunks(p)));
+        return chunkPosCollection;
+    }
+
+    public Collection<StructureSummary> getStructures() {
+        return structures.getStructures();
     }
 
     @SuppressWarnings("unchecked")
@@ -104,20 +114,28 @@ public class WorldSummary {
         return outMap;
     }
 
-    public Map<RegistryKey<Structure>, Set<ChunkPos>> getStructureKeys() {
-        return structures.getStructureKeys();
-    }
+    @SuppressWarnings("unchecked")
+    public <T extends Landmark<T>> Map<BlockPos, Landmark<T>> getLandmarksMatching(Class<T> clazz) {
+        Map<BlockPos, Landmark<T>> outMap = new HashMap<>();
+        landmarks.forEach((type, map) -> {
+            map.forEach((pos, landmark) -> {
+                if (landmark.getClass().isAssignableFrom(clazz)) {
+                    outMap.put(pos, (Landmark<T>) landmark);
+                }
+            });
 
-    public Set<ChunkPos> getChunks() {
-        Set<ChunkPos> chunkPosCollection = new HashSet<>();
-        regions.forEach((p, r) -> chunkPosCollection.addAll(r.getChunks(p)));
-        return chunkPosCollection;
+        });
+        return outMap;
     }
 
     public Multimap<LandmarkType<?>, BlockPos> getLandmarks() {
         Multimap<LandmarkType<?>, BlockPos> outMap = HashMultimap.create();
         landmarks.forEach((type, map) -> outMap.putAll(type, map.keySet()));
         return outMap;
+    }
+
+    public Map<RegistryKey<Structure>, Set<ChunkPos>> getStructureKeys() {
+        return structures.getStructureKeys();
     }
 
     public IndexedIterable<Biome> getBiomePalette(ChunkPos pos) {
@@ -186,7 +204,7 @@ public class WorldSummary {
         }
     }
 
-    public void removeLandmarksMatching(World world, Class<?> clazz, BlockPos pos) {
+    public <T extends Landmark<T>> void removeLandmarksMatching(World world, Class<T> clazz, BlockPos pos) {
         landmarks.forEach((type, map) -> {
             if (map.containsKey(pos) && map.get(pos).getClass().isAssignableFrom(clazz)) {
                 removeLandmark(world, map.get(pos).type(), pos);

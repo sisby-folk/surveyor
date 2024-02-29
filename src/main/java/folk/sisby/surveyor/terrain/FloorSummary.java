@@ -1,4 +1,4 @@
-package folk.sisby.surveyor.chunk;
+package folk.sisby.surveyor.terrain;
 
 import net.minecraft.block.Block;
 import net.minecraft.world.biome.Biome;

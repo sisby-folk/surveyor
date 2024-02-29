@@ -1,6 +1,6 @@
 package folk.sisby.surveyor;
 
-import folk.sisby.surveyor.chunk.ChunkSummary;
+import folk.sisby.surveyor.terrain.ChunkSummary;
 import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.structure.StructureSummary;

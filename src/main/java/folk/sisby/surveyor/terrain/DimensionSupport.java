@@ -1,4 +1,4 @@
-package folk.sisby.surveyor.chunk;
+package folk.sisby.surveyor.terrain;
 
 import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;

@@ -1,7 +1,7 @@
 package folk.sisby.surveyor.packet.s2c;
 
 import folk.sisby.surveyor.SurveyorNetworking;
-import folk.sisby.surveyor.chunk.ChunkSummary;
+import folk.sisby.surveyor.terrain.ChunkSummary;
 import folk.sisby.surveyor.structure.StructurePieceSummary;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import it.unimi.dsi.fastutil.Pair;

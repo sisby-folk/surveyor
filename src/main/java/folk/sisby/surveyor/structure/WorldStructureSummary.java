@@ -54,8 +54,13 @@ public class WorldStructureSummary {
         return structures.containsKey(start.getPos()) && structures.get(start.getPos()).containsKey(world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElseThrow());
     }
 
-    public boolean contains(ChunkPos pos, RegistryKey<Structure> structure) {
-        return structures.containsKey(pos) && structures.get(pos).containsKey(structure);
+    public boolean contains(ChunkPos pos, RegistryKey<Structure> key) {
+        return structures.containsKey(pos) && structures.get(pos).containsKey(key);
+    }
+
+    public StructureSummary getStructure(RegistryKey<Structure> key, ChunkPos pos) {
+        Pair<RegistryKey<StructureType<?>>, Collection<StructurePieceSummary>> pair = structures.get(pos).get(key);
+        return new StructureSummary(pos, key, pair.left(), pair.right());
     }
 
     public Collection<StructureSummary> getStructures() {

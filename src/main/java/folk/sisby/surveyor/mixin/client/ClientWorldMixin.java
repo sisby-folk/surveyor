@@ -1,4 +1,4 @@
-package folk.sisby.surveyor.mixin;
+package folk.sisby.surveyor.mixin.client;
 
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorWorld;
