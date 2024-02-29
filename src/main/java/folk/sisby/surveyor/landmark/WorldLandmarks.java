@@ -46,7 +46,7 @@ public class WorldLandmarks {
         Map<BlockPos, Landmark<T>> outMap = new HashMap<>();
         landmarks.forEach((type, map) -> {
             map.forEach((pos, landmark) -> {
-                if (landmark.getClass().isAssignableFrom(clazz)) {
+                if (clazz.isAssignableFrom(landmark.getClass())) {
                     outMap.put(pos, (Landmark<T>) landmark);
                 }
             });
@@ -101,7 +101,7 @@ public class WorldLandmarks {
 
     public void removeAll(World world, Class<?> clazz, BlockPos pos) {
         landmarks.forEach((type, map) -> {
-            if (map.containsKey(pos) && map.get(pos).getClass().isAssignableFrom(clazz)) {
+            if (map.containsKey(pos) && clazz.isAssignableFrom(map.get(pos).getClass())) {
                 remove(world, map.get(pos).type(), pos);
             }
         });
