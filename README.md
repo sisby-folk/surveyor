@@ -31,7 +31,7 @@ Surveyor is a map library that:
   * Terrain data is recorded as "floors" for each x,z - including the height, block, biome, and light level.
   * Terrain data records multiple layers of floors, allowing for usable cave and nether maps.
   * Structures are recorded with their IDs, type IDs, piece IDs, piece BBs, jigsaw piece IDs & junctions - all intact.
-  * Landmarks are a generic representation of all other positional map data - e.g. waypoints, POIs, or faction claims.
+  * Landmarks can generically represent all other positional map data - e.g. waypoints, POIs, or faction claims.
 * Syncs structure and POI data to the client for use on maps.
 * Syncs player-made waypoints (landmarks) with other players.
 * Removes the need to include saving data or networking in map mods at all.
