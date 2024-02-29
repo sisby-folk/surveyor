@@ -15,10 +15,10 @@ public record SimplePointLandmark(BlockPos pos, UUID owner, DyeColor color, Text
     public static LandmarkType<SimplePointLandmark> TYPE = new SimpleLandmarkType<>(
             new Identifier(Surveyor.ID, "point"),
             pos -> RecordCodecBuilder.create(instance -> instance.group(
-                    Uuids.CODEC.fieldOf("owner").orElse(null).forGetter(SimplePointLandmark::owner),
-                    DyeColor.CODEC.fieldOf("color").orElse(null).forGetter(SimplePointLandmark::color),
-                    Codecs.TEXT.fieldOf("name").orElse(null).forGetter(SimplePointLandmark::name),
-                    Identifier.CODEC.fieldOf("texture").orElse(null).forGetter(SimplePointLandmark::texture)
+                    Uuids.CODEC.fieldOf("owner").orElse(null).forGetter(Landmark::owner),
+                    DyeColor.CODEC.fieldOf("color").orElse(null).forGetter(Landmark::color),
+                    Codecs.TEXT.fieldOf("name").orElse(null).forGetter(Landmark::name),
+                    Identifier.CODEC.fieldOf("texture").orElse(null).forGetter(Landmark::texture)
             ).apply(instance, (owner, color, name, texture) -> new SimplePointLandmark(pos, owner, color, name, texture)))
     );
 

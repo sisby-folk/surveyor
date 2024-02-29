@@ -16,9 +16,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MinecraftClientMixin {
     @Inject(method = "joinWorld", at = @At("HEAD"))
     void onJoinWorld(ClientWorld newWorld, CallbackInfo ci) {
-        if (MinecraftClient.getInstance().world instanceof SurveyorWorld csw && csw.surveyor$getWorldSummary().terrain().type() == WorldSummary.Type.CLIENT) {
+        if (MinecraftClient.getInstance().world instanceof SurveyorWorld csw && csw.surveyor$getWorldSummary().isClient()) {
             csw.surveyor$getWorldSummary().save(MinecraftClient.getInstance().world, SurveyorClient.getSavePath(MinecraftClient.getInstance().world));
-            if (newWorld instanceof SurveyorWorld nsw && nsw.surveyor$getWorldSummary().terrain().type() == WorldSummary.Type.CLIENT) {
+            if (newWorld instanceof SurveyorWorld nsw && nsw.surveyor$getWorldSummary().isClient()) {
                 WorldSummary summary = nsw.surveyor$getWorldSummary();
                 new OnJoinWorldC2SPacket(summary.terrain().keySet(), summary.structures().keySet()).send();
             }

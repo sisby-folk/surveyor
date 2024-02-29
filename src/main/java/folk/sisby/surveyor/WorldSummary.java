@@ -7,20 +7,15 @@ import net.minecraft.world.World;
 
 import java.io.File;
 
-public record WorldSummary(WorldTerrainSummary terrain, WorldStructureSummary structures, WorldLandmarks landmarks) {
-    public enum Type {
-        SERVER,
-        CLIENT
-    }
-
-    public static WorldSummary load(Type type, World world, File folder) {
+public record WorldSummary(WorldTerrainSummary terrain, WorldStructureSummary structures, WorldLandmarks landmarks, boolean isClient) {
+    public static WorldSummary load(World world, File folder, boolean isClient) {
         Surveyor.LOGGER.info("[Surveyor] Loading data for {}", world.getRegistryKey().getValue());
         folder.mkdirs();
-        WorldTerrainSummary terrain = WorldTerrainSummary.load(world, folder, type);
+        WorldTerrainSummary terrain = WorldTerrainSummary.load(world, folder);
         WorldStructureSummary structures = WorldStructureSummary.load(world, folder);
         WorldLandmarks landmarks = WorldLandmarks.load(world, folder);
         Surveyor.LOGGER.info("[Surveyor] Finished loading data for {}", world.getRegistryKey().getValue());
-        return new WorldSummary(terrain, structures, landmarks);
+        return new WorldSummary(terrain, structures, landmarks, isClient);
     }
 
     public void save(World world, File folder) {

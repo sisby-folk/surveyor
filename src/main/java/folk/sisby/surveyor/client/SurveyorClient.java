@@ -45,13 +45,19 @@ public class SurveyorClient implements ClientModInitializer {
     public void onInitializeClient() {
         SurveyorClientNetworking.init();
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(() -> {
-            if (MinecraftClient.getInstance().world instanceof SurveyorWorld nsw && nsw.surveyor$getWorldSummary().terrain().type() == WorldSummary.Type.CLIENT) {
+            if (MinecraftClient.getInstance().world instanceof SurveyorWorld nsw && nsw.surveyor$getWorldSummary().isClient()) {
                 WorldSummary summary = nsw.surveyor$getWorldSummary();
                 new OnJoinWorldC2SPacket(summary.terrain().keySet(), summary.structures().keySet()).send();
             }
         }));
-        ClientChunkEvents.CHUNK_LOAD.register(WorldTerrainSummary::onChunkLoad);
-        ClientChunkEvents.CHUNK_LOAD.register(WorldStructureSummary::onChunkLoad);
-        ClientChunkEvents.CHUNK_UNLOAD.register(WorldTerrainSummary::onChunkUnload);
+        ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
+            if (((SurveyorWorld) world).surveyor$getWorldSummary().isClient()) WorldTerrainSummary.onChunkLoad(world, chunk);
+        });
+        ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
+            if (((SurveyorWorld) world).surveyor$getWorldSummary().isClient()) WorldStructureSummary.onChunkLoad(world, chunk);
+        });
+        ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
+            if (((SurveyorWorld) world).surveyor$getWorldSummary().isClient()) WorldTerrainSummary.onChunkUnload(world, chunk);
+        });
     }
 }

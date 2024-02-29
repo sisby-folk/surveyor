@@ -11,14 +11,14 @@ import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.poi.PointOfInterestType;
 
-public record SimplePointOfInterestLandmark(BlockPos pos, RegistryKey<PointOfInterestType> poiType, DyeColor color, Text name, Identifier texture) implements Landmark<SimplePointOfInterestLandmark> {
+public record SimplePointOfInterestLandmark(BlockPos pos, RegistryKey<PointOfInterestType> poiType, DyeColor color, Text name, Identifier texture) implements PointOfInterestLandmark<SimplePointOfInterestLandmark> {
     public static LandmarkType<SimplePointOfInterestLandmark> TYPE = new SimpleLandmarkType<>(
             new Identifier(Surveyor.ID, "poi"),
             pos -> RecordCodecBuilder.create(instance -> instance.group(
-                    RegistryKey.createCodec(RegistryKeys.POINT_OF_INTEREST_TYPE).fieldOf("poiType").forGetter(SimplePointOfInterestLandmark::poiType),
-                    DyeColor.CODEC.fieldOf("color").orElse(null).forGetter(SimplePointOfInterestLandmark::color),
-                    Codecs.TEXT.fieldOf("name").orElse(null).forGetter(SimplePointOfInterestLandmark::name),
-                    Identifier.CODEC.fieldOf("texture").orElse(null).forGetter(SimplePointOfInterestLandmark::texture)
+                    RegistryKey.createCodec(RegistryKeys.POINT_OF_INTEREST_TYPE).fieldOf("poiType").forGetter(PointOfInterestLandmark::poiType),
+                    DyeColor.CODEC.fieldOf("color").orElse(null).forGetter(Landmark::color),
+                    Codecs.TEXT.fieldOf("name").orElse(null).forGetter(Landmark::name),
+                    Identifier.CODEC.fieldOf("texture").orElse(null).forGetter(Landmark::texture)
             ).apply(instance, (poiType, color, name, texture) -> new SimplePointOfInterestLandmark(pos, poiType, color, name, texture)))
     );
 

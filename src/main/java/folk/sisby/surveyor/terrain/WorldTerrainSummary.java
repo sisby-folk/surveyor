@@ -8,7 +8,6 @@ import folk.sisby.surveyor.util.ChunkUtil;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.collection.IndexedIterable;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -25,11 +24,9 @@ import java.util.Set;
 
 public class WorldTerrainSummary {
     protected final Map<ChunkPos, RegionSummary> regions;
-    protected final WorldSummary.Type type;
 
-    public WorldTerrainSummary(Map<ChunkPos, RegionSummary> regions, WorldSummary.Type type) {
+    public WorldTerrainSummary(Map<ChunkPos, RegionSummary> regions) {
         this.regions = regions;
-        this.type = type;
     }
 
     protected static ChunkPos regionPosOf(ChunkPos pos) {
@@ -67,10 +64,6 @@ public class WorldTerrainSummary {
         SurveyorEvents.Invoke.chunkAdded(world, this, chunk.getPos(), get(chunk.getPos()));
     }
 
-    public WorldSummary.Type type() {
-        return type;
-    }
-
     public void save(World world, File folder) {
         regions.forEach((pos, summary) -> {
             if (!summary.isDirty()) return;
@@ -84,7 +77,7 @@ public class WorldTerrainSummary {
         });
     }
 
-    public static WorldTerrainSummary load(World world, File folder, WorldSummary.Type type) {
+    public static WorldTerrainSummary load(World world, File folder) {
         File[] chunkFiles = folder.listFiles((file, name) -> {
             String[] split = name.split("\\.");
             if (split.length == 4 && split[0].equals("c") && split[3].equals("dat")) {
@@ -111,18 +104,20 @@ public class WorldTerrainSummary {
                 if (regionCompound != null) regions.put(regionPos, new RegionSummary().readNbt(regionCompound, world.getRegistryManager()));
             }
         }
-        return new WorldTerrainSummary(regions, type);
+        return new WorldTerrainSummary(regions);
     }
 
     public static void onChunkLoad(World world, Chunk chunk) {
-        WorldSummary.Type type = world instanceof ServerWorld ? WorldSummary.Type.SERVER : WorldSummary.Type.CLIENT;
-        WorldTerrainSummary terrain = ((SurveyorWorld) world).surveyor$getWorldSummary().terrain();
-        if (terrain.type() == type && (!terrain.contains(chunk.getPos()) || !ChunkUtil.airCount(chunk).equals(terrain.get(chunk.getPos()).getAirCount()))) terrain.put(world, chunk);
+        WorldSummary summary = ((SurveyorWorld) world).surveyor$getWorldSummary();
+        if ((!summary.terrain().contains(chunk.getPos()) || !ChunkUtil.airCount(chunk).equals(summary.terrain().get(chunk.getPos()).getAirCount()))){
+            summary.terrain().put(world, chunk);
+        }
     }
 
     public static void onChunkUnload(World world, WorldChunk chunk) {
-        WorldSummary.Type type = world instanceof ServerWorld ? WorldSummary.Type.SERVER : WorldSummary.Type.CLIENT;
-        WorldTerrainSummary terrain = ((SurveyorWorld) world).surveyor$getWorldSummary().terrain();
-        if (terrain.type() == type && chunk.needsSaving()) terrain.put(world, chunk);
+        WorldSummary summary = ((SurveyorWorld) world).surveyor$getWorldSummary();
+        if (chunk.needsSaving()) {
+            summary.terrain().put(world, chunk);
+        }
     }
 }

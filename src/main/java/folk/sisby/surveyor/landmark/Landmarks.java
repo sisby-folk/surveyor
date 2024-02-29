@@ -67,5 +67,6 @@ public class Landmarks {
         register(SimplePointLandmark.TYPE);
         register(SimplePointOfInterestLandmark.TYPE);
         register(NetherPortalLandmark.TYPE);
+        register(PlayerDeathLandmark.TYPE);
     }
 }

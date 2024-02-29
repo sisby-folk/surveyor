@@ -1,6 +1,10 @@
 package folk.sisby.surveyor.mixin;
 
+import folk.sisby.surveyor.SurveyorWorld;
+import folk.sisby.surveyor.landmark.PlayerDeathLandmark;
 import folk.sisby.surveyor.player.SurveyorPlayer;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIntArray;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -47,6 +51,18 @@ public class MixinPlayerEntity implements SurveyorPlayer {
         if (oldPlayer instanceof SurveyorPlayer them) {
             surveyor$exploredChunks.clear();
             surveyor$exploredChunks.addAll(them.surveyor$getExploredChunks());
+        }
+    }
+
+    @Inject(method = "onDeath", at = @At("TAIL"))
+    public void onClientDeath(DamageSource damageSource, CallbackInfo ci) {
+        PlayerEntity self = (PlayerEntity) (Object) this;
+        if (self instanceof ServerPlayerEntity) return;
+        if (((SurveyorWorld) self.getWorld()).surveyor$getWorldSummary().isClient()) {
+            ((SurveyorWorld) self.getWorld()).surveyor$getWorldSummary().landmarks().put(
+                self.getWorld(),
+                new PlayerDeathLandmark(self.getBlockPos(), self.getUuid(), self.getDamageTracker().getDeathMessage(), self.getWorld().getTimeOfDay(), self.getRandom().nextInt())
+            );
         }
     }
 
