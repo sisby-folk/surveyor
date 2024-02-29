@@ -123,5 +123,6 @@ if (System.getenv("MODRINTH_TOKEN") && System.getenv("GITHUB_TOKEN")) {
         group "publishing"
         dependsOn "githubRelease"
         dependsOn "modrinth"
+        dependsOn "publish"
     }
 }
