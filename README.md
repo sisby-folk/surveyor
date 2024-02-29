@@ -86,6 +86,9 @@ The **World Summary** holds all of surveyor's data for a world. It can be access
 
 ### Map Mods
 
+<details>
+<summary>Click to show the map mod guide</summary>
+
 #### Initial Setup
 
 Tune into loading via `SurveyorEvents.Register.clientWorldLoad` - this will trigger as soon as the client world has access to surveyor data. Keep in mind that the **client player may not exist yet**.
@@ -138,6 +141,8 @@ You should also tune into the `ChunkAdded`, `StructureAdded`, `LandmarkAdded`, a
 An implementation of a surveyor map mod (with advanced terrain rendering) can be found in [Antique Atlas](https://github.com/sisby-folk/antique-atlas/blob/1.20/src/main/java/folk/sisby/antique_atlas/WorldTiles.java).
 
 A minecraftless vanilla-map-like implementation that reads surveyor's NBT save files directly is [SurveyorSurveyor](https://github.com/HestiMae/surveyor-surveyor/blob/main/src/main/java/garden/hestia/surveyor_surveyor/SurveyorSurveyor.java).
+
+</details>
 
 ### Landmark Integrations
 
