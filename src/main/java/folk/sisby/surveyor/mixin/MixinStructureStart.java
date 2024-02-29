@@ -1,6 +1,6 @@
 package folk.sisby.surveyor.mixin;
 
-import folk.sisby.surveyor.WorldSummary;
+import folk.sisby.surveyor.structure.WorldStructureSummary;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructureStart;
 import net.minecraft.util.math.BlockBox;
@@ -20,6 +20,6 @@ public abstract class MixinStructureStart {
     @Inject(method = "place", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/gen/structure/Structure;postPlace(Lnet/minecraft/world/StructureWorldAccess;Lnet/minecraft/world/gen/StructureAccessor;Lnet/minecraft/world/gen/chunk/ChunkGenerator;Lnet/minecraft/util/math/random/Random;Lnet/minecraft/util/math/BlockBox;Lnet/minecraft/util/math/ChunkPos;Lnet/minecraft/structure/StructurePiecesList;)V"))
     private void structureGenerated(StructureWorldAccess serverWorldAccess, StructureAccessor structureAccessor, ChunkGenerator chunkGenerator, Random random, BlockBox chunkBox, ChunkPos chunkPos, CallbackInfo ci) {
         ServerWorld world = serverWorldAccess instanceof ServerWorld sw ? sw : ((ChunkRegion) serverWorldAccess).world;
-        WorldSummary.onStructurePlace(world, (StructureStart) (Object) this);
+        WorldStructureSummary.onStructurePlace(world, (StructureStart) (Object) this);
     }
 }

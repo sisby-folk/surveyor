@@ -1,21 +1,30 @@
 package folk.sisby.surveyor.structure;
 
+import folk.sisby.surveyor.Surveyor;
+import folk.sisby.surveyor.SurveyorEvents;
+import folk.sisby.surveyor.SurveyorWorld;
+import folk.sisby.surveyor.packet.s2c.OnStructureAddedS2CPacket;
 import it.unimi.dsi.fastutil.Pair;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructurePiece;
 import net.minecraft.structure.StructurePieceType;
 import net.minecraft.structure.StructureStart;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.gen.structure.Structure;
 import net.minecraft.world.gen.structure.StructureType;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -31,20 +40,7 @@ public class WorldStructureSummary {
     public static final String KEY_PIECES = "pieces";
 
     private final Map<ChunkPos, Map<RegistryKey<Structure>, Pair<RegistryKey<StructureType<?>>, Collection<StructurePieceSummary>>>> structures;
-
     protected boolean dirty = false;
-
-    public static Collection<StructurePieceSummary> summarisePieces(StructureStart start) {
-        List<StructurePieceSummary> pieces = new ArrayList<>();
-        for (StructurePiece piece : start.getChildren()) {
-            if (piece.getType().equals(StructurePieceType.JIGSAW)) {
-                pieces.addAll(JigsawPieceSummary.tryFromPiece(piece));
-            } else {
-                pieces.add(StructurePieceSummary.fromPiece(piece));
-            }
-        }
-        return pieces;
-    }
 
     public WorldStructureSummary(Map<ChunkPos, Map<RegistryKey<Structure>, Pair<RegistryKey<StructureType<?>>, Collection<StructurePieceSummary>>>> structures) {
         this.structures = structures;
@@ -58,40 +54,54 @@ public class WorldStructureSummary {
         return structures.containsKey(pos) && structures.get(pos).containsKey(key);
     }
 
-    public StructureSummary getStructure(RegistryKey<Structure> key, ChunkPos pos) {
+    public StructureSummary get(RegistryKey<Structure> key, ChunkPos pos) {
         Pair<RegistryKey<StructureType<?>>, Collection<StructurePieceSummary>> pair = structures.get(pos).get(key);
         return new StructureSummary(pos, key, pair.left(), pair.right());
     }
 
-    public Collection<StructureSummary> getStructures() {
+    public Collection<StructureSummary> values() {
         Collection<StructureSummary> outStructures = new ArrayList<>();
         structures.forEach((pos, map) -> map.forEach((key, pair) -> outStructures.add(new StructureSummary(pos, key, pair.left(), pair.right()))));
         return outStructures;
     }
 
-    public Map<RegistryKey<Structure>, Set<ChunkPos>> getStructureKeys() {
+    public Map<RegistryKey<Structure>, Set<ChunkPos>> keySet() {
         Map<RegistryKey<Structure>, Set<ChunkPos>> outMap = new HashMap<>();
         structures.forEach((pos, map) -> map.forEach((key, pair) -> outMap.computeIfAbsent(key, p -> new HashSet<>()).add(pos)));
         return outMap;
     }
 
-    public StructureSummary putStructure(World world, StructureStart start) {
+    protected static Collection<StructurePieceSummary> summarisePieces(StructureStart start) {
+        List<StructurePieceSummary> pieces = new ArrayList<>();
+        for (StructurePiece piece : start.getChildren()) {
+            if (piece.getType().equals(StructurePieceType.JIGSAW)) {
+                pieces.addAll(JigsawPieceSummary.tryFromPiece(piece));
+            } else {
+                pieces.add(StructurePieceSummary.fromPiece(piece));
+            }
+        }
+        return pieces;
+    }
+
+    public void put(World world, StructureStart start) {
         structures.computeIfAbsent(start.getPos(), p -> new HashMap<>());
         RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElseThrow();
         if (!structures.get(start.getPos()).containsKey(key)) {
             structures.get(start.getPos()).put(key, Pair.of(world.getRegistryManager().get(RegistryKeys.STRUCTURE_TYPE).getKey(start.getStructure().getType()).orElseThrow(), summarisePieces(start)));
             dirty = true;
-            return new StructureSummary(start.getPos(), key, structures.get(start.getPos()).get(key).left(), structures.get(start.getPos()).get(key).right());
+            StructureSummary summary = new StructureSummary(start.getPos(), key, structures.get(start.getPos()).get(key).left(), structures.get(start.getPos()).get(key).right());
+            SurveyorEvents.Invoke.structureAdded(world, this, summary);
+            if (world instanceof ServerWorld sw) new OnStructureAddedS2CPacket(summary.getPos(), summary.getKey(), summary.getType(), summary.getChildren()).send(sw);
         }
-        return null;
     }
 
-    public void putStructureSummary(ChunkPos pos, RegistryKey<Structure> structure, RegistryKey<StructureType<?>> type, Collection<StructurePieceSummary> pieces) {
+    public void put(World world, ChunkPos pos, RegistryKey<Structure> structure, RegistryKey<StructureType<?>> type, Collection<StructurePieceSummary> pieces) {
         structures.computeIfAbsent(pos, p -> new HashMap<>()).put(structure, Pair.of(type, pieces));
         dirty = true;
+        SurveyorEvents.Invoke.structureAdded(world, this, new StructureSummary(pos, structure, type, pieces));
     }
 
-    public NbtCompound writeNbt(NbtCompound nbt) {
+    protected NbtCompound writeNbt(NbtCompound nbt) {
         Map<RegistryKey<Structure>, Pair<RegistryKey<StructureType<?>>, Map<ChunkPos, Collection<StructurePieceSummary>>>> perStructure = new HashMap<>();
         structures.forEach((pos, map) -> map.forEach((structure, pair) -> perStructure.computeIfAbsent(structure, p -> Pair.of(pair.left(), new HashMap<>())).right().put(pos, pair.right())));
         NbtCompound structuresCompound = new NbtCompound();
@@ -112,6 +122,17 @@ public class WorldStructureSummary {
         return nbt;
     }
 
+    public void save(World world, File folder) {
+        if (dirty) {
+            File structureFile = new File(folder, "structures.dat");
+            try {
+                NbtIo.writeCompressed(writeNbt(new NbtCompound()), structureFile);
+            } catch (IOException e) {
+                Surveyor.LOGGER.error("[Surveyor] Error writing structure summary file for {}.", world.getRegistryKey().getValue(), e);
+            }
+        }
+    }
+
     public static StructurePieceSummary readStructurePieceNbt(NbtCompound nbt) {
         if (nbt.getString(StructurePieceSummary.KEY_TYPE).equals(Registries.STRUCTURE_PIECE.getId(StructurePieceType.JIGSAW).toString())) {
             return JigsawPieceSummary.fromNbt(nbt);
@@ -120,7 +141,7 @@ public class WorldStructureSummary {
         }
     }
 
-    public static WorldStructureSummary readNbt(NbtCompound nbt) {
+    protected static WorldStructureSummary readNbt(NbtCompound nbt) {
         Map<ChunkPos, Map<RegistryKey<Structure>, Pair<RegistryKey<StructureType<?>>, Collection<StructurePieceSummary>>>> structures = new HashMap<>();
         NbtCompound structuresCompound = nbt.getCompound(KEY_STRUCTURES);
         for (String structureId : structuresCompound.getKeys()) {
@@ -142,7 +163,28 @@ public class WorldStructureSummary {
         return new WorldStructureSummary(structures);
     }
 
-    public boolean isDirty() {
-        return dirty;
+    public static WorldStructureSummary load(World world, File folder) {
+        NbtCompound structureNbt = new NbtCompound();
+        File structuresFile = new File(folder, "structures.dat");
+        if (structuresFile.exists()) {
+            try {
+                structureNbt = NbtIo.readCompressed(structuresFile);
+            } catch (IOException e) {
+                Surveyor.LOGGER.error("[Surveyor] Error loading structure summary file for {}.", world.getRegistryKey().getValue(), e);
+            }
+        }
+        return WorldStructureSummary.readNbt(structureNbt);
+    }
+
+    public static void onChunkLoad(World world, Chunk chunk) {
+        WorldStructureSummary structures = ((SurveyorWorld) world).surveyor$getWorldSummary().structures();
+        chunk.getStructureStarts().forEach((structure, start) -> {
+            if (!structures.contains(world, start)) structures.put(world, start);
+        });
+    }
+
+    public static void onStructurePlace(World world, StructureStart start) {
+        WorldStructureSummary structures = ((SurveyorWorld) world).surveyor$getWorldSummary().structures();
+        if (!structures.contains(world, start)) structures.put(world, start);
     }
 }

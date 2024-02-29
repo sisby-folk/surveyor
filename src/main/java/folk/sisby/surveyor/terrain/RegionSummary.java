@@ -1,6 +1,5 @@
 package folk.sisby.surveyor.terrain;
 
-import folk.sisby.surveyor.WorldSummary;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -8,6 +7,7 @@ import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
 import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.collection.IndexedIterable;
 import net.minecraft.util.collection.Int2ObjectBiMap;
@@ -32,16 +32,11 @@ public class RegionSummary {
     public static final String KEY_BLOCK_COLORS = "blockColors";
     public static final String KEY_CHUNKS = "chunks";
 
-    protected final WorldSummary.Type type;
     protected final Int2ObjectBiMap<Biome> biomePalette = Int2ObjectBiMap.create(255);
     protected final Int2ObjectBiMap<Block> blockPalette = Int2ObjectBiMap.create(255);
     protected ChunkSummary[][] chunks = new ChunkSummary[REGION_SIZE][REGION_SIZE];
 
     protected boolean dirty = false;
-
-    public RegionSummary(WorldSummary.Type type) {
-        this.type = type;
-    }
 
     public static <T, O> List<O> mapPalette(IndexedIterable<T> palette, Function<T, O> mapper) {
         List<O> list = new ArrayList<>();
@@ -77,7 +72,7 @@ public class RegionSummary {
     }
 
     public void putChunk(World world, Chunk chunk) {
-        chunks[regionRelative(chunk.getPos().x)][regionRelative(chunk.getPos().z)] = new ChunkSummary(world, chunk, DimensionSupport.getSummaryLayers(world), biomePalette, blockPalette, type == WorldSummary.Type.CLIENT);
+        chunks[regionRelative(chunk.getPos().x)][regionRelative(chunk.getPos().z)] = new ChunkSummary(world, chunk, DimensionSupport.getSummaryLayers(world), biomePalette, blockPalette, !(world instanceof ServerWorld));
         dirty = true;
     }
 

@@ -1,5 +1,6 @@
 package folk.sisby.surveyor;
 
+import folk.sisby.surveyor.terrain.WorldTerrainSummary;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.loader.api.FabricLoader;
@@ -24,7 +25,7 @@ public class Surveyor implements ModInitializer {
     @Override
     public void onInitialize() {
         SurveyorNetworking.init();
-        ServerChunkEvents.CHUNK_LOAD.register(WorldSummary::onChunkLoad);
-        ServerChunkEvents.CHUNK_UNLOAD.register(WorldSummary::onChunkUnload);
+        ServerChunkEvents.CHUNK_LOAD.register(WorldTerrainSummary::onChunkLoad);
+        ServerChunkEvents.CHUNK_UNLOAD.register(WorldTerrainSummary::onChunkUnload);
     }
 }

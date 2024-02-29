@@ -43,24 +43,24 @@ public class SurveyorNetworking {
     }
 
     private static void handleOnJoinWorld(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, OnJoinWorldC2SPacket packet) {
-        Set<ChunkPos> serverChunkKeys = summary.getChunks();
+        Set<ChunkPos> serverChunkKeys = summary.terrain().keySet();
         serverChunkKeys.removeAll(packet.terrainKeys());
         serverChunkKeys.clear();
-        Collection<StructureSummary> serverStructures = summary.getStructures().stream().filter(s -> !packet.structureKeys().containsKey(s.getKey()) || !packet.structureKeys().get(s.getKey()).contains(s.getPos())).collect(Collectors.toSet());
+        Collection<StructureSummary> serverStructures = summary.structures().values().stream().filter(s -> !packet.structureKeys().containsKey(s.getKey()) || !packet.structureKeys().get(s.getKey()).contains(s.getPos())).collect(Collectors.toSet());
         Map<ChunkPos, Map<RegistryKey<Structure>, Pair<RegistryKey<StructureType<?>>, Collection<StructurePieceSummary>>>> structures = new HashMap<>();
         serverStructures.forEach(s -> {
             structures.computeIfAbsent(s.getPos(), p -> new HashMap<>()).put(s.getKey(), Pair.of(s.getType(), s.getChildren()));
         });
 
-        new OnJoinWorldS2CPacket(serverChunkKeys.stream().collect(Collectors.toMap(p -> p, summary::getChunk)), structures).send(player);
+        new OnJoinWorldS2CPacket(serverChunkKeys.stream().collect(Collectors.toMap(p -> p, p -> summary.terrain().get(p))), structures).send(player);
     }
 
     private static void handleOnLandmarkAdded(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, OnLandmarkAddedC2SPacket packet) {
-        summary.putLandmark(player, world, packet.landmark());
+        summary.landmarks().put(player, world, packet.landmark());
     }
 
     private static void handleOnLandmarkRemoved(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, OnLandmarkRemovedC2SPacket packet) {
-        summary.removeLandmark(player, world, packet.type(), packet.pos());
+        summary.landmarks().remove(player, world, packet.type(), packet.pos());
     }
 
     private static <T extends C2SPacket> void handleServer(ServerPlayerEntity player, PacketByteBuf buf, Function<PacketByteBuf, T> reader, ServerPacketHandler<T> handler) {

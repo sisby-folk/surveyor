@@ -4,6 +4,8 @@ import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorWorld;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.packet.c2s.OnJoinWorldC2SPacket;
+import folk.sisby.surveyor.structure.WorldStructureSummary;
+import folk.sisby.surveyor.terrain.WorldTerrainSummary;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -43,12 +45,13 @@ public class SurveyorClient implements ClientModInitializer {
     public void onInitializeClient() {
         SurveyorClientNetworking.init();
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(() -> {
-            if (MinecraftClient.getInstance().world instanceof SurveyorWorld nsw && nsw.surveyor$getWorldSummary().type == WorldSummary.Type.CLIENT) {
+            if (MinecraftClient.getInstance().world instanceof SurveyorWorld nsw && nsw.surveyor$getWorldSummary().terrain().type() == WorldSummary.Type.CLIENT) {
                 WorldSummary summary = nsw.surveyor$getWorldSummary();
-                new OnJoinWorldC2SPacket(summary.getChunks(), summary.getStructureKeys()).send();
+                new OnJoinWorldC2SPacket(summary.terrain().keySet(), summary.structures().keySet()).send();
             }
         }));
-        ClientChunkEvents.CHUNK_LOAD.register(WorldSummary::onChunkLoad);
-        ClientChunkEvents.CHUNK_UNLOAD.register(WorldSummary::onChunkUnload);
+        ClientChunkEvents.CHUNK_LOAD.register(WorldTerrainSummary::onChunkLoad);
+        ClientChunkEvents.CHUNK_LOAD.register(WorldStructureSummary::onChunkLoad);
+        ClientChunkEvents.CHUNK_UNLOAD.register(WorldTerrainSummary::onChunkUnload);
     }
 }

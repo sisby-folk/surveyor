@@ -27,19 +27,19 @@ public class SurveyorClientNetworking {
     }
 
     private static void handleOnJoinWorld(ClientWorld world, WorldSummary summary, OnJoinWorldS2CPacket packet) {
-        packet.structures().forEach((pos, structures) -> structures.forEach((structure, pair) -> summary.putStructureSummary(world, pos, structure, pair.left(), pair.right())));
+        packet.structures().forEach((pos, structures) -> structures.forEach((structure, pair) -> summary.structures().put(world, pos, structure, pair.left(), pair.right())));
     }
 
     private static void handleOnStructureAdded(ClientWorld world, WorldSummary summary, OnStructureAddedS2CPacket packet) {
-        summary.putStructureSummary(world, packet.pos(), packet.key(), packet.type(), packet.pieces());
+        summary.structures().put(world, packet.pos(), packet.key(), packet.type(), packet.pieces());
     }
 
     private static void handleOnLandmarkAdded(ClientWorld world, WorldSummary summary, OnLandmarkAddedS2CPacket packet) {
-        summary.putLandmarkNoSync(world, packet.landmark());
+        summary.landmarks().putLocal(world, packet.landmark());
     }
 
     private static void handleOnLandmarkRemoved(ClientWorld world, WorldSummary summary, OnLandmarkRemovedS2CPacket packet) {
-        summary.removeLandmarkNoSync(world, packet.type(), packet.pos());
+        summary.landmarks().removeLocal(world, packet.type(), packet.pos());
     }
 
     private static <T extends S2CPacket> void handleClient(PacketByteBuf buf, Function<PacketByteBuf, T> reader, ClientPacketHandler<T> handler) {

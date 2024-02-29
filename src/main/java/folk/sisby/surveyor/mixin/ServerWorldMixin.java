@@ -40,12 +40,12 @@ public class ServerWorldMixin implements SurveyorWorld {
     @Inject(method = "method_19499", at = @At("HEAD"))
     public void onPointOfInterestAdded(BlockPos blockPos, RegistryEntry<PointOfInterestType> poiType, CallbackInfo ci) {
         if (poiType.getKey().orElse(null) == PointOfInterestTypes.NETHER_PORTAL) {
-            surveyor$getWorldSummary().putLandmark((ServerWorld) (Object) this, new NetherPortalLandmark(blockPos.toImmutable()));
+            surveyor$getWorldSummary().landmarks().put((ServerWorld) (Object) this, new NetherPortalLandmark(blockPos.toImmutable()));
         }
     }
 
     @Inject(method = "method_39222", at = @At("HEAD"))
     public void onPointOfInterestRemoved(BlockPos blockPos, CallbackInfo ci) {
-        surveyor$getWorldSummary().removeLandmarksMatching((ServerWorld) (Object) this, PointOfInterestLandmark.class, blockPos);
+        surveyor$getWorldSummary().landmarks().removeAll((ServerWorld) (Object) this, PointOfInterestLandmark.class, blockPos);
     }
 }
