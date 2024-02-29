@@ -116,7 +116,7 @@ Then, crunch the result into floors using `ChunkSummary.toSingleLayer()` which o
 
 For all these arrays, the index is (x * 16 + z), where x and z are relative to the chunk.
 
-Using this data, render usable data for your map (pixel buffers, images, etc) and store them per-world.<br/>
+Using this data, render usable data for your map (color buffers, images, etc) and hold onto them per-world.<br/>
 You may be rendering hundreds of thousands of chunks here - this is the hot loop, that's why it's all ugly int arrays.
 
 #### Structure Rendering
