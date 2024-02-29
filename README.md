@@ -146,6 +146,9 @@ A minecraftless vanilla-map-like implementation that reads surveyor's NBT save f
 
 ### Landmark Integrations
 
+<details>
+<summary>Click to show the landmark integration guide</summary>
+
 Landmark types can be registered via the registry in `Landmarks`.<br/>
 This allows you to set and serialize custom data relevant to your landmark.<br/>
 Your landmark can usually be a record - see `NetherPortalLandmark` for a very brief example.
@@ -156,11 +159,18 @@ To add a landmark (custom or builtin), just use `WorldLandmarks.put(Landmark)`. 
 
 Right now, both the server and client need a landmark type registered to use it, but we'll be adding a fallback system in future.
 
+</details>
+
 ### Dimension Mods
+
+<details>
+<summary>Click to show the dimension mod integration guide</summary>
 
 Chunk summaries are currently layered based on the dimension via a few basic heuristics on world height, ceiling and sky presence, etc - as well as a few hardcoded layer additions for the nether.
 
 In future, we'll expose an API to allow dimension mods to specify the layers to generate chunk summaries with.
+
+</details>
 
 ## Afterword
 
