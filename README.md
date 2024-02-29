@@ -89,6 +89,9 @@ The **World Summary** holds all of surveyor's data for a world. It can be access
 <details>
 <summary>Click to show the map mod guide</summary>
 
+Quick reminder that surveyor **replaces your existing world scanning logic**<br/>
+You should never need to look at the currently loaded chunks - if you do, let us know and we'll see if surveyor can be extended!
+
 #### Initial Setup
 
 Tune into loading via `SurveyorEvents.Register.clientWorldLoad` - this will trigger as soon as the client world has access to surveyor data. Keep in mind that the **client player may not exist yet**.
