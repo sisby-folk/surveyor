@@ -51,7 +51,7 @@ dependencies {
 
 ### Core Concept - Terrain Summaries
 
-**Terrain Summaries** (or "Chunk" or "Region" summaries) represent blocks for drawing on maps.
+**Terrain Summaries** (or "Chunk" or "Region" summaries) represent blocks for rendering on maps.<br/>
 They're added and changed per-chunk, but paletted and saved per-region.<br/>
 Each chunk summary is comprised of **Floors**, non-clear solid blocks below two contiguous non-solid blocks.<br/>
 Floors are stored in **Layers**, which hold the topmost floors for each x,z column over specific range of y-values.<br/>
@@ -64,24 +64,24 @@ This is best explained by example.
 - 0 - deepslate caves
 
 **The Nether** has layers at:
-* 255 - always empty unless players use exploits to build there
+* 255 - empty bedrock ceiling unless players use exploits to build there
 * 126 - high caves and outcrops
 * 70 - mid-level outcrops and walkways
 * 40 - the lava sea and shores
 
 The layering dictates the **maximum number of floors surveyor can detect in an x,z column**.<br/>
 If it finds one floor in a layer, it can't find another floor until the next layer starts.<br/>
-More layers for interiors is "higher definition" - harder to miss a cave underneath another cave - but will take up more space.
+More layers is "higher definition" - harder to miss a cave underneath another cave - but will take up more space.
 
-Layering does not dictate **how maps display floors** - chunk summaries provide helper methods that output the top known floors between any two arbitrary Y values, so cave maps can easily be overlayed, combined, displayed as transparent, etc.
+Layering does not dictate **how maps display floors** - surveyor can provide the top known floors between any two arbitrary y values, so cave maps can easily be overlayed, combined, displayed as transparent, etc.
 
 ### Other Concepts
 
 The **World Summary** holds all of surveyor's data for a world. It can be accessed through the `SurveyorWorld` duck.
 
-**Structure Summaries** represent an in-world structure each (called `StructureStart` in yarn) - they include map-critical information for identifying the structure and its pieces, but not any actual blocks or piece NBT. 
+**Structure Summaries** represent an in-world structure (called `StructureStart` in yarn) - they include map-critical information for identifying the structure and its pieces, but not any actual blocks or piece NBT. 
 
-**Landmarks** are the primary way to represent all other positional information on-map. They have unique serialization per-type, and are uniquely keyed by their type and BlockPos - two of the same type of landmark can not exist at the same blockpos.
+**Landmarks** are a way to represent all other positional information on-map. They have unique serialization per-type, and are uniquely keyed by their type and position to prevent overlaps.
 
 ### Map Mods
 
@@ -93,23 +93,24 @@ From the **WorldSummary**, you can call `WorldSummary.getChunks()` to get all su
 
 #### Terrain Rendering
 
-To process a chunk, first get the summary using `WorldSummary.getChunk(ChunkPos)` - remember you can always get the world summary from the world using `SurveyorWorld` if you're doing this on world tick.<br/>
-Then, process the chunk into usable floor data using `ChunkSummary.toSingleLayer()` which will output usable int arrays:
-* **depth[256]** - The distance of the floor below your specified world height. so y = worldHeight - depth.
+To process a chunk, first get the summary using `WorldSummary.getChunk(ChunkPos)`.<br/>
+Remember you can always get the world summary from using `SurveyorWorld` if you're processing on world tick.<br/>
+Then, crunch the result into floors using `ChunkSummary.toSingleLayer()` which outputs usable int arrays:
+* **depths[256]** - The distance of the floor below your specified world height. so y = worldHeight - depth.
   * Will be **-1** when no floor exists on the layer - either because there's no solid blocks, or no walkspace.
   * When the depth is **-1**, all other array values at that index are meaningless and may be invalid.
-* **block[256]** - The floor block. Can be retrieved from the per-region palette at `WorldSummary.getBlockPalette(ChunkPos)`.
-* **biome[256]** - The floor biome. Can be retrieved from the per-region palette at `WorldSummary.getBiomePalette(ChunkPos)`.
-* **light[256]** - The block light level directly above the floor (i.e the block light for its top face). 0-15.
-* **water[256]** - How deep the contiguous water above the floor is.
+* **blocks[256]** - The floor block. Can be retrieved from the per-region palette at `WorldSummary.getBlockPalette(ChunkPos)`.
+* **biomes[256]** - The floor biome. Can be retrieved from the per-region palette at `WorldSummary.getBiomePalette(ChunkPos)`.
+* **lightLevels[256]** - The block light level directly above the floor (i.e the block light for its top face). 0-15.
+* **waterDepths[256]** - How deep the contiguous water above the floor is.
   * All other liquid surfaces are considered floors, but water is special-cased.
-  * The sea floor (e.g. sand, gravel) is recorded instead of the surface, and the depth of the water above is recorded.
+  * The sea floor (e.g. sand) is recorded, and this depth value indicates the water surface instead.
   * This allows maps to show water depth shading, but also hide water completely if desired.
 
 For all these arrays, the index is (x * 16 + z), where x and z are relative to the chunk.
 
-Using this data, render out usable objects for your map (pixel buffers, images, etc) and keep them either in the world using a duck, or a world-keyed static map.
-Keep in mind you may be rendering hundreds of thousands of chunks here - this is the hot loop, that's why it's all ugly int arrays.
+Using this data, render usable data for your map (pixel buffers, images, etc) and store them per-world.<br/>
+You may be rendering hundreds of thousands of chunks here - this is the hot loop, that's why it's all ugly int arrays.
 
 #### Structure Rendering
 
@@ -129,7 +130,7 @@ To add a custom waypoint landmark, just construct a `SimplePointLandmark` owned 
 
 #### Live Updates
 
-You should tune into the `ChunkAdded`, `StructureAdded`, `LandmarkAdded`, and `LandmarkRemoved` events, which will fire whenever the world summary changes. Ensure that your handler for `ChunkAdded` is non-blocking (reuse the queue).
+You should also tune into the `ChunkAdded`, `StructureAdded`, `LandmarkAdded`, and `LandmarkRemoved` events, which will fire whenever the world summary changes. Ensure that your handler for `ChunkAdded` is non-blocking (reuse the queue).
 
 #### Examples
 
@@ -139,10 +140,11 @@ A minecraftless vanilla-map-like implementation that reads surveyor's NBT save f
 
 ### Landmark Integrations
 
-Landmark types can be registered via the registry in `Landmarks`. This allows you to set and serialize custom data relevant to your landmark.<br/>
+Landmark types can be registered via the registry in `Landmarks`.<br/>
+This allows you to set and serialize custom data relevant to your landmark.<br/>
 Your landmark can usually be a record - see `NetherPortalLandmark` for a very brief example.
 
-To make new data accessible to map mods, make sure you declare a new interface to access it from - as in the nether portal example.
+To make new data accessible to map mods, declare a new interface to access it from, so it can be applied to more than one type.
 
 To add a landmark (custom or builtin), just use `WorldSummary.addLandmark(Landmark)`. This works fine on either side - feel free to add a landmark on the server to send it to the client.
 
