@@ -99,8 +99,8 @@ Then, crunch the result into floors using `ChunkSummary.toSingleLayer()` which o
 * **depths[256]** - The distance of the floor below your specified world height. so y = worldHeight - depth.
   * Will be **-1** when no floor exists on the layer - either because there's no solid blocks, or no walkspace.
   * When the depth is **-1**, all other array values at that index are meaningless and may be invalid.
-* **blocks[256]** - The floor block. Can be retrieved from the per-region palette at `WorldTerrainSummary.getBlockPalette(ChunkPos)`.
-* **biomes[256]** - The floor biome. Can be retrieved from the per-region palette at `WorldTerrainSummary.getBiomePalette(ChunkPos)`.
+* **blocks[256]** - The floor block. Indexed per-region via `WorldTerrainSummary.getBlockPalette(ChunkPos)`.
+* **biomes[256]** - The floor biome. Indexed per-region via `WorldTerrainSummary.getBiomePalette(ChunkPos)`.
 * **lightLevels[256]** - The block light level directly above the floor (i.e the block light for its top face). 0-15.
 * **waterDepths[256]** - How deep the contiguous water above the floor is.
   * All other liquid surfaces are considered floors, but water is special-cased.
