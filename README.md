@@ -89,18 +89,18 @@ The **World Summary** holds all of surveyor's data for a world. It can be access
 
 Tune into loading via `SurveyorEvents.Register.clientWorldLoad` - this will trigger as soon as the client world has access to surveyor data. Keep in mind that the **client player may not exist yet**.
 
-From the **WorldSummary**, you can call `WorldSummary.getChunks()` to get all summarized chunk positions - feel free to add these to a queue or deque to render later.
+You can call `WorldSummary.terrain().keySet()` to get all summarized chunk positions - feel free to add these to a queue or deque to render later.
 
 #### Terrain Rendering
 
-To process a chunk, first get the summary using `WorldSummary.getChunk(ChunkPos)`.<br/>
+To process a chunk, first get the summary using `WorldTerrainSummary.getChunk(ChunkPos)`.<br/>
 Remember you can always get the world summary from using `SurveyorWorld` if you're processing on world tick.<br/>
 Then, crunch the result into floors using `ChunkSummary.toSingleLayer()` which outputs usable int arrays:
 * **depths[256]** - The distance of the floor below your specified world height. so y = worldHeight - depth.
   * Will be **-1** when no floor exists on the layer - either because there's no solid blocks, or no walkspace.
   * When the depth is **-1**, all other array values at that index are meaningless and may be invalid.
-* **blocks[256]** - The floor block. Can be retrieved from the per-region palette at `WorldSummary.getBlockPalette(ChunkPos)`.
-* **biomes[256]** - The floor biome. Can be retrieved from the per-region palette at `WorldSummary.getBiomePalette(ChunkPos)`.
+* **blocks[256]** - The floor block. Can be retrieved from the per-region palette at `WorldTerrainSummary.getBlockPalette(ChunkPos)`.
+* **biomes[256]** - The floor biome. Can be retrieved from the per-region palette at `WorldTerrainSummary.getBiomePalette(ChunkPos)`.
 * **lightLevels[256]** - The block light level directly above the floor (i.e the block light for its top face). 0-15.
 * **waterDepths[256]** - How deep the contiguous water above the floor is.
   * All other liquid surfaces are considered floors, but water is special-cased.
@@ -114,19 +114,19 @@ You may be rendering hundreds of thousands of chunks here - this is the hot loop
 
 #### Structure Rendering
 
-Structures can be retrieved using `WorldSummary.getStructures()` - these come in a `StructureSummary` format, which clearly defines identifiers for structures and pieces, along with piece bounding boxes, but no further data.
+Structures can be retrieved using `WorldStructureSummary.values()` - these come in a `StructureSummary` format, which clearly defines identifiers for structures and pieces, along with piece bounding boxes, but no further data.
 
 These can be used to create automatic waypoints for structures, draw abstract versions of them to the map by ID, etc.
 
 #### Landmark Rendering & Management
 
-Landmarks can be retrieved using either `WorldSummary.getLandmarks(LandmarkType)` or by combining `WorldSummary.getLandmarks()` with `WorldSummary.getLandmark(LandmarkType, BlockPos)`.
+Landmarks can be retrieved using `WorldLandmarks.getAll(LandmarkType)`, `WorldLandmarks.getAll(Class<?>)`, or `WorldLandmarks.keySet()` and `WorldLandmarks.get(LandmarkType, BlockPos)`.
 
 Landmarks can be most simply represented as a point on the map. They may include a dye color (for vanilla banner style rendering) as well as some name text for labels or tooltips.
 
 Landmarks can also include a texture identifier, which may or may not exist on your client, depending on how it was made.
 
-To add a custom waypoint landmark, just construct a `SimplePointLandmark` owned by the client player, and add it using `WorldSummary.putLandmark(Landmark)`. This will save to disk and send a copy to the server.
+To add a custom waypoint landmark, just construct a `SimplePointLandmark` owned by the client player, and add it using `WorldLandmarks.put(Landmark)`. This will save to disk and send a copy to the server.
 
 #### Live Updates
 
@@ -146,7 +146,7 @@ Your landmark can usually be a record - see `NetherPortalLandmark` for a very br
 
 To make new data accessible to map mods, declare a new interface to access it from, so it can be applied to more than one type.
 
-To add a landmark (custom or builtin), just use `WorldSummary.addLandmark(Landmark)`. This works fine on either side - feel free to add a landmark on the server to send it to the client.
+To add a landmark (custom or builtin), just use `WorldLandmarks.put(Landmark)`. This works fine on either side - feel free to add a landmark on the server to send it to the client.
 
 Right now, both the server and client need a landmark type registered to use it, but we'll be adding a fallback system in future.
 
