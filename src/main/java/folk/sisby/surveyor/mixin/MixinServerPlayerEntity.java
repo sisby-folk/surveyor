@@ -2,6 +2,7 @@ package folk.sisby.surveyor.mixin;
 
 import folk.sisby.surveyor.SurveyorWorld;
 import folk.sisby.surveyor.landmark.PlayerDeathLandmark;
+import folk.sisby.surveyor.util.TextUtil;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,7 +17,7 @@ public class MixinServerPlayerEntity {
         ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
         ((SurveyorWorld) self.getServerWorld()).surveyor$getWorldSummary().landmarks().put(
             self.getServerWorld(),
-            new PlayerDeathLandmark(self.getBlockPos(), self.getUuid(), self.getDamageTracker().getDeathMessage(), self.getServerWorld().getTimeOfDay(), self.getRandom().nextInt())
+            new PlayerDeathLandmark(self.getBlockPos(), self.getUuid(), TextUtil.stripInteraction(self.getDamageTracker().getDeathMessage()), self.getServerWorld().getTimeOfDay(), self.getRandom().nextInt())
         );
     }
 }

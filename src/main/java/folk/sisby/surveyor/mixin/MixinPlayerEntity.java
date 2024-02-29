@@ -3,6 +3,7 @@ package folk.sisby.surveyor.mixin;
 import folk.sisby.surveyor.SurveyorWorld;
 import folk.sisby.surveyor.landmark.PlayerDeathLandmark;
 import folk.sisby.surveyor.player.SurveyorPlayer;
+import folk.sisby.surveyor.util.TextUtil;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
@@ -61,7 +62,7 @@ public class MixinPlayerEntity implements SurveyorPlayer {
         if (((SurveyorWorld) self.getWorld()).surveyor$getWorldSummary().isClient()) {
             ((SurveyorWorld) self.getWorld()).surveyor$getWorldSummary().landmarks().put(
                 self.getWorld(),
-                new PlayerDeathLandmark(self.getBlockPos(), self.getUuid(), self.getDamageTracker().getDeathMessage(), self.getWorld().getTimeOfDay(), self.getRandom().nextInt())
+                new PlayerDeathLandmark(self.getBlockPos(), self.getUuid(), TextUtil.stripInteraction(self.getDamageTracker().getDeathMessage()), self.getWorld().getTimeOfDay(), self.getRandom().nextInt())
             );
         }
     }
