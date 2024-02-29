@@ -17,7 +17,7 @@
 
 <center>
 <img alt="surveyor banner" src="https://cdn.modrinth.com/data/4KjqhPc9/images/d21d93434c355f0dba5a399d868beed143990202.png"><br/>
-A unified save and server-integration framework for client-side map mods (and their friends)<br/>
+A unified save and server-integration framework for client-side map mods (and their friends).<br/>
 Used in <a href="https://modrinth.com/mod/antique-atlas-4">Antique Atlas 4</a>.<br/>
 <!-- Requires <a href="https://modrinth.com/mod/connector">Connector</a> and <a href="https://modrinth.com/mod/forgified-fabric-api">FFAPI</a> on forge.<br/> -->
 <i>Other names considered: Polaris, Ichnite, Trackway, Lay of the Land, Worldsense, and Lithography.</i>
