@@ -93,7 +93,7 @@ You can call `WorldSummary.terrain().keySet()` to get all summarized chunk posit
 
 #### Terrain Rendering
 
-To process a chunk, first get the summary using `WorldTerrainSummary.getChunk(ChunkPos)`.<br/>
+To process a chunk, first get the summary using `WorldTerrainSummary.get(ChunkPos)`.<br/>
 Remember you can always get the world summary from using `SurveyorWorld` if you're processing on world tick.<br/>
 Then, crunch the result into floors using `ChunkSummary.toSingleLayer()` which outputs usable int arrays:
 * **depths[256]** - The distance of the floor below your specified world height. so y = worldHeight - depth.
