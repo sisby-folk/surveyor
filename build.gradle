@@ -94,7 +94,7 @@ if (System.getenv("MODRINTH_TOKEN")) {
         dependencies {
             required.version libs.fapi.get().getName(), libs.versions.fapi.get()
         }
-        changelog = rootProject.file("CHANGELOG.md").text + "\n\n\nChangelog: https://github.com/sisby-folk/$project.name/releases/tag/v$baseVersion"
+        changelog = rootProject.file("CHANGELOG.md").text + "\n\nChangelog: https://github.com/sisby-folk/$project.name/releases/tag/v$baseVersion"
         syncBodyFrom = rootProject.file("README.md").text
     }
 }
