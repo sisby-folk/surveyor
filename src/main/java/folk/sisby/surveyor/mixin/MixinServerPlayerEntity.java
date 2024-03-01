@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ServerPlayerEntity.class)
 public class MixinServerPlayerEntity {
-    @Inject(method = "onDeath", at = @At("TAIL"))
+    @Inject(method = "onDeath", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/damage/DamageTracker;update()V"))
     public void onDeath(DamageSource damageSource, CallbackInfo ci) {
         ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
         ((SurveyorWorld) self.getServerWorld()).surveyor$getWorldSummary().landmarks().put(

@@ -55,7 +55,7 @@ public class MixinPlayerEntity implements SurveyorPlayer {
         }
     }
 
-    @Inject(method = "onDeath", at = @At("TAIL"))
+    @Inject(method = "onDeath", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/damage/DamageTracker;update()V"))
     public void onClientDeath(DamageSource damageSource, CallbackInfo ci) {
         PlayerEntity self = (PlayerEntity) (Object) this;
         if (self instanceof ServerPlayerEntity) return;
