@@ -7,7 +7,7 @@ import net.minecraft.server.world.ServerWorld;
 
 public interface S2CPacket extends SurveyorPacket {
     default void send(ServerPlayerEntity playerEntity) {
-        ServerPlayNetworking.send(playerEntity, getId(), toBuf());
+        toBufs().forEach(buf -> ServerPlayNetworking.send(playerEntity, getId(), buf));
     }
 
     default void send(ServerWorld world) {

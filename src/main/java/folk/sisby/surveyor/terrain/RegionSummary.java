@@ -1,11 +1,15 @@
 package folk.sisby.surveyor.terrain;
 
+import folk.sisby.surveyor.util.PaletteUtil;
+import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
@@ -18,8 +22,12 @@ import net.minecraft.world.chunk.Chunk;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class RegionSummary {
     public static final int REGION_POWER = 5;
@@ -33,7 +41,9 @@ public class RegionSummary {
     public static final String KEY_CHUNKS = "chunks";
 
     protected final Int2ObjectBiMap<Biome> biomePalette = Int2ObjectBiMap.create(255);
+    protected final Int2ObjectBiMap<Integer> rawBiomePalette = Int2ObjectBiMap.create(255);
     protected final Int2ObjectBiMap<Block> blockPalette = Int2ObjectBiMap.create(255);
+    protected final Int2ObjectBiMap<Integer> rawBlockPalette = Int2ObjectBiMap.create(255);
     protected ChunkSummary[][] chunks = new ChunkSummary[REGION_SIZE][REGION_SIZE];
 
     protected boolean dirty = false;
@@ -72,13 +82,21 @@ public class RegionSummary {
     }
 
     public void putChunk(World world, Chunk chunk) {
-        chunks[regionRelative(chunk.getPos().x)][regionRelative(chunk.getPos().z)] = new ChunkSummary(world, chunk, DimensionSupport.getSummaryLayers(world), biomePalette, blockPalette, !(world instanceof ServerWorld));
+        chunks[regionRelative(chunk.getPos().x)][regionRelative(chunk.getPos().z)] = new ChunkSummary(world, chunk, DimensionSupport.getSummaryLayers(world), biomePalette, rawBiomePalette, blockPalette, rawBlockPalette, !(world instanceof ServerWorld));
         dirty = true;
     }
 
     public RegionSummary readNbt(NbtCompound nbt, DynamicRegistryManager manager) {
-        nbt.getList(KEY_BIOMES, NbtElement.STRING_TYPE).stream().map(e -> manager.get(RegistryKeys.BIOME).get(new Identifier(e.asString()))).forEach(biomePalette::add);
-        nbt.getList(KEY_BLOCKS, NbtElement.STRING_TYPE).stream().map(e -> manager.get(RegistryKeys.BLOCK).get(new Identifier(e.asString()))).forEach(blockPalette::add);
+        Registry<Biome> biomeRegistry = manager.get(RegistryKeys.BIOME);
+        Registry<Block> blockRegistry = manager.get(RegistryKeys.BLOCK);
+        nbt.getList(KEY_BIOMES, NbtElement.STRING_TYPE).stream().map(e -> biomeRegistry.get(new Identifier(e.asString()))).forEach(b -> {
+            biomePalette.add(b);
+            rawBiomePalette.add(biomeRegistry.getRawId(b));
+        });
+        nbt.getList(KEY_BLOCKS, NbtElement.STRING_TYPE).stream().map(e -> blockRegistry.get(new Identifier(e.asString()))).forEach(b -> {
+            blockPalette.add(b);
+            rawBlockPalette.add(blockRegistry.getRawId(b));
+        });
         NbtCompound chunksCompound = nbt.getCompound(KEY_CHUNKS);
         for (String posKey : chunksCompound.getKeys()) {
             int x = regionRelative(Integer.parseInt(posKey.split(",")[0]));
@@ -86,6 +104,28 @@ public class RegionSummary {
             chunks[x][z] = new ChunkSummary(chunksCompound.getCompound(posKey));
         }
         return this;
+    }
+
+    public Set<ChunkPos> readBuf(DynamicRegistryManager manager, PacketByteBuf buf) {
+        Registry<Biome> biomeRegistry = manager.get(RegistryKeys.BIOME);
+        int[] rawBiomes = buf.readList(PacketByteBuf::readVarInt).stream().mapToInt(i -> i).toArray();
+        Map<Integer, Integer> biomeRemap = new Int2IntArrayMap();
+        for (int i = 0; i < rawBiomes.length; i++) {
+            biomeRemap.put(i, PaletteUtil.rawIdOrAdd(biomePalette, rawBiomePalette, rawBiomes[i], biomeRegistry));
+        }
+        Registry<Block> blockRegistry = manager.get(RegistryKeys.BLOCK);
+        int[] rawBlocks = buf.readList(PacketByteBuf::readVarInt).stream().mapToInt(i -> i).toArray();
+        Map<Integer, Integer> blockRemap = new Int2IntArrayMap();
+        for (int i = 0; i < rawBlocks.length; i++) {
+            blockRemap.put(i, PaletteUtil.rawIdOrAdd(blockPalette, rawBlockPalette, rawBlocks[i], blockRegistry));
+        }
+        Map<ChunkPos, ChunkSummary> chunks = buf.readMap(HashMap::new, PacketByteBuf::readChunkPos, b -> new ChunkSummary(b.readNbt()));
+        chunks.forEach((pos, summary) -> {
+            summary.remap(biomeRemap, blockRemap);
+            this.chunks[regionRelative(pos.x)][regionRelative(pos.z)] = summary;
+        });
+        dirty = true;
+        return chunks.keySet();
     }
 
     public NbtCompound writeNbt(DynamicRegistryManager manager, NbtCompound nbt, ChunkPos regionPos) {
@@ -103,6 +143,13 @@ public class RegionSummary {
         }
         nbt.put(KEY_CHUNKS, chunksCompound);
         return nbt;
+    }
+
+    public PacketByteBuf writeBuf(PacketByteBuf buf, Set<ChunkPos> chunks) {
+        buf.writeCollection(mapPalette(rawBiomePalette, i -> i), PacketByteBuf::writeVarInt);
+        buf.writeCollection(mapPalette(rawBlockPalette, i -> i), PacketByteBuf::writeVarInt);
+        buf.writeMap(chunks.stream().collect(Collectors.toMap(p -> p, this::get)), PacketByteBuf::writeChunkPos, (b, summary) -> b.writeNbt(summary.writeNbt(new NbtCompound())));
+        return buf;
     }
 
     public boolean isDirty() {

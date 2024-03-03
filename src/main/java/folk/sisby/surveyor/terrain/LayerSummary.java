@@ -1,12 +1,16 @@
 package folk.sisby.surveyor.terrain;
 
 import folk.sisby.surveyor.util.ArrayUtil;
+import folk.sisby.surveyor.util.PaletteUtil;
 import folk.sisby.surveyor.util.UIntArray;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.collection.IndexedIterable;
 import net.minecraft.util.collection.Int2ObjectBiMap;
+import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -46,16 +50,13 @@ public class LayerSummary {
         this.water = water;
     }
 
-    public static <T> int idOrAdd(Int2ObjectBiMap<T> palette, T value) {
-        int id = palette.getRawId(value);
-        return id == -1 ? palette.add(value) : id;
-    }
-
-    public static LayerSummary fromSummaries(FloorSummary[][] floorSummaries, int layerY, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Block> blockPalette) {
+    public static LayerSummary fromSummaries(World world, FloorSummary[][] floorSummaries, int layerY, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Integer> rawBiomePalette, Int2ObjectBiMap<Block> blockPalette, Int2ObjectBiMap<Integer> rawBlockPalette) {
+        Registry<Biome> biomeRegistry = world.getRegistryManager().get(RegistryKeys.BIOME);
+        Registry<Block> blockRegistry = world.getRegistryManager().get(RegistryKeys.BLOCK);
         UIntArray depth = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).mapToInt(f -> f == null ? -1 : layerY - f.y()).toArray(), DEPTH_DEFAULT);
         if (depth == null) return null;
-        UIntArray biome = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::biome).mapToInt(b -> idOrAdd(biomePalette, b)).toArray(), BIOME_DEFAULT);
-        UIntArray block = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::block).mapToInt(b -> idOrAdd(blockPalette, b)).toArray(), BLOCK_DEFAULT);
+        UIntArray biome = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::biome).mapToInt(b -> PaletteUtil.idOrAdd(biomePalette, rawBiomePalette, b, biomeRegistry)).toArray(), BIOME_DEFAULT);
+        UIntArray block = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::block).mapToInt(b -> PaletteUtil.idOrAdd(blockPalette, rawBlockPalette, b, blockRegistry)).toArray(), BLOCK_DEFAULT);
         UIntArray light = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(FloorSummary::lightLevel).toArray(), LIGHT_DEFAULT);
         UIntArray fluid = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(FloorSummary::fluidDepth).toArray(), WATER_DEFAULT);
         return new LayerSummary(depth, biome, block, light, fluid);

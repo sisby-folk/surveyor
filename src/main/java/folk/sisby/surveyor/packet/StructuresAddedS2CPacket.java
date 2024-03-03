@@ -1,8 +1,8 @@
 package folk.sisby.surveyor.packet;
 
 import folk.sisby.surveyor.SurveyorNetworking;
-import folk.sisby.surveyor.structure.StructureSummary;
 import folk.sisby.surveyor.structure.StructurePieceSummary;
+import folk.sisby.surveyor.structure.StructureSummary;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import it.unimi.dsi.fastutil.Pair;
 import net.minecraft.nbt.NbtCompound;
@@ -14,7 +14,6 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.gen.structure.Structure;
 import net.minecraft.world.gen.structure.StructureType;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
@@ -32,7 +31,7 @@ public record StructuresAddedS2CPacket(Map<ChunkPos, Map<RegistryKey<Structure>,
                     b2 -> RegistryKey.of(RegistryKeys.STRUCTURE, new Identifier(b.readString())),
                     b2 -> Pair.of(
                         RegistryKey.of(RegistryKeys.STRUCTURE_TYPE, new Identifier(b.readString())),
-                        b2.readCollection(ArrayList::new, b3 -> WorldStructureSummary.readStructurePieceNbt(Objects.requireNonNull(b2.readNbt())))
+                        b2.readList(b3 -> WorldStructureSummary.readStructurePieceNbt(Objects.requireNonNull(b2.readNbt())))
                     )
                 )
             )

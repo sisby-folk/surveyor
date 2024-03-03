@@ -43,6 +43,10 @@ public class WorldTerrainSummary {
         return regions.get(regionPos).get(pos);
     }
 
+    public RegionSummary getRegion(ChunkPos regionPos) {
+        return regions.computeIfAbsent(regionPos, k -> new RegionSummary());
+    }
+
     public IndexedIterable<Biome> getBiomePalette(ChunkPos pos) {
         ChunkPos regionPos = regionPosOf(pos);
         return regions.get(regionPos).getBiomePalette();

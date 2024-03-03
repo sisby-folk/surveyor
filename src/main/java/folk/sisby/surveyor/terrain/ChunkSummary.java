@@ -2,6 +2,7 @@ package folk.sisby.surveyor.terrain;
 
 import folk.sisby.surveyor.util.ArrayUtil;
 import folk.sisby.surveyor.util.ChunkUtil;
+import folk.sisby.surveyor.util.UIntArray;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.MapColor;
@@ -18,6 +19,8 @@ import net.minecraft.world.chunk.ChunkSection;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.TreeMap;
@@ -30,7 +33,7 @@ public class ChunkSummary {
     protected final Integer airCount;
     protected final TreeMap<Integer, @Nullable LayerSummary> layers = new TreeMap<>();
 
-    public ChunkSummary(World world, Chunk chunk, NavigableSet<Integer> layerYs, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Block> blockPalette, boolean countAir) {
+    public ChunkSummary(World world, Chunk chunk, NavigableSet<Integer> layerYs, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Integer> rawBiomePalette, Int2ObjectBiMap<Block> blockPalette, Int2ObjectBiMap<Integer> rawBlockPalette, boolean countAir) {
         this.airCount = countAir ? ChunkUtil.airCount(chunk) : null;
         TreeMap<Integer, FloorSummary[][]> uncompressedLayers = new TreeMap<>();
         for (int x = 0; x < 16; x++) {
@@ -74,7 +77,7 @@ public class ChunkSummary {
                 }
             }
         }
-        uncompressedLayers.forEach((layerY, floors) -> this.layers.put(layerY, Arrays.stream(floors).allMatch(Objects::isNull) ? null : LayerSummary.fromSummaries(floors, layerY, biomePalette, blockPalette)));
+        uncompressedLayers.forEach((layerY, floors) -> this.layers.put(layerY, Arrays.stream(floors).allMatch(Objects::isNull) ? null : LayerSummary.fromSummaries(world, floors, layerY, biomePalette, rawBiomePalette, blockPalette, rawBlockPalette)));
     }
 
     public ChunkSummary(NbtCompound nbt) {
@@ -96,6 +99,27 @@ public class ChunkSummary {
         });
         nbt.put(KEY_LAYERS, layersCompound);
         return nbt;
+    }
+
+    public void remap(Map<Integer, Integer> biomeRemap, Map<Integer, Integer> blockRemap) {
+        Map<Integer, LayerSummary> newLayers = new HashMap<>();
+        layers.forEach((y, layer) -> {
+            if (layer != null) {
+                int[] remappedBiome = ArrayUtil.ofSingle(-1, 256);
+                int[] oldBiome = layer.rawBiomes();
+                for (int i = 0; i < oldBiome.length; i++) {
+                    if (oldBiome[i] != -1) remappedBiome[i] = biomeRemap.get(oldBiome[i]);
+                }
+                int[] remappedBlock = ArrayUtil.ofSingle(-1, 256);
+                int[] oldBlock = layer.rawBlocks();
+                for (int i = 0; i < oldBlock.length; i++) {
+                    if (oldBlock[i] != -1) remappedBlock[i] = blockRemap.get(oldBlock[i]);
+                }
+                newLayers.put(y, new LayerSummary(layer.depth, UIntArray.fromUInts(remappedBiome, LayerSummary.BIOME_DEFAULT), UIntArray.fromUInts(remappedBlock, LayerSummary.BLOCK_DEFAULT), layer.light, layer.water));
+            }
+        });
+        layers.clear();
+        layers.putAll(newLayers);
     }
 
     public Integer getAirCount() {

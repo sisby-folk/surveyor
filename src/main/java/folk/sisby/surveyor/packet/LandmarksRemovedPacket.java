@@ -7,9 +7,7 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,7 +19,7 @@ public record LandmarksRemovedPacket(Map<LandmarkType<?>, Collection<BlockPos>> 
     public static LandmarksRemovedPacket read(PacketByteBuf buf) {
         return new LandmarksRemovedPacket(buf.readMap(
             b -> Landmarks.getType(b.readIdentifier()),
-            b -> b.readCollection(ArrayList::new, PacketByteBuf::readBlockPos)
+            b -> b.readList(PacketByteBuf::readBlockPos)
         ));
     }
 
