@@ -28,6 +28,6 @@ public class MinecraftClientMixin {
     @Inject(method = "disconnect(Lnet/minecraft/client/gui/screen/Screen;)V", at = @At("HEAD"))
     void saveSummaryOnDisconnect(Screen screen, CallbackInfo ci) {
         ClientWorld currentWorld = MinecraftClient.getInstance().world;
-        if (currentWorld instanceof SurveyorWorld sw) sw.surveyor$getWorldSummary().save(currentWorld, SurveyorClient.getSavePath(MinecraftClient.getInstance().world));
+        if (currentWorld instanceof SurveyorWorld sw && sw.surveyor$getWorldSummary().isClient()) sw.surveyor$getWorldSummary().save(currentWorld, SurveyorClient.getSavePath(MinecraftClient.getInstance().world));
     }
 }
