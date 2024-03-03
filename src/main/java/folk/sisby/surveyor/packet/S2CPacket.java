@@ -12,13 +12,25 @@ public interface S2CPacket extends SurveyorPacket {
 
     default void send(ServerWorld world) {
         for (ServerPlayerEntity player : world.getPlayers()) {
-            ServerPlayNetworking.send(player, getId(), toBuf());
+            send(player);
+        }
+    }
+
+    default void send(ServerPlayerEntity sender, ServerWorld world) {
+        for (ServerPlayerEntity player : world.getPlayers()) {
+            if (player != sender) send(player);
         }
     }
 
     default void send(MinecraftServer server) {
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-            ServerPlayNetworking.send(player, getId(), toBuf());
+            send(player);
+        }
+    }
+
+    default void send(ServerPlayerEntity sender, MinecraftServer server) {
+        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+            if (player != sender) send(player);
         }
     }
 }

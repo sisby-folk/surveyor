@@ -20,7 +20,6 @@ public record LandmarksRemovedPacket(Map<LandmarkType<?>, Collection<BlockPos>> 
 
     public static LandmarksRemovedPacket read(PacketByteBuf buf) {
         return new LandmarksRemovedPacket(buf.readMap(
-            HashMap::new,
             b -> Landmarks.getType(b.readIdentifier()),
             b -> b.readCollection(ArrayList::new, PacketByteBuf::readBlockPos)
         ));

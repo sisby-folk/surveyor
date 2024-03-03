@@ -91,7 +91,9 @@ public class WorldStructureSummary {
             dirty = true;
             StructureSummary summary = new StructureSummary(start.getPos(), key, structures.get(start.getPos()).get(key).left(), structures.get(start.getPos()).get(key).right());
             SurveyorEvents.Invoke.structureAdded(world, this, summary);
-            if (world instanceof ServerWorld sw) new StructuresAddedS2CPacket(Map.of(summary.getPos(), Map.of(summary.getKey(), Pair.of(summary.getType(), summary.getChildren())))).send(sw);
+            if (world instanceof ServerWorld sw) {
+                new StructuresAddedS2CPacket(Map.of(summary.getPos(), Map.of(summary.getKey(), Pair.of(summary.getType(), summary.getChildren())))).send(sw);
+            };
         }
     }
 

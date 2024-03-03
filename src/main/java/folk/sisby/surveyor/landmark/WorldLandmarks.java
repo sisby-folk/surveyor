@@ -74,13 +74,9 @@ public class WorldLandmarks {
         }
     }
 
-    public void put(PlayerEntity sender, ServerWorld world, Landmark<?> landmark) {
+    public void put(ServerPlayerEntity sender, ServerWorld world, Landmark<?> landmark) {
         putLocal(world, landmark);
-        LandmarksAddedPacket packet = LandmarksAddedPacket.of(landmark);
-        for (ServerPlayerEntity player : world.getPlayers()) {
-            if (player.equals(sender)) continue;
-            packet.send(player);
-        }
+        LandmarksAddedPacket.of(landmark).send(sender, world);
     }
 
     public Landmark<?> removeLocal(World world, LandmarkType<?> type, BlockPos pos) {
@@ -108,11 +104,7 @@ public class WorldLandmarks {
 
     public void remove(ServerPlayerEntity sender, ServerWorld world, LandmarkType<?> type, BlockPos pos) {
         removeLocal(world, type, pos);
-        LandmarksRemovedPacket packet = new LandmarksRemovedPacket(Map.of(type, List.of(pos)));
-        for (ServerPlayerEntity player : world.getPlayers()) {
-            if (player.equals(sender)) continue;
-            packet.send(player);
-        }
+        LandmarksRemovedPacket.of(type, pos).send(sender, world);
     }
 
     public void save(World world, File folder) {

@@ -21,7 +21,6 @@ public record LandmarksAddedPacket(Map<LandmarkType<?>, Map<BlockPos, Landmark<?
 
     public static LandmarksAddedPacket read(PacketByteBuf buf) {
         return new LandmarksAddedPacket(buf.readMap(
-            HashMap::new,
             b -> Landmarks.getType(b.readIdentifier()),
             b -> b.readMap(HashMap::new, PacketByteBuf::readBlockPos, b2 -> Landmarks.CODEC.decode(NbtOps.INSTANCE, b2.readNbt()).getOrThrow(false, Surveyor.LOGGER::error).getFirst().values().stream().findFirst().orElseThrow().values().stream().findFirst().orElseThrow())
         ));
