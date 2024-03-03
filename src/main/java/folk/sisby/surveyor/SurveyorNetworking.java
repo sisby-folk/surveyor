@@ -32,11 +32,10 @@ public class SurveyorNetworking {
     public static final Identifier LANDMARKS_REMOVED = new Identifier(Surveyor.ID, "landmarks_removed");
 
     public static final Identifier S2C_STRUCTURES_ADDED = new Identifier(Surveyor.ID, "s2c_structures_added");
-    public static final Identifier S2C_LANDMARKS_ADDED = new Identifier(Surveyor.ID, "s2c_landmarks_added");
-    public static final Identifier S2C_LANDMARKS_REMOVED = new Identifier(Surveyor.ID, "s2c_landmarks_removed");
     public static final Identifier S2C_TERRAIN_ADDED = new Identifier(Surveyor.ID, "s2c_terrain_added");
 
     public static final Identifier C2S_WORLD_LOADED = new Identifier(Surveyor.ID, "c2s_world_loaded");
+
     public static Consumer<C2SPacket> C2S_SENDER = p -> {};
 
     public static void init() {

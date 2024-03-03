@@ -20,8 +20,8 @@ public class SurveyorClientNetworking {
             ClientPlayNetworking.send(p.getId(), p.toBuf());
         };
         ClientPlayNetworking.registerGlobalReceiver(SurveyorNetworking.S2C_STRUCTURES_ADDED, (c, h, b, s) -> handleClient(b, StructuresAddedS2CPacket::read, SurveyorClientNetworking::handleStructuresAdded));
-        ClientPlayNetworking.registerGlobalReceiver(SurveyorNetworking.S2C_LANDMARKS_ADDED, (c, h, b, s) -> handleClient(b, LandmarksAddedPacket::read, SurveyorClientNetworking::handleLandmarksAdded));
-        ClientPlayNetworking.registerGlobalReceiver(SurveyorNetworking.S2C_LANDMARKS_REMOVED, (c, h, b, s) -> handleClient(b, LandmarksRemovedPacket::read, SurveyorClientNetworking::handleLandmarksRemoved));
+        ClientPlayNetworking.registerGlobalReceiver(SurveyorNetworking.LANDMARKS_ADDED, (c, h, b, s) -> handleClient(b, LandmarksAddedPacket::read, SurveyorClientNetworking::handleLandmarksAdded));
+        ClientPlayNetworking.registerGlobalReceiver(SurveyorNetworking.LANDMARKS_REMOVED, (c, h, b, s) -> handleClient(b, LandmarksRemovedPacket::read, SurveyorClientNetworking::handleLandmarksRemoved));
     }
 
     private static void handleStructuresAdded(ClientWorld world, WorldSummary summary, StructuresAddedS2CPacket packet) {
