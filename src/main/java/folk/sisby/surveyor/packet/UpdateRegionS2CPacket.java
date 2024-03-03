@@ -39,7 +39,7 @@ public record UpdateRegionS2CPacket(ChunkPos regionPos, RegionSummary summary, S
         List<PacketByteBuf> bufs = new ArrayList<>();
         PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
         writeBuf(buf);
-        if (buf.readableBytes() < 1_900_000) {
+        if (buf.readableBytes() < MAX_PAYLOAD_SIZE) {
             bufs.add(buf);
         } else {
             if (chunks.size() == 1) throw new RuntimeException("Couldn't create a terrain update packet - an individual chunk would be too large to send!");

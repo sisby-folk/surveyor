@@ -8,6 +8,8 @@ import java.util.Collection;
 import java.util.List;
 
 public interface SurveyorPacket {
+    int MAX_PAYLOAD_SIZE = 1_048_576;
+
     void writeBuf(PacketByteBuf buf);
 
     Identifier getId();
