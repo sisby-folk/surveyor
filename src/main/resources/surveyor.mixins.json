@@ -4,6 +4,7 @@
   "package": "folk.sisby.surveyor.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "MinecraftServerMixin",
     "MixinPlayerEntity",
     "MixinServerPlayerEntity",
     "MixinStructureStart",

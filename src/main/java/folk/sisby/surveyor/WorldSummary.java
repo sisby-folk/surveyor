@@ -18,7 +18,7 @@ public record WorldSummary(WorldTerrainSummary terrain, WorldStructureSummary st
         return new WorldSummary(terrain, structures, landmarks, isClient);
     }
 
-    public void save(World world, File folder) {
+    public void save(World world, File folder, boolean suppressLogs) {
         Surveyor.LOGGER.info("[Surveyor] Saving data for {}", world.getRegistryKey().getValue());
         folder.mkdirs();
         terrain.save(world, folder);

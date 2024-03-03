@@ -17,8 +17,10 @@ import net.minecraft.world.chunk.WorldChunk;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -68,9 +70,11 @@ public class WorldTerrainSummary {
         SurveyorEvents.Invoke.chunkAdded(world, this, chunk.getPos(), get(chunk.getPos()));
     }
 
-    public void save(World world, File folder) {
+    public int save(World world, File folder) {
+        List<ChunkPos> savedRegions = new ArrayList<>();
         regions.forEach((pos, summary) -> {
             if (!summary.isDirty()) return;
+            savedRegions.add(pos);
             NbtCompound regionCompound = summary.writeNbt(world.getRegistryManager(), new NbtCompound(), pos);
             File regionFile = new File(folder, "c.%d.%d.dat".formatted(pos.x, pos.z));
             try {
@@ -79,6 +83,7 @@ public class WorldTerrainSummary {
                 Surveyor.LOGGER.error("[Surveyor] Error writing region summary file {}.", regionFile.getName(), e);
             }
         });
+        return savedRegions.size();
     }
 
     public static WorldTerrainSummary load(World world, File folder) {

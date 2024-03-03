@@ -93,7 +93,7 @@ public class WorldStructureSummary {
             SurveyorEvents.Invoke.structureAdded(world, this, summary);
             if (world instanceof ServerWorld sw) {
                 new StructuresAddedS2CPacket(Map.of(summary.getPos(), Map.of(summary.getKey(), Pair.of(summary.getType(), summary.getChildren())))).send(sw);
-            };
+            }
         }
     }
 
@@ -124,7 +124,7 @@ public class WorldStructureSummary {
         return nbt;
     }
 
-    public void save(World world, File folder) {
+    public int save(World world, File folder) {
         if (dirty) {
             File structureFile = new File(folder, "structures.dat");
             try {
@@ -132,7 +132,9 @@ public class WorldStructureSummary {
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error writing structure summary file for {}.", world.getRegistryKey().getValue(), e);
             }
+            return structures.size();
         }
+        return 0;
     }
 
     public static StructurePieceSummary readStructurePieceNbt(NbtCompound nbt) {

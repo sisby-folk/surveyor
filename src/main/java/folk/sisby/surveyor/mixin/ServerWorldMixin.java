@@ -32,11 +32,6 @@ public class ServerWorldMixin implements SurveyorWorld {
         SurveyorEvents.Invoke.worldLoad((ServerWorld) (Object) this, surveyor$worldSummary);
     }
 
-    @Inject(method = "saveLevel", at = @At("TAIL"))
-    public void saveSummary(CallbackInfo ci) {
-        if (surveyor$worldSummary != null) surveyor$worldSummary.save((ServerWorld) (Object) this, Surveyor.getSavePath((ServerWorld) (Object) this));
-    }
-
     @Inject(method = "method_19499", at = @At("HEAD"))
     public void onPointOfInterestAdded(BlockPos blockPos, RegistryEntry<PointOfInterestType> poiType, CallbackInfo ci) {
         if (poiType.getKey().orElse(null) == PointOfInterestTypes.NETHER_PORTAL) {

@@ -6,7 +6,6 @@ import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.packet.LandmarksAddedPacket;
 import folk.sisby.surveyor.packet.LandmarksRemovedPacket;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -17,7 +16,6 @@ import net.minecraft.world.World;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class WorldLandmarks {
@@ -107,7 +105,7 @@ public class WorldLandmarks {
         LandmarksRemovedPacket.of(type, pos).send(sender, world);
     }
 
-    public void save(World world, File folder) {
+    public int save(World world, File folder) {
         if (dirty) {
             File landmarksFile = new File(folder, "landmarks.dat");
             try {
@@ -115,7 +113,9 @@ public class WorldLandmarks {
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error writing landmarks file for {}.", world.getRegistryKey().getValue(), e);
             }
+            return landmarks.size();
         }
+        return 0;
     }
 
     public static WorldLandmarks load(World world, File folder) {
