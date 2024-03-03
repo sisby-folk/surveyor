@@ -4,10 +4,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
-import folk.sisby.surveyor.packet.c2s.OnLandmarkAddedC2SPacket;
-import folk.sisby.surveyor.packet.c2s.OnLandmarkRemovedC2SPacket;
-import folk.sisby.surveyor.packet.s2c.OnLandmarkAddedS2CPacket;
-import folk.sisby.surveyor.packet.s2c.OnLandmarkRemovedS2CPacket;
+import folk.sisby.surveyor.packet.LandmarksAddedPacket;
+import folk.sisby.surveyor.packet.LandmarksRemovedPacket;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
@@ -19,6 +17,7 @@ import net.minecraft.world.World;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class WorldLandmarks {
@@ -69,15 +68,15 @@ public class WorldLandmarks {
     public void put(World world, Landmark<?> landmark) {
         putLocal(world, landmark);
         if (world instanceof ServerWorld sw) {
-            new OnLandmarkAddedS2CPacket(landmark).send(sw);
+            LandmarksAddedPacket.of(landmark).send(sw);
         } else {
-            new OnLandmarkAddedC2SPacket(landmark).send();
+            LandmarksAddedPacket.of(landmark).send();
         }
     }
 
     public void put(PlayerEntity sender, ServerWorld world, Landmark<?> landmark) {
         putLocal(world, landmark);
-        OnLandmarkAddedS2CPacket packet = new OnLandmarkAddedS2CPacket(landmark);
+        LandmarksAddedPacket packet = LandmarksAddedPacket.of(landmark);
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (player.equals(sender)) continue;
             packet.send(player);
@@ -93,9 +92,9 @@ public class WorldLandmarks {
     public void remove(World world, LandmarkType<?> type, BlockPos pos) {
         removeLocal(world, type, pos);
         if (world instanceof ServerWorld sw) {
-            new OnLandmarkRemovedS2CPacket(type, pos).send(sw);
+            LandmarksRemovedPacket.of(type, pos).send(sw);
         } else {
-            new OnLandmarkRemovedC2SPacket(type, pos).send();
+            LandmarksRemovedPacket.of(type, pos).send();
         }
     }
 
@@ -109,7 +108,7 @@ public class WorldLandmarks {
 
     public void remove(ServerPlayerEntity sender, ServerWorld world, LandmarkType<?> type, BlockPos pos) {
         removeLocal(world, type, pos);
-        OnLandmarkRemovedS2CPacket packet = new OnLandmarkRemovedS2CPacket(type, pos);
+        LandmarksRemovedPacket packet = new LandmarksRemovedPacket(Map.of(type, List.of(pos)));
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (player.equals(sender)) continue;
             packet.send(player);

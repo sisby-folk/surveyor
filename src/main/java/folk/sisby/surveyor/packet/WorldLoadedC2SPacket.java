@@ -1,4 +1,4 @@
-package folk.sisby.surveyor.packet.c2s;
+package folk.sisby.surveyor.packet;
 
 import folk.sisby.surveyor.SurveyorNetworking;
 import net.minecraft.network.PacketByteBuf;
@@ -12,9 +12,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public record OnJoinWorldC2SPacket(Set<ChunkPos> terrainKeys, Map<RegistryKey<Structure>, Set<ChunkPos>> structureKeys) implements C2SPacket {
-    public OnJoinWorldC2SPacket(PacketByteBuf buf) {
-        this(
+public record WorldLoadedC2SPacket(Set<ChunkPos> terrainKeys, Map<RegistryKey<Structure>, Set<ChunkPos>> structureKeys) implements C2SPacket {
+    public static WorldLoadedC2SPacket read(PacketByteBuf buf) {
+        return new WorldLoadedC2SPacket(
             buf.readCollection(HashSet::new, b -> new ChunkPos(b.readVarInt(), b.readVarInt())),
             buf.readMap(b -> RegistryKey.of(RegistryKeys.STRUCTURE, new Identifier(b.readString())), b -> b.readCollection(HashSet::new, b2 -> new ChunkPos(b2.readVarInt(), b2.readVarInt())))
         );
@@ -38,6 +38,6 @@ public record OnJoinWorldC2SPacket(Set<ChunkPos> terrainKeys, Map<RegistryKey<St
 
     @Override
     public Identifier getId() {
-        return SurveyorNetworking.C2S_ON_JOIN_WORLD;
+        return SurveyorNetworking.C2S_WORLD_LOADED;
     }
 }

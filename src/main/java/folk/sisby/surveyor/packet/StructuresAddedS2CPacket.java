@@ -1,7 +1,7 @@
-package folk.sisby.surveyor.packet.s2c;
+package folk.sisby.surveyor.packet;
 
 import folk.sisby.surveyor.SurveyorNetworking;
-import folk.sisby.surveyor.terrain.ChunkSummary;
+import folk.sisby.surveyor.structure.StructureSummary;
 import folk.sisby.surveyor.structure.StructurePieceSummary;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import it.unimi.dsi.fastutil.Pair;
@@ -19,10 +19,13 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 
-public record OnJoinWorldS2CPacket(Map<ChunkPos, ChunkSummary> terrain, Map<ChunkPos, Map<RegistryKey<Structure>, Pair<RegistryKey<StructureType<?>>, Collection<StructurePieceSummary>>>> structures) implements S2CPacket {
-    public OnJoinWorldS2CPacket(PacketByteBuf buf) {
-        this(
-            buf.readMap(b -> new ChunkPos(b.readVarInt(), b.readVarInt()), b -> new ChunkSummary(Objects.requireNonNull(b.readNbt()))),
+public record StructuresAddedS2CPacket(Map<ChunkPos, Map<RegistryKey<Structure>, Pair<RegistryKey<StructureType<?>>, Collection<StructurePieceSummary>>>> structures) implements S2CPacket {
+    public static StructuresAddedS2CPacket of(StructureSummary summary) {
+        return new StructuresAddedS2CPacket(Map.of(summary.getPos(), Map.of(summary.getKey(), Pair.of(summary.getType(), summary.getChildren()))));
+    }
+
+    public static StructuresAddedS2CPacket read(PacketByteBuf buf) {
+        return new StructuresAddedS2CPacket(
             buf.readMap(
                 b -> new ChunkPos(b.readVarInt(), b.readVarInt()),
                 b -> b.readMap(
@@ -38,12 +41,6 @@ public record OnJoinWorldS2CPacket(Map<ChunkPos, ChunkSummary> terrain, Map<Chun
 
     @Override
     public void writeBuf(PacketByteBuf buf) {
-        buf.writeMap(terrain, (b, p) -> {
-            b.writeVarInt(p.x);
-            b.writeVarInt(p.z);
-        }, (b, s) -> {
-            b.writeNbt(s.writeNbt(new NbtCompound()));
-        });
         buf.writeMap(structures, (b, pos) -> {
             b.writeVarInt(pos.x);
             b.writeVarInt(pos.z);
@@ -61,6 +58,6 @@ public record OnJoinWorldS2CPacket(Map<ChunkPos, ChunkSummary> terrain, Map<Chun
 
     @Override
     public Identifier getId() {
-        return SurveyorNetworking.S2C_ON_JOIN_WORLD;
+        return SurveyorNetworking.S2C_STRUCTURES_ADDED;
     }
 }

@@ -3,7 +3,7 @@ package folk.sisby.surveyor.client;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorWorld;
 import folk.sisby.surveyor.WorldSummary;
-import folk.sisby.surveyor.packet.c2s.OnJoinWorldC2SPacket;
+import folk.sisby.surveyor.packet.WorldLoadedC2SPacket;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.terrain.WorldTerrainSummary;
 import net.fabricmc.api.ClientModInitializer;
@@ -47,7 +47,7 @@ public class SurveyorClient implements ClientModInitializer {
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(() -> {
             if (MinecraftClient.getInstance().world instanceof SurveyorWorld nsw && nsw.surveyor$getWorldSummary().isClient()) {
                 WorldSummary summary = nsw.surveyor$getWorldSummary();
-                new OnJoinWorldC2SPacket(summary.terrain().keySet(), summary.structures().keySet()).send();
+                new WorldLoadedC2SPacket(summary.terrain().keySet(), summary.structures().keySet()).send();
             }
         }));
         ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
