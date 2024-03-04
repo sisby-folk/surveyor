@@ -150,7 +150,7 @@ public class RegionSummary {
         for (int i = 0; i < summaries.size(); i++) {
             ChunkSummary summary = summaries.get(i);
             summary.remap(biomeRemap, blockRemap);
-            this.chunks[indices[i] / REGION_SIZE][indices[i] & REGION_SIZE] = summary;
+            this.chunks[indices[i] / REGION_SIZE][indices[i] % REGION_SIZE] = summary;
         }
         dirty = true;
         return set;
