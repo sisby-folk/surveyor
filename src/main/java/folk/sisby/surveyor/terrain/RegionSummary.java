@@ -22,7 +22,6 @@ import net.minecraft.world.chunk.Chunk;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -119,7 +118,7 @@ public class RegionSummary {
         for (int i = 0; i < rawBlocks.length; i++) {
             blockRemap.put(i, PaletteUtil.rawIdOrAdd(blockPalette, rawBlockPalette, rawBlocks[i], blockRegistry));
         }
-        Map<ChunkPos, ChunkSummary> chunks = buf.readMap(HashMap::new, PacketByteBuf::readChunkPos, b -> new ChunkSummary(b.readNbt()));
+        Map<ChunkPos, ChunkSummary> chunks = buf.readMap(PacketByteBuf::readChunkPos, ChunkSummary::new);
         chunks.forEach((pos, summary) -> {
             summary.remap(biomeRemap, blockRemap);
             this.chunks[regionRelative(pos.x)][regionRelative(pos.z)] = summary;
@@ -148,7 +147,7 @@ public class RegionSummary {
     public PacketByteBuf writeBuf(PacketByteBuf buf, Set<ChunkPos> chunks) {
         buf.writeCollection(mapPalette(rawBiomePalette, i -> i), PacketByteBuf::writeVarInt);
         buf.writeCollection(mapPalette(rawBlockPalette, i -> i), PacketByteBuf::writeVarInt);
-        buf.writeMap(chunks.stream().collect(Collectors.toMap(p -> p, this::get)), PacketByteBuf::writeChunkPos, (b, summary) -> b.writeNbt(summary.writeNbt(new NbtCompound())));
+        buf.writeMap(chunks.stream().collect(Collectors.toMap(p -> p, this::get)), PacketByteBuf::writeChunkPos, (b, summary) -> summary.writeBuf(b));
         return buf;
     }
 

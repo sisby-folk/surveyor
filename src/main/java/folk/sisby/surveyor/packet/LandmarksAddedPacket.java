@@ -11,7 +11,6 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public record LandmarksAddedPacket(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks) implements S2CPacket, C2SPacket {
@@ -22,7 +21,7 @@ public record LandmarksAddedPacket(Map<LandmarkType<?>, Map<BlockPos, Landmark<?
     public static LandmarksAddedPacket read(PacketByteBuf buf) {
         return new LandmarksAddedPacket(buf.readMap(
             b -> Landmarks.getType(b.readIdentifier()),
-            b -> b.readMap(HashMap::new, PacketByteBuf::readBlockPos, b2 -> Landmarks.CODEC.decode(NbtOps.INSTANCE, b2.readNbt()).getOrThrow(false, Surveyor.LOGGER::error).getFirst().values().stream().findFirst().orElseThrow().values().stream().findFirst().orElseThrow())
+            b -> b.readMap(PacketByteBuf::readBlockPos, b2 -> Landmarks.CODEC.decode(NbtOps.INSTANCE, b2.readNbt()).getOrThrow(false, Surveyor.LOGGER::error).getFirst().values().stream().findFirst().orElseThrow().values().stream().findFirst().orElseThrow())
         ));
     }
 

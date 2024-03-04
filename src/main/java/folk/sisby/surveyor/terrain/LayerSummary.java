@@ -6,6 +6,7 @@ import folk.sisby.surveyor.util.UIntArray;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.collection.IndexedIterable;
@@ -72,6 +73,16 @@ public class LayerSummary {
         return new LayerSummary(depth, biome, block, light, water);
     }
 
+    public static LayerSummary fromBuf(PacketByteBuf buf) {
+        return new LayerSummary(
+            UIntArray.readBuf(buf),
+            UIntArray.readBuf(buf),
+            UIntArray.readBuf(buf),
+            UIntArray.readBuf(buf),
+            UIntArray.readBuf(buf)
+        );
+    }
+
     public NbtCompound writeNbt(NbtCompound nbt) {
         this.depth.writeNbt(nbt, KEY_DEPTH);
         if (biome != null) this.biome.writeNbt(nbt, KEY_BIOME);
@@ -79,6 +90,14 @@ public class LayerSummary {
         if (light != null) this.light.writeNbt(nbt, KEY_LIGHT);
         if (water != null) this.water.writeNbt(nbt, KEY_WATER);
         return nbt;
+    }
+
+    public void writeBuf(PacketByteBuf buf) {
+        UIntArray.writeBuf(depth, buf);
+        UIntArray.writeBuf(biome, buf);
+        UIntArray.writeBuf(block, buf);
+        UIntArray.writeBuf(light, buf);
+        UIntArray.writeBuf(water, buf);
     }
 
     public boolean isEmpty(int x, int z) {

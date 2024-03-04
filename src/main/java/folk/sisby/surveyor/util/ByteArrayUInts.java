@@ -1,8 +1,26 @@
 package folk.sisby.surveyor.util;
 
+import net.minecraft.nbt.NbtByteArray;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.network.PacketByteBuf;
 
 public record ByteArrayUInts(byte[] value) implements UIntArray {
+    public static final int TYPE = NbtElement.BYTE_ARRAY_TYPE;
+
+    public static UIntArray fromNbt(NbtElement nbt) {
+        return new ByteArrayUInts(((NbtByteArray) nbt).getByteArray());
+    }
+
+    public static UIntArray fromBuf(PacketByteBuf buf) {
+        return new ByteArrayUInts(buf.readByteArray());
+    }
+
+    @Override
+    public int getType() {
+        return TYPE;
+    }
+
     @Override
     public int[] getUncompressed() {
         int[] uncompressed = ArrayUtil.ofSingle(-1, 256);
@@ -28,6 +46,11 @@ public record ByteArrayUInts(byte[] value) implements UIntArray {
     @Override
     public void writeNbt(NbtCompound nbt, String key) {
         nbt.putByteArray(key, value);
+    }
+
+    @Override
+    public void writeBuf(PacketByteBuf buf) {
+        buf.writeByteArray(value);
     }
 
     @Override

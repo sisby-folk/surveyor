@@ -1,27 +1,29 @@
 package folk.sisby.surveyor.util;
 
 import com.google.common.primitives.Bytes;
-import net.minecraft.nbt.NbtByte;
-import net.minecraft.nbt.NbtByteArray;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtInt;
-import net.minecraft.nbt.NbtIntArray;
+import net.minecraft.network.PacketByteBuf;
 
 import java.util.Arrays;
 
 public interface UIntArray {
     int UINT_BYTE_OFFSET = 127;
+    int NULL_TYPE = NbtElement.END_TYPE;
 
     static boolean fitsInByte(int value) {
         return value >= -128 + UINT_BYTE_OFFSET && value < 127 + UINT_BYTE_OFFSET;
     }
+
+    int getType();
 
     int[] getUncompressed();
 
     int[] getUnmasked(UIntArray mask);
 
     void writeNbt(NbtCompound nbt, String key);
+
+    void writeBuf(PacketByteBuf buf);
 
     boolean isEmpty(int i);
 
@@ -35,15 +37,36 @@ public interface UIntArray {
         return get(i - empty);
     }
 
+    static void writeBuf(UIntArray array, PacketByteBuf buf) {
+        if (array == null) {
+            buf.writeVarInt(NULL_TYPE);
+            return;
+        }
+        buf.writeVarInt(array.getType());
+        array.writeBuf(buf);
+    }
+
     static UIntArray readNbt(NbtElement nbt, int defaultValue) {
         if (nbt == null) return null;
         return fromUInts((switch (nbt.getType()) { // Recompress on read.
-            case NbtElement.BYTE_TYPE -> new ByteUInts(((NbtByte) nbt).byteValue());
-            case NbtElement.BYTE_ARRAY_TYPE -> new ByteArrayUInts(((NbtByteArray) nbt).getByteArray());
-            case NbtElement.INT_TYPE -> new IntUints(((NbtInt) nbt).intValue());
-            case NbtElement.INT_ARRAY_TYPE -> new IntArrayUInts(((NbtIntArray) nbt).getIntArray());
-            default -> throw new IllegalStateException("Unexpected value: " + nbt.getType());
+            case ByteUInts.TYPE -> ByteUInts.fromNbt(nbt);
+            case ByteArrayUInts.TYPE -> ByteArrayUInts.fromNbt(nbt);
+            case IntUints.TYPE -> IntUints.fromNbt(nbt);
+            case IntArrayUInts.TYPE -> IntArrayUInts.fromNbt(nbt);
+            default -> throw new IllegalStateException("UIntArray encountered unexpected NBT type: " + nbt.getType());
         }).getUncompressed(), defaultValue);
+    }
+
+    static UIntArray readBuf(PacketByteBuf buf) {
+        int type = buf.readVarInt();
+        return switch (type) {
+            case UIntArray.NULL_TYPE -> null;
+            case ByteUInts.TYPE -> ByteUInts.fromBuf(buf);
+            case ByteArrayUInts.TYPE -> ByteArrayUInts.fromBuf(buf);
+            case IntUints.TYPE -> IntUints.fromBuf(buf);
+            case IntArrayUInts.TYPE -> IntArrayUInts.fromBuf(buf);
+            default -> throw new IllegalStateException("UIntArray encountered unexpected buf type: " + type);
+        };
     }
 
     static UIntArray fromUInts(int[] ints, int defaultValue) {

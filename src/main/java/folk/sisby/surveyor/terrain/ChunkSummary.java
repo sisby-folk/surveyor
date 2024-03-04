@@ -7,6 +7,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.MapColor;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.util.collection.Int2ObjectBiMap;
 import net.minecraft.util.math.BlockPos;
@@ -89,6 +90,17 @@ public class ChunkSummary {
         }
     }
 
+    public ChunkSummary(PacketByteBuf buf) {
+        layers.putAll(buf.readMap(PacketByteBuf::readVarInt, (b) -> {
+            if (b.readByte() == 0) {
+                return null;
+            } else {
+                return LayerSummary.fromBuf(buf);
+            }
+        }));
+        this.airCount = -1;
+    }
+
     public NbtCompound writeNbt(NbtCompound nbt) {
         if (this.airCount != null) nbt.putInt(KEY_AIR_COUNT, this.airCount);
         NbtCompound layersCompound = new NbtCompound();
@@ -99,6 +111,17 @@ public class ChunkSummary {
         });
         nbt.put(KEY_LAYERS, layersCompound);
         return nbt;
+    }
+
+    public void writeBuf(PacketByteBuf buf) {
+        buf.writeMap(layers, PacketByteBuf::writeVarInt, (b, summary) -> {
+            if (summary == null) {
+                b.writeByte(0);
+            } else {
+                b.writeByte(1);
+                summary.writeBuf(buf);
+            }
+        });
     }
 
     public void remap(Map<Integer, Integer> biomeRemap, Map<Integer, Integer> blockRemap) {
