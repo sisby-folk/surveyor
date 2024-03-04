@@ -49,17 +49,13 @@ public class SurveyorNetworking {
         Map<ChunkPos, BitSet> serverBits = summary.terrain().bitSet();
         Map<ChunkPos, BitSet> clientBits = packet.terrainBits();
         serverBits.forEach((rPos, set) -> {
-            if (clientBits.containsKey(rPos)) {
-                set.andNot(clientBits.get(rPos));
-                new UpdateRegionS2CPacket(rPos, summary.terrain().getRegion(rPos), set).send(player);
-            }
+            if (clientBits.containsKey(rPos)) set.andNot(clientBits.get(rPos));
+            new UpdateRegionS2CPacket(rPos, summary.terrain().getRegion(rPos), set).send(player);
         });
 
         Collection<StructureSummary> serverStructures = summary.structures().values().stream().filter(s -> !packet.structureKeys().containsKey(s.getKey()) || !packet.structureKeys().get(s.getKey()).contains(s.getPos())).collect(Collectors.toSet());
         Map<ChunkPos, Map<RegistryKey<Structure>, Pair<RegistryKey<StructureType<?>>, Collection<StructurePieceSummary>>>> structures = new HashMap<>();
-        serverStructures.forEach(s -> {
-            structures.computeIfAbsent(s.getPos(), p -> new HashMap<>()).put(s.getKey(), Pair.of(s.getType(), s.getChildren()));
-        });
+        serverStructures.forEach(s -> structures.computeIfAbsent(s.getPos(), p -> new HashMap<>()).put(s.getKey(), Pair.of(s.getType(), s.getChildren())));
         new StructuresAddedS2CPacket(structures).send(player);
     }
 
