@@ -47,7 +47,7 @@ public class SurveyorClient implements ClientModInitializer {
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(() -> {
             if (MinecraftClient.getInstance().world instanceof SurveyorWorld nsw && nsw.surveyor$getWorldSummary().isClient()) {
                 WorldSummary summary = nsw.surveyor$getWorldSummary();
-                new WorldLoadedC2SPacket(summary.terrain().keySet(), summary.structures().keySet()).send();
+                new WorldLoadedC2SPacket(summary.terrain().bitSet(), summary.structures().keySet()).send();
             }
         }));
         ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {

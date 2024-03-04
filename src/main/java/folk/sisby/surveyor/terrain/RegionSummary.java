@@ -21,12 +21,11 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class RegionSummary {
     public static final int REGION_POWER = 5;
@@ -67,7 +66,17 @@ public class RegionSummary {
         return chunks[regionRelative(pos.x)][regionRelative(pos.z)];
     }
 
-    public Collection<ChunkPos> getChunks(ChunkPos regionPos) {
+    public BitSet bitSet() {
+        BitSet bitSet = new BitSet(REGION_SIZE * REGION_SIZE);
+        for (int x = 0; x < REGION_SIZE; x++) {
+            for (int z = 0; z < REGION_SIZE; z++) {
+                if (chunks[x][z] != null) bitSet.set(x * REGION_SIZE + z);
+            }
+        }
+        return bitSet;
+    }
+
+    public Collection<ChunkPos> keySet(ChunkPos regionPos) {
         Collection<ChunkPos> chunkPosCollection = new ArrayList<>();
         for (int x = 0; x < REGION_SIZE; x++) {
             for (int z = 0; z < REGION_SIZE; z++) {
@@ -105,28 +114,6 @@ public class RegionSummary {
         return this;
     }
 
-    public Set<ChunkPos> readBuf(DynamicRegistryManager manager, PacketByteBuf buf) {
-        Registry<Biome> biomeRegistry = manager.get(RegistryKeys.BIOME);
-        int[] rawBiomes = buf.readList(PacketByteBuf::readVarInt).stream().mapToInt(i -> i).toArray();
-        Map<Integer, Integer> biomeRemap = new Int2IntArrayMap();
-        for (int i = 0; i < rawBiomes.length; i++) {
-            biomeRemap.put(i, PaletteUtil.rawIdOrAdd(biomePalette, rawBiomePalette, rawBiomes[i], biomeRegistry));
-        }
-        Registry<Block> blockRegistry = manager.get(RegistryKeys.BLOCK);
-        int[] rawBlocks = buf.readList(PacketByteBuf::readVarInt).stream().mapToInt(i -> i).toArray();
-        Map<Integer, Integer> blockRemap = new Int2IntArrayMap();
-        for (int i = 0; i < rawBlocks.length; i++) {
-            blockRemap.put(i, PaletteUtil.rawIdOrAdd(blockPalette, rawBlockPalette, rawBlocks[i], blockRegistry));
-        }
-        Map<ChunkPos, ChunkSummary> chunks = buf.readMap(PacketByteBuf::readChunkPos, ChunkSummary::new);
-        chunks.forEach((pos, summary) -> {
-            summary.remap(biomeRemap, blockRemap);
-            this.chunks[regionRelative(pos.x)][regionRelative(pos.z)] = summary;
-        });
-        dirty = true;
-        return chunks.keySet();
-    }
-
     public NbtCompound writeNbt(DynamicRegistryManager manager, NbtCompound nbt, ChunkPos regionPos) {
         nbt.put(KEY_BIOMES, new NbtList(mapPalette(biomePalette, b -> NbtString.of(manager.get(RegistryKeys.BIOME).getId(b).toString())), NbtElement.STRING_TYPE));
         nbt.put(KEY_BLOCKS, new NbtList(mapPalette(blockPalette, b -> NbtString.of(manager.get(RegistryKeys.BLOCK).getId(b).toString())), NbtElement.STRING_TYPE));
@@ -144,10 +131,36 @@ public class RegionSummary {
         return nbt;
     }
 
-    public PacketByteBuf writeBuf(PacketByteBuf buf, Set<ChunkPos> chunks) {
+    public BitSet readBuf(DynamicRegistryManager manager, PacketByteBuf buf) {
+        Registry<Biome> biomeRegistry = manager.get(RegistryKeys.BIOME);
+        int[] rawBiomes = buf.readList(PacketByteBuf::readVarInt).stream().mapToInt(i -> i).toArray();
+        Map<Integer, Integer> biomeRemap = new Int2IntArrayMap();
+        for (int i = 0; i < rawBiomes.length; i++) {
+            biomeRemap.put(i, PaletteUtil.rawIdOrAdd(biomePalette, rawBiomePalette, rawBiomes[i], biomeRegistry));
+        }
+        Registry<Block> blockRegistry = manager.get(RegistryKeys.BLOCK);
+        int[] rawBlocks = buf.readList(PacketByteBuf::readVarInt).stream().mapToInt(i -> i).toArray();
+        Map<Integer, Integer> blockRemap = new Int2IntArrayMap();
+        for (int i = 0; i < rawBlocks.length; i++) {
+            blockRemap.put(i, PaletteUtil.rawIdOrAdd(blockPalette, rawBlockPalette, rawBlocks[i], blockRegistry));
+        }
+        BitSet set = buf.readBitSet();
+        int[] indices = set.stream().toArray();
+        ArrayList<ChunkSummary> summaries = buf.readCollection(ArrayList::new, ChunkSummary::new);
+        for (int i = 0; i < summaries.size(); i++) {
+            ChunkSummary summary = summaries.get(i);
+            summary.remap(biomeRemap, blockRemap);
+            this.chunks[indices[i] / REGION_SIZE][indices[i] & REGION_SIZE] = summary;
+        }
+        dirty = true;
+        return set;
+    }
+
+    public PacketByteBuf writeBuf(PacketByteBuf buf, BitSet set) {
         buf.writeCollection(mapPalette(rawBiomePalette, i -> i), PacketByteBuf::writeVarInt);
         buf.writeCollection(mapPalette(rawBlockPalette, i -> i), PacketByteBuf::writeVarInt);
-        buf.writeMap(chunks.stream().collect(Collectors.toMap(p -> p, this::get)), PacketByteBuf::writeChunkPos, (b, summary) -> summary.writeBuf(b));
+        buf.writeBitSet(set);
+        buf.writeCollection(set.stream().mapToObj(i -> chunks[i / REGION_SIZE][i % REGION_SIZE]).toList(), (b, summary) -> summary.writeBuf(b));
         return buf;
     }
 

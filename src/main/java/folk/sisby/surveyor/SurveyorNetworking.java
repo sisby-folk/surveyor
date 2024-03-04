@@ -1,7 +1,5 @@
 package folk.sisby.surveyor;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.packet.C2SPacket;
 import folk.sisby.surveyor.packet.LandmarksAddedPacket;
 import folk.sisby.surveyor.packet.LandmarksRemovedPacket;
@@ -21,11 +19,10 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.gen.structure.Structure;
 import net.minecraft.world.gen.structure.StructureType;
 
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -49,11 +46,14 @@ public class SurveyorNetworking {
     }
 
     private static void handleWorldLoaded(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, WorldLoadedC2SPacket packet) {
-        Set<ChunkPos> serverChunkKeys = summary.terrain().keySet();
-        serverChunkKeys.removeAll(packet.terrainKeys());
-        Multimap<ChunkPos, ChunkPos> regions = HashMultimap.create();
-        serverChunkKeys.forEach(pos -> regions.put(new ChunkPos(pos.getRegionX(), pos.getRegionZ()), pos));
-        regions.asMap().forEach((rPos, positions) -> new UpdateRegionS2CPacket(rPos, summary.terrain().getRegion(rPos), new HashSet<>(positions)).send(player));
+        Map<ChunkPos, BitSet> serverBits = summary.terrain().bitSet();
+        Map<ChunkPos, BitSet> clientBits = packet.terrainBits();
+        serverBits.forEach((rPos, set) -> {
+            if (clientBits.containsKey(rPos)) {
+                set.andNot(clientBits.get(rPos));
+                new UpdateRegionS2CPacket(rPos, summary.terrain().getRegion(rPos), set).send(player);
+            }
+        });
 
         Collection<StructureSummary> serverStructures = summary.structures().values().stream().filter(s -> !packet.structureKeys().containsKey(s.getKey()) || !packet.structureKeys().get(s.getKey()).contains(s.getPos())).collect(Collectors.toSet());
         Map<ChunkPos, Map<RegistryKey<Structure>, Pair<RegistryKey<StructureType<?>>, Collection<StructurePieceSummary>>>> structures = new HashMap<>();

@@ -18,6 +18,7 @@ import net.minecraft.world.chunk.WorldChunk;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -59,9 +60,15 @@ public class WorldTerrainSummary {
         return regions.get(regionPos).getBlockPalette();
     }
 
+    public Map<ChunkPos, BitSet> bitSet() {
+        Map<ChunkPos, BitSet> map = new HashMap<>();
+        regions.forEach((p, r) -> map.put(p, r.bitSet()));
+        return map;
+    }
+
     public Set<ChunkPos> keySet() {
         Set<ChunkPos> chunkPosCollection = new HashSet<>();
-        regions.forEach((p, r) -> chunkPosCollection.addAll(r.getChunks(p)));
+        regions.forEach((p, r) -> chunkPosCollection.addAll(r.keySet(p)));
         return chunkPosCollection;
     }
 

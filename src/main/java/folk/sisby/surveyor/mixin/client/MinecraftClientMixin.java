@@ -20,7 +20,7 @@ public class MinecraftClientMixin {
             csw.surveyor$getWorldSummary().save(MinecraftClient.getInstance().world, SurveyorClient.getSavePath(MinecraftClient.getInstance().world), false);
             if (newWorld instanceof SurveyorWorld nsw && nsw.surveyor$getWorldSummary().isClient()) {
                 WorldSummary summary = nsw.surveyor$getWorldSummary();
-                new WorldLoadedC2SPacket(summary.terrain().keySet(), summary.structures().keySet()).send();
+                new WorldLoadedC2SPacket(summary.terrain().bitSet(), summary.structures().keySet()).send();
             }
         }
     }

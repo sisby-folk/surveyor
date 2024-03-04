@@ -8,32 +8,23 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.gen.structure.Structure;
 
+import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public record WorldLoadedC2SPacket(Set<ChunkPos> terrainKeys, Map<RegistryKey<Structure>, Set<ChunkPos>> structureKeys) implements C2SPacket {
+public record WorldLoadedC2SPacket(Map<ChunkPos, BitSet> terrainBits, Map<RegistryKey<Structure>, Set<ChunkPos>> structureKeys) implements C2SPacket {
     public static WorldLoadedC2SPacket read(PacketByteBuf buf) {
         return new WorldLoadedC2SPacket(
-            buf.readCollection(HashSet::new, b -> new ChunkPos(b.readVarInt(), b.readVarInt())),
-            buf.readMap(b -> RegistryKey.of(RegistryKeys.STRUCTURE, new Identifier(b.readString())), b -> b.readCollection(HashSet::new, b2 -> new ChunkPos(b2.readVarInt(), b2.readVarInt())))
+            buf.readMap(PacketByteBuf::readChunkPos, PacketByteBuf::readBitSet),
+            buf.readMap(b -> b.readRegistryKey(RegistryKeys.STRUCTURE), b -> b.readCollection(HashSet::new, PacketByteBuf::readChunkPos))
         );
     }
 
     @Override
     public void writeBuf(PacketByteBuf buf) {
-        buf.writeCollection(terrainKeys, (b, pos) -> {
-            b.writeVarInt(pos.x);
-            b.writeVarInt(pos.z);
-        });
-        buf.writeMap(structureKeys, (b, s) -> {
-            b.writeString(s.getValue().toString());
-        }, (b, stars) -> {
-            b.writeCollection(stars, (b2, pos) -> {
-                b.writeVarInt(pos.x);
-                b.writeVarInt(pos.z);
-            });
-        });
+        buf.writeMap(terrainBits, PacketByteBuf::writeChunkPos, PacketByteBuf::writeBitSet);
+        buf.writeMap(structureKeys, PacketByteBuf::writeRegistryKey, (b, stars) -> b.writeCollection(stars, PacketByteBuf::writeChunkPos));
     }
 
     @Override

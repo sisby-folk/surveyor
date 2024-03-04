@@ -1,5 +1,6 @@
 package folk.sisby.surveyor.client;
 
+import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorNetworking;
 import folk.sisby.surveyor.SurveyorWorld;
 import folk.sisby.surveyor.WorldSummary;
@@ -8,10 +9,12 @@ import folk.sisby.surveyor.packet.LandmarksRemovedPacket;
 import folk.sisby.surveyor.packet.S2CPacket;
 import folk.sisby.surveyor.packet.StructuresAddedS2CPacket;
 import folk.sisby.surveyor.packet.UpdateRegionS2CPacket;
+import folk.sisby.surveyor.terrain.RegionSummary;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.util.math.ChunkPos;
 
 import java.util.function.Function;
 
@@ -30,8 +33,12 @@ public class SurveyorClientNetworking {
         packet.structures().forEach((pos, structures) -> structures.forEach((structure, pair) -> summary.structures().put(world, pos, structure, pair.left(), pair.right())));
     }
 
-    private static void handleTerrainAdded(ClientWorld world, WorldSummary summary, PacketByteBuf packet) {
-        UpdateRegionS2CPacket.handle(packet, world.getRegistryManager(), summary);
+    private static void handleTerrainAdded(ClientWorld world, WorldSummary summary, PacketByteBuf buf) {
+        UpdateRegionS2CPacket packet = UpdateRegionS2CPacket.handle(buf, world.getRegistryManager(), summary);
+        packet.chunks().stream().forEach(i -> {
+            ChunkPos pos = new ChunkPos((packet.regionPos().x << RegionSummary.REGION_POWER) + (i / RegionSummary.REGION_SIZE), (packet.regionPos().z << RegionSummary.REGION_POWER) + (i % RegionSummary.REGION_SIZE));
+            SurveyorEvents.Invoke.chunkAdded(world, summary.terrain(), pos, summary.terrain().get(pos));
+        });
     }
 
     private static void handleLandmarksAdded(ClientWorld world, WorldSummary summary, LandmarksAddedPacket packet) {
