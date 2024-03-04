@@ -156,15 +156,15 @@ public class LayerSummary {
         return water == null ? WATER_DEFAULT_ARRAY : water.getUnmasked(depth);
     }
 
-    public void fillEmptyFloors(int heightOffset, int minDepth, int maxDepth, int[] outHeight, int[] outBiome, int[] outBlock, int[] outLight, int[] outWater) {
+    public void fillEmptyFloors(int depthOffset, int minDepth, int maxDepth, int[] outDepth, int[] outBiome, int[] outBlock, int[] outLight, int[] outWater) {
         int[] depthFull = rawDepths();
         int[] biomeFull = rawBiomes();
         int[] blockFull = rawBlocks();
         int[] lightFull = rawLightLevels();
         int[] waterFull = rawWaterDepths();
         for (int i = 0; i < 256; i++) {
-            if (outHeight[i] == -1 && depthFull[i] != -1 && depthFull[i] <= maxDepth && depthFull[i] >= minDepth) {
-                outHeight[i] = depthFull[i] + heightOffset;
+            if (outDepth[i] == -1 && depthFull[i] != -1 && depthFull[i] <= maxDepth && depthFull[i] >= minDepth) {
+                outDepth[i] = depthFull[i] + depthOffset;
                 outBiome[i] = biomeFull[i];
                 outBlock[i] = blockFull[i];
                 outLight[i] = lightFull[i];
