@@ -35,10 +35,7 @@ public class SurveyorClientNetworking {
 
     private static void handleTerrainAdded(ClientWorld world, WorldSummary summary, PacketByteBuf buf) {
         UpdateRegionS2CPacket packet = UpdateRegionS2CPacket.handle(buf, world.getRegistryManager(), summary);
-        packet.chunks().stream().forEach(i -> {
-            ChunkPos pos = new ChunkPos((packet.regionPos().x << RegionSummary.REGION_POWER) + (i / RegionSummary.REGION_SIZE), (packet.regionPos().z << RegionSummary.REGION_POWER) + (i % RegionSummary.REGION_SIZE));
-            SurveyorEvents.Invoke.chunkAdded(world, summary.terrain(), pos, summary.terrain().get(pos));
-        });
+        SurveyorEvents.Invoke.terrainUpdated(world, summary.terrain(), packet.chunks().stream().mapToObj(i -> new ChunkPos((packet.regionPos().x << RegionSummary.REGION_POWER) + (i / RegionSummary.REGION_SIZE), (packet.regionPos().z << RegionSummary.REGION_POWER) + (i % RegionSummary.REGION_SIZE))).toList());
     }
 
     private static void handleLandmarksAdded(ClientWorld world, WorldSummary summary, LandmarksAddedPacket packet) {
