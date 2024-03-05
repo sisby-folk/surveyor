@@ -18,7 +18,6 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.WorldSavePath;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.World;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.gen.structure.Structure;
@@ -41,6 +40,7 @@ public class Surveyor implements ModInitializer {
 
     public static void checkStructureExploration(ServerWorld world, ServerPlayerEntity player, BlockPos pos) {
         SurveyorPlayer sp = (SurveyorPlayer) player;
+        if (!world.isChunkLoaded(pos.getX() >> 4, pos.getZ() >> 4)) return;
         Map<Structure, LongSet> structureReferences = world.getChunk(pos.getX() >> 4, pos.getZ() >> 4, ChunkStatus.STRUCTURE_REFERENCES).getStructureReferences();
         if (!structureReferences.isEmpty()) {
             structureReferences.forEach((structure, chunkPosSet) -> {
