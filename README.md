@@ -1,17 +1,27 @@
 <!--suppress HtmlDeprecatedTag, XmlDeprecatedElement -->
 
-**Notice: Surveyor is still a work in progress!**
+**Notice: Surveyor is still a work in progress, and does nothing on its own!**
 
-* Terrain summaries are generated on both the server and client
-* Structure summaries are generated on the server and sent to clients
-* Landmarks can be created on the server and client, and are shared to all players.
-* Structure and landmark visibility is not yet implemented - everything is sent to all players
-* Restoring terrain exploration from the server (and map sharing) is not yet implemented
-* API is a usable but messy and unstable
-* Poor crash and error handling across the board
-* Javadoc is extremely limited
+* Map Data Creation:
+  * Terrain summaries are generated on both the server and client
+  * Structure summaries are generated on the server
+  * Landmarks can be created on the server and client
+* Map Data Synchronization:
+  * Terrain is shared from the server to the client when it's missing
+  * Structures are sent to the client when generated or if they're missing
+  * Server landmarks are sent to clients
+  * Client landmarks are sent to the server and shared with other players
+* Player Tracking:
+  * Player terrain exploration is recorded and stored
+  * Player structure exploration is recorded and stored
+* Map Data Visibility:
+  * Data is all shared globally, map-sharing "teams" are not yet implemented
+  * Landmark visibility settings are not yet implemented.
+* API is not yet stable
+* Poor error handling
+* Limited javadoc
 
-**Current releases are for early developer testing and experiments!**
+**Current releases are for early testing and experiments!**
 
 ---
 
@@ -34,6 +44,7 @@ Surveyor is a map library that:
   * Structures are recorded with their IDs, type IDs, piece IDs, piece BBs, jigsaw piece IDs & junctions - all intact.
   * Landmarks can generically represent all other positional map data - e.g. waypoints, POIs, or faction claims.
 * Syncs structure and POI data to the client for use on maps.
+* Syncs terrain data to the client if it's missing any.
 * Syncs player-made waypoints (landmarks) with other players.
 * Removes the need for map mods to implement save data or networking in most cases.
 
