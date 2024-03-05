@@ -7,6 +7,14 @@ import net.minecraft.network.PacketByteBuf;
 
 import java.util.Arrays;
 
+/**
+ * A compressed representation of an int[256] for holding optional unsigned ints.
+ * Keeps size down in memory, as well as in NBT and packets.
+ * Designed mostly for paletted data, as well as data with aligned "nulls" (-1 values)
+ * @author Sisby folk
+ * @author Falkreon
+ * @author Ampflower
+ */
 public interface UIntArray {
     int UINT_BYTE_OFFSET = 127;
     int NULL_TYPE = NbtElement.END_TYPE;
