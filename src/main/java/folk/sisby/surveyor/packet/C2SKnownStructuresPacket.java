@@ -26,6 +26,6 @@ public record C2SKnownStructuresPacket(Map<RegistryKey<Structure>, Set<ChunkPos>
 
     @Override
     public Identifier getId() {
-        return SurveyorNetworking.C2S_KNOWN_TERRAIN;
+        return SurveyorNetworking.C2S_KNOWN_STRUCTURES;
     }
 }
