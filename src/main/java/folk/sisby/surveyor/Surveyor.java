@@ -1,6 +1,7 @@
 package folk.sisby.surveyor;
 
 import folk.sisby.surveyor.player.SurveyorPlayer;
+import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.terrain.WorldTerrainSummary;
 import it.unimi.dsi.fastutil.longs.LongArraySet;
 import it.unimi.dsi.fastutil.longs.LongSet;
@@ -71,6 +72,7 @@ public class Surveyor implements ModInitializer {
     public void onInitialize() {
         SurveyorNetworking.init();
         ServerChunkEvents.CHUNK_LOAD.register(WorldTerrainSummary::onChunkLoad);
+        ServerChunkEvents.CHUNK_LOAD.register(WorldStructureSummary::onChunkLoad);
         ServerChunkEvents.CHUNK_UNLOAD.register(WorldTerrainSummary::onChunkUnload);
         ServerTickEvents.END_WORLD_TICK.register((world -> {
             if ((world.getTime() & 7) != 0) return;
