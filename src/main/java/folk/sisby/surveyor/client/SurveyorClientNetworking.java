@@ -23,10 +23,10 @@ public class SurveyorClientNetworking {
         SurveyorNetworking.C2S_SENDER = p -> {
             p.toBufs().forEach(buf -> ClientPlayNetworking.send(p.getId(), buf));
         };
-        ClientPlayNetworking.registerGlobalReceiver(SurveyorNetworking.S2C_STRUCTURES_ADDED, (c, h, b, s) -> handleClient(b, S2CStructuresAddedPacket::read, SurveyorClientNetworking::handleStructuresAdded));
-        ClientPlayNetworking.registerGlobalReceiver(SurveyorNetworking.S2C_UPDATE_REGION, (c, h, b, s) -> handleClientUnparsed(b, SurveyorClientNetworking::handleTerrainAdded));
-        ClientPlayNetworking.registerGlobalReceiver(SurveyorNetworking.LANDMARKS_ADDED, (c, h, b, s) -> handleClient(b, LandmarksAddedPacket::read, SurveyorClientNetworking::handleLandmarksAdded));
-        ClientPlayNetworking.registerGlobalReceiver(SurveyorNetworking.LANDMARKS_REMOVED, (c, h, b, s) -> handleClient(b, LandmarksRemovedPacket::read, SurveyorClientNetworking::handleLandmarksRemoved));
+        ClientPlayNetworking.registerGlobalReceiver(S2CStructuresAddedPacket.ID, (c, h, b, s) -> handleClient(b, S2CStructuresAddedPacket::read, SurveyorClientNetworking::handleStructuresAdded));
+        ClientPlayNetworking.registerGlobalReceiver(S2CUpdateRegionPacket.ID, (c, h, b, s) -> handleClientUnparsed(b, SurveyorClientNetworking::handleTerrainAdded));
+        ClientPlayNetworking.registerGlobalReceiver(LandmarksAddedPacket.ID, (c, h, b, s) -> handleClient(b, LandmarksAddedPacket::read, SurveyorClientNetworking::handleLandmarksAdded));
+        ClientPlayNetworking.registerGlobalReceiver(LandmarksRemovedPacket.ID, (c, h, b, s) -> handleClient(b, LandmarksRemovedPacket::read, SurveyorClientNetworking::handleLandmarksRemoved));
     }
 
     private static void handleStructuresAdded(ClientWorld world, WorldSummary summary, S2CStructuresAddedPacket packet) {

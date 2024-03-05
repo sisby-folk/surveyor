@@ -19,7 +19,6 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.gen.structure.Structure;
@@ -32,25 +31,16 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class SurveyorNetworking {
-    public static final Identifier LANDMARKS_ADDED = new Identifier(Surveyor.ID, "landmarks_added");
-    public static final Identifier LANDMARKS_REMOVED = new Identifier(Surveyor.ID, "landmarks_removed");
-
-    public static final Identifier S2C_STRUCTURES_ADDED = new Identifier(Surveyor.ID, "s2c_structures_added");
-    public static final Identifier S2C_UPDATE_REGION = new Identifier(Surveyor.ID, "s2c_update_region");
-
-    public static final Identifier C2S_KNOWN_TERRAIN = new Identifier(Surveyor.ID, "c2s_known_terrain");
-    public static final Identifier C2S_KNOWN_STRUCTURES = new Identifier(Surveyor.ID, "c2s_known_structures");
-    public static final Identifier C2S_KNOWN_LANDMARKS = new Identifier(Surveyor.ID, "c2s_known_landmarks");
 
     public static Consumer<C2SPacket> C2S_SENDER = p -> {
     };
 
     public static void init() {
-        ServerPlayNetworking.registerGlobalReceiver(C2S_KNOWN_TERRAIN, (sv, p, h, b, se) -> handleServer(p, b, C2SKnownTerrainPacket::read, SurveyorNetworking::handleKnownTerrain));
-        ServerPlayNetworking.registerGlobalReceiver(C2S_KNOWN_STRUCTURES, (sv, p, h, b, se) -> handleServer(p, b, C2SKnownStructuresPacket::read, SurveyorNetworking::handleKnownStructures));
-        ServerPlayNetworking.registerGlobalReceiver(C2S_KNOWN_LANDMARKS, (sv, p, h, b, se) -> handleServer(p, b, C2SKnownLandmarksPacket::read, SurveyorNetworking::handleKnownLandmarks));
-        ServerPlayNetworking.registerGlobalReceiver(LANDMARKS_ADDED, (sv, p, h, b, se) -> handleServer(p, b, LandmarksAddedPacket::read, SurveyorNetworking::handleLandmarksAdded));
-        ServerPlayNetworking.registerGlobalReceiver(LANDMARKS_REMOVED, (sv, p, h, b, se) -> handleServer(p, b, LandmarksRemovedPacket::read, SurveyorNetworking::handleLandmarksRemoved));
+        ServerPlayNetworking.registerGlobalReceiver(C2SKnownTerrainPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, C2SKnownTerrainPacket::read, SurveyorNetworking::handleKnownTerrain));
+        ServerPlayNetworking.registerGlobalReceiver(C2SKnownStructuresPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, C2SKnownStructuresPacket::read, SurveyorNetworking::handleKnownStructures));
+        ServerPlayNetworking.registerGlobalReceiver(C2SKnownLandmarksPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, C2SKnownLandmarksPacket::read, SurveyorNetworking::handleKnownLandmarks));
+        ServerPlayNetworking.registerGlobalReceiver(LandmarksAddedPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, LandmarksAddedPacket::read, SurveyorNetworking::handleLandmarksAdded));
+        ServerPlayNetworking.registerGlobalReceiver(LandmarksRemovedPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, LandmarksRemovedPacket::read, SurveyorNetworking::handleLandmarksRemoved));
     }
 
     private static void handleKnownTerrain(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownTerrainPacket packet) {

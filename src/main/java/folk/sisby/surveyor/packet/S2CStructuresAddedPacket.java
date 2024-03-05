@@ -1,7 +1,7 @@
 package folk.sisby.surveyor.packet;
 
 import com.google.common.collect.Multimap;
-import folk.sisby.surveyor.SurveyorNetworking;
+import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.structure.StructureSummary;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.util.MapUtil;
@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.Objects;
 
 public record S2CStructuresAddedPacket(Map<RegistryKey<Structure>, Map<ChunkPos, StructureSummary>> structures, Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> structureTypes, Multimap<RegistryKey<Structure>, TagKey<Structure>> structureTags) implements S2CPacket {
+    public static final Identifier ID = new Identifier(Surveyor.ID, "s2c_structures_added");
+
     public static S2CStructuresAddedPacket of(RegistryKey<Structure> key, ChunkPos pos, StructureSummary summary, RegistryKey<StructureType<?>> structureType, Collection<TagKey<Structure>> structureTags) {
         return new S2CStructuresAddedPacket(Map.of(key, Map.of(pos, summary)), Map.of(key, structureType), MapUtil.hashMultiMapOf(Map.of(key, structureTags)));
     }
@@ -65,6 +67,6 @@ public record S2CStructuresAddedPacket(Map<RegistryKey<Structure>, Map<ChunkPos,
 
     @Override
     public Identifier getId() {
-        return SurveyorNetworking.S2C_STRUCTURES_ADDED;
+        return ID;
     }
 }

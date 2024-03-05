@@ -1,6 +1,6 @@
 package folk.sisby.surveyor.packet;
 
-import folk.sisby.surveyor.SurveyorNetworking;
+import folk.sisby.surveyor.Surveyor;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ChunkPos;
@@ -9,6 +9,8 @@ import java.util.BitSet;
 import java.util.Map;
 
 public record C2SKnownTerrainPacket(Map<ChunkPos, BitSet> terrainBits) implements C2SPacket {
+    public static final Identifier ID = new Identifier(Surveyor.ID, "c2s_known_terrain");
+
     public static C2SKnownTerrainPacket read(PacketByteBuf buf) {
         return new C2SKnownTerrainPacket(
             buf.readMap(PacketByteBuf::readChunkPos, PacketByteBuf::readBitSet)
@@ -22,6 +24,6 @@ public record C2SKnownTerrainPacket(Map<ChunkPos, BitSet> terrainBits) implement
 
     @Override
     public Identifier getId() {
-        return SurveyorNetworking.C2S_KNOWN_TERRAIN;
+        return ID;
     }
 }

@@ -1,6 +1,6 @@
 package folk.sisby.surveyor.packet;
 
-import folk.sisby.surveyor.SurveyorNetworking;
+import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.landmark.Landmarks;
 import net.minecraft.network.PacketByteBuf;
@@ -11,6 +11,8 @@ import java.util.Collection;
 import java.util.Map;
 
 public record C2SKnownLandmarksPacket(Map<LandmarkType<?>, Collection<BlockPos>> landmarks) implements C2SPacket {
+    public static final Identifier ID = new Identifier(Surveyor.ID, "c2s_known_landmarks");
+
     public static C2SKnownLandmarksPacket read(PacketByteBuf buf) {
         return new C2SKnownLandmarksPacket(buf.readMap(
             b -> Landmarks.getType(b.readIdentifier()),
@@ -28,6 +30,6 @@ public record C2SKnownLandmarksPacket(Map<LandmarkType<?>, Collection<BlockPos>>
 
     @Override
     public Identifier getId() {
-        return SurveyorNetworking.C2S_KNOWN_LANDMARKS;
+        return ID;
     }
 }

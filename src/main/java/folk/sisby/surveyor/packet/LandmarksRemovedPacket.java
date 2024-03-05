@@ -1,6 +1,6 @@
 package folk.sisby.surveyor.packet;
 
-import folk.sisby.surveyor.SurveyorNetworking;
+import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.landmark.Landmarks;
 import net.minecraft.network.PacketByteBuf;
@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 
 public record LandmarksRemovedPacket(Map<LandmarkType<?>, Collection<BlockPos>> landmarks) implements S2CPacket, C2SPacket {
+    public static final Identifier ID = new Identifier(Surveyor.ID, "landmarks_removed");
+
     public static LandmarksRemovedPacket of(LandmarkType<?> type, BlockPos pos) {
         return new LandmarksRemovedPacket(Map.of(type, List.of(pos)));
     }
@@ -33,6 +35,6 @@ public record LandmarksRemovedPacket(Map<LandmarkType<?>, Collection<BlockPos>> 
 
     @Override
     public Identifier getId() {
-        return SurveyorNetworking.LANDMARKS_REMOVED;
+        return ID;
     }
 }

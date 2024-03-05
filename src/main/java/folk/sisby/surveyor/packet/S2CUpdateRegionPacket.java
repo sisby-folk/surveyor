@@ -1,6 +1,6 @@
 package folk.sisby.surveyor.packet;
 
-import folk.sisby.surveyor.SurveyorNetworking;
+import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.terrain.RegionSummary;
 import folk.sisby.surveyor.util.BitSetUtil;
@@ -16,6 +16,8 @@ import java.util.Collection;
 import java.util.List;
 
 public record S2CUpdateRegionPacket(ChunkPos regionPos, RegionSummary summary, BitSet chunks) implements S2CPacket {
+    public static final Identifier ID = new Identifier(Surveyor.ID, "s2c_update_region");
+
     public static S2CUpdateRegionPacket handle(PacketByteBuf buf, DynamicRegistryManager manager, WorldSummary summary) {
         ChunkPos regionPos = buf.readChunkPos();
         RegionSummary region = summary.terrain().getRegion(regionPos);
@@ -51,6 +53,6 @@ public record S2CUpdateRegionPacket(ChunkPos regionPos, RegionSummary summary, B
 
     @Override
     public Identifier getId() {
-        return SurveyorNetworking.S2C_UPDATE_REGION;
+        return ID;
     }
 }

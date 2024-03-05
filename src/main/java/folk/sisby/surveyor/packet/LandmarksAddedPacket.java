@@ -1,7 +1,6 @@
 package folk.sisby.surveyor.packet;
 
 import folk.sisby.surveyor.Surveyor;
-import folk.sisby.surveyor.SurveyorNetworking;
 import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.landmark.Landmarks;
@@ -14,6 +13,8 @@ import net.minecraft.util.math.BlockPos;
 import java.util.Map;
 
 public record LandmarksAddedPacket(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks) implements S2CPacket, C2SPacket {
+    public static final Identifier ID = new Identifier(Surveyor.ID, "landmarks_added");
+
     public static LandmarksAddedPacket of(Landmark<?> landmark) {
         return new LandmarksAddedPacket(Map.of(landmark.type(), Map.of(landmark.pos(), landmark)));
     }
@@ -35,6 +36,6 @@ public record LandmarksAddedPacket(Map<LandmarkType<?>, Map<BlockPos, Landmark<?
 
     @Override
     public Identifier getId() {
-        return SurveyorNetworking.LANDMARKS_ADDED;
+        return ID;
     }
 }
