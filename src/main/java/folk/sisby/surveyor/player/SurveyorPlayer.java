@@ -16,6 +16,8 @@ public interface SurveyorPlayer {
 
     Map<Structure, LongSet> surveyor$getExploredStructures();
 
+    int surveyor$getViewDistance();
+
     void surveyor$addExploredChunk(ChunkPos pos);
 
     void surveyor$addExploredStructure(Structure structure, ChunkPos pos);

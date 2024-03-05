@@ -76,7 +76,7 @@ public class Surveyor implements ModInitializer {
             if ((world.getTime() & 7) != 0) return;
             for (ServerPlayerEntity player : world.getPlayers()) {
                 checkStructureExploration(world, player, player.getBlockPos());
-                checkStructureExploration(world, player, BlockPos.ofFloored(player.raycast(16 << 4, 1.0F, false).getPos()));
+                checkStructureExploration(world, player, BlockPos.ofFloored(player.raycast(((SurveyorPlayer) player).surveyor$getViewDistance() << 4, 1.0F, false).getPos()));
             }
         }));
     }

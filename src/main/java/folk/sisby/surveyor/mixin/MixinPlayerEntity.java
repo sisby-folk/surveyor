@@ -11,6 +11,7 @@ import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtLongArray;
+import net.minecraft.network.packet.c2s.play.ClientSettingsC2SPacket;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -32,6 +33,7 @@ import java.util.Map;
 public class MixinPlayerEntity implements SurveyorPlayer {
     @Unique private final Map<ChunkPos, BitSet> surveyor$exploredTerrain = new HashMap<>();
     @Unique private final Map<Structure, LongSet> surveyor$exploredStructures = new HashMap<>();
+    @Unique private int surveyor$playerViewDistance = -1;
 
     @Inject(at = @At("TAIL"), method = "writeCustomDataToNbt")
     public void writeSurveyorData(NbtCompound nbt, CallbackInfo ci) {
@@ -87,6 +89,11 @@ public class MixinPlayerEntity implements SurveyorPlayer {
         }
     }
 
+    @Inject(method = "setClientSettings", at = @At("HEAD"))
+    public void setClientSettings(ClientSettingsC2SPacket packet, CallbackInfo ci) {
+        surveyor$playerViewDistance = packet.viewDistance();
+    }
+
     @Inject(method = "onDeath", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/damage/DamageTracker;update()V"))
     public void onClientDeath(DamageSource damageSource, CallbackInfo ci) {
         PlayerEntity self = (PlayerEntity) (Object) this;
@@ -107,6 +114,12 @@ public class MixinPlayerEntity implements SurveyorPlayer {
     @Override
     public Map<Structure, LongSet> surveyor$getExploredStructures() {
         return surveyor$exploredStructures;
+    }
+
+    @Override
+    public int surveyor$getViewDistance() {
+        PlayerEntity self = (PlayerEntity) (Object) this;
+        return surveyor$playerViewDistance == -1 ? self.getServer().getPlayerManager().getViewDistance() : surveyor$playerViewDistance;
     }
 
     @Override
