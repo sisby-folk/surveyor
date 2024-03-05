@@ -5,14 +5,16 @@ import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.landmark.WorldLandmarks;
-import folk.sisby.surveyor.structure.StructureSummary;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.terrain.WorldTerrainSummary;
+import folk.sisby.surveyor.util.MapUtil;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
+import net.minecraft.world.gen.structure.Structure;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -44,12 +46,12 @@ public class SurveyorEvents {
             terrainUpdated(world, worldTerrain, List.of(pos));
         }
 
-        public static void structuresAdded(World world, WorldStructureSummary worldStructures, Collection<StructureSummary> summaries) {
-            structureAddedHandlers.forEach((id, handler) -> handler.onStructuresAdded(world, worldStructures, summaries));
+        public static void structuresAdded(World world, WorldStructureSummary worldStructures, Multimap<RegistryKey<Structure>, ChunkPos> structures) {
+            structureAddedHandlers.forEach((id, handler) -> handler.onStructuresAdded(world, worldStructures, structures));
         }
 
-        public static void structureAdded(World world, WorldStructureSummary worldStructures, StructureSummary structureSummary) {
-            structuresAdded(world, worldStructures, List.of(structureSummary));
+        public static void structureAdded(World world, WorldStructureSummary worldStructures, RegistryKey<Structure> key, ChunkPos pos) {
+            structuresAdded(world, worldStructures, MapUtil.hashMultiMapOf(Map.of(key, List.of(pos))));
         }
 
         public static void landmarksAdded(World world, WorldLandmarks worldLandmarks, Collection<Landmark<?>> landmarks) {
@@ -114,7 +116,7 @@ public class SurveyorEvents {
 
     @FunctionalInterface
     public interface StructuresAdded {
-        void onStructuresAdded(World world, WorldStructureSummary worldTerrain, Collection<StructureSummary> summaries);
+        void onStructuresAdded(World world, WorldStructureSummary worldStructures, Multimap<RegistryKey<Structure>, ChunkPos> structures);
     }
 
     @FunctionalInterface

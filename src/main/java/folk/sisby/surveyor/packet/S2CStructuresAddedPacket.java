@@ -1,14 +1,15 @@
 package folk.sisby.surveyor.packet;
 
+import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.SurveyorNetworking;
-import folk.sisby.surveyor.structure.StructurePieceSummary;
 import folk.sisby.surveyor.structure.StructureSummary;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
-import it.unimi.dsi.fastutil.Pair;
+import folk.sisby.surveyor.util.MapUtil;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.gen.structure.Structure;
@@ -18,33 +19,48 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 
-public record S2CStructuresAddedPacket(Map<ChunkPos, Map<RegistryKey<Structure>, Pair<RegistryKey<StructureType<?>>, Collection<StructurePieceSummary>>>> structures) implements S2CPacket {
-    public static S2CStructuresAddedPacket of(StructureSummary summary) {
-        return new S2CStructuresAddedPacket(Map.of(summary.getPos(), Map.of(summary.getKey(), Pair.of(summary.getType(), summary.getChildren()))));
+public record S2CStructuresAddedPacket(Map<RegistryKey<Structure>, Map<ChunkPos, StructureSummary>> structures, Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> structureTypes, Multimap<RegistryKey<Structure>, TagKey<Structure>> structureTags) implements S2CPacket {
+    public static S2CStructuresAddedPacket of(RegistryKey<Structure> key, ChunkPos pos, StructureSummary summary, RegistryKey<StructureType<?>> structureType, Collection<TagKey<Structure>> structureTags) {
+        return new S2CStructuresAddedPacket(Map.of(key, Map.of(pos, summary)), Map.of(key, structureType), MapUtil.hashMultiMapOf(Map.of(key, structureTags)));
     }
 
     public static S2CStructuresAddedPacket read(PacketByteBuf buf) {
         return new S2CStructuresAddedPacket(
             buf.readMap(
-                b -> new ChunkPos(b.readVarInt(), b.readVarInt()),
+                b -> b.readRegistryKey(RegistryKeys.STRUCTURE),
                 b -> b.readMap(
-                    b2 -> b2.readRegistryKey(RegistryKeys.STRUCTURE),
-                    b2 -> Pair.of(
-                        b2.readRegistryKey(RegistryKeys.STRUCTURE_TYPE),
-                        b2.readList(b3 -> WorldStructureSummary.readStructurePieceNbt(Objects.requireNonNull(b2.readNbt())))
-                    )
+                    PacketByteBuf::readChunkPos,
+                    b2 -> new StructureSummary(b2.readList(b3 -> WorldStructureSummary.readStructurePieceNbt(Objects.requireNonNull(b3.readNbt()))))
                 )
-            )
+            ),
+            buf.readMap(
+                b -> b.readRegistryKey(RegistryKeys.STRUCTURE),
+                b -> b.readRegistryKey(RegistryKeys.STRUCTURE_TYPE)
+            ),
+            MapUtil.hashMultiMapOf(buf.readMap(
+                b -> b.readRegistryKey(RegistryKeys.STRUCTURE),
+                b -> b.readList(b2 -> TagKey.of(RegistryKeys.STRUCTURE, b2.readIdentifier()))
+            ))
         );
     }
 
     @Override
     public void writeBuf(PacketByteBuf buf) {
-        buf.writeMap(structures, PacketByteBuf::writeChunkPos,
-            (b, posMap) -> b.writeMap(posMap, PacketByteBuf::writeRegistryKey, (b2, pair) -> {
-                b2.writeRegistryKey(pair.left());
-                b2.writeCollection(pair.right(), (b3, piece) -> b3.writeNbt(piece.writeNbt(new NbtCompound())));
-            }));
+        buf.writeMap(structures,
+            PacketByteBuf::writeRegistryKey,
+            (b, posMap) -> b.writeMap(posMap,
+                PacketByteBuf::writeChunkPos,
+                (b2, summary) -> b2.writeCollection(summary.getChildren(), (b3, piece) -> b3.writeNbt(piece.writeNbt(new NbtCompound())))
+            )
+        );
+        buf.writeMap(structureTypes,
+            PacketByteBuf::writeRegistryKey,
+            PacketByteBuf::writeRegistryKey
+        );
+        buf.writeMap(structureTags.asMap(),
+            PacketByteBuf::writeRegistryKey,
+            (b, c) -> b.writeCollection(c, (b2, t) -> b2.writeIdentifier(t.id()))
+        );
     }
 
     @Override

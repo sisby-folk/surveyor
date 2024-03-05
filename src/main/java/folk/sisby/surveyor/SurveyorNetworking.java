@@ -1,21 +1,22 @@
 package folk.sisby.surveyor;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.packet.C2SKnownLandmarksPacket;
+import folk.sisby.surveyor.packet.C2SKnownStructuresPacket;
+import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
 import folk.sisby.surveyor.packet.C2SPacket;
 import folk.sisby.surveyor.packet.LandmarksAddedPacket;
 import folk.sisby.surveyor.packet.LandmarksRemovedPacket;
-import folk.sisby.surveyor.packet.C2SKnownStructuresPacket;
 import folk.sisby.surveyor.packet.S2CStructuresAddedPacket;
 import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
-import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
-import folk.sisby.surveyor.structure.StructurePieceSummary;
 import folk.sisby.surveyor.structure.StructureSummary;
-import it.unimi.dsi.fastutil.Pair;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
@@ -25,12 +26,10 @@ import net.minecraft.world.gen.structure.Structure;
 import net.minecraft.world.gen.structure.StructureType;
 
 import java.util.BitSet;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class SurveyorNetworking {
     public static final Identifier LANDMARKS_ADDED = new Identifier(Surveyor.ID, "landmarks_added");
@@ -64,10 +63,20 @@ public class SurveyorNetworking {
     }
 
     private static void handleKnownStructures(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownStructuresPacket packet) {
-        Collection<StructureSummary> serverStructures = summary.structures().values().stream().filter(s -> !packet.structureKeys().containsKey(s.getKey()) || !packet.structureKeys().get(s.getKey()).contains(s.getPos())).collect(Collectors.toSet());
-        Map<ChunkPos, Map<RegistryKey<Structure>, Pair<RegistryKey<StructureType<?>>, Collection<StructurePieceSummary>>>> structures = new HashMap<>();
-        serverStructures.forEach(s -> structures.computeIfAbsent(s.getPos(), p -> new HashMap<>()).put(s.getKey(), Pair.of(s.getType(), s.getChildren())));
-        new S2CStructuresAddedPacket(structures).send(player);
+        Map<RegistryKey<Structure>, Map<ChunkPos, StructureSummary>> structures = summary.structures().asMap();
+        packet.structureKeys().forEach((key, starts) -> {
+            if (structures.containsKey(key)) {
+                starts.forEach(p -> structures.get(key).remove(p));
+                if (structures.get(key).isEmpty()) structures.remove(key);
+            }
+        });
+        Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> structureTypes = new HashMap<>();
+        Multimap<RegistryKey<Structure>, TagKey<Structure>> structureTags = HashMultimap.create();
+        for (RegistryKey<Structure> key : structures.keySet()) {
+            structureTypes.put(key, summary.structures().getType(key));
+            structureTags.putAll(key, summary.structures().getTags(key));
+        }
+        new S2CStructuresAddedPacket(structures, structureTypes, structureTags).send(player);
     }
 
     private static void handleKnownLandmarks(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownLandmarksPacket packet) {

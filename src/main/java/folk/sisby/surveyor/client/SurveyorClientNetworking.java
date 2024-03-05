@@ -30,7 +30,7 @@ public class SurveyorClientNetworking {
     }
 
     private static void handleStructuresAdded(ClientWorld world, WorldSummary summary, S2CStructuresAddedPacket packet) {
-        packet.structures().forEach((pos, structures) -> structures.forEach((structure, pair) -> summary.structures().put(world, pos, structure, pair.left(), pair.right())));
+        packet.structures().forEach((key, map) -> map.forEach((pos, start) -> summary.structures().put(world, key, pos, start, packet.structureTypes().get(key), packet.structureTags().get(key))));
     }
 
     private static void handleTerrainAdded(ClientWorld world, WorldSummary summary, PacketByteBuf buf) {
