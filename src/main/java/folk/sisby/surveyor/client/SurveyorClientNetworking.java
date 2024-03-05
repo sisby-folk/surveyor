@@ -7,8 +7,8 @@ import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.packet.LandmarksAddedPacket;
 import folk.sisby.surveyor.packet.LandmarksRemovedPacket;
 import folk.sisby.surveyor.packet.S2CPacket;
-import folk.sisby.surveyor.packet.StructuresAddedS2CPacket;
-import folk.sisby.surveyor.packet.UpdateRegionS2CPacket;
+import folk.sisby.surveyor.packet.S2CStructuresAddedPacket;
+import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
 import folk.sisby.surveyor.terrain.RegionSummary;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
@@ -23,18 +23,18 @@ public class SurveyorClientNetworking {
         SurveyorNetworking.C2S_SENDER = p -> {
             p.toBufs().forEach(buf -> ClientPlayNetworking.send(p.getId(), buf));
         };
-        ClientPlayNetworking.registerGlobalReceiver(SurveyorNetworking.S2C_STRUCTURES_ADDED, (c, h, b, s) -> handleClient(b, StructuresAddedS2CPacket::read, SurveyorClientNetworking::handleStructuresAdded));
+        ClientPlayNetworking.registerGlobalReceiver(SurveyorNetworking.S2C_STRUCTURES_ADDED, (c, h, b, s) -> handleClient(b, S2CStructuresAddedPacket::read, SurveyorClientNetworking::handleStructuresAdded));
         ClientPlayNetworking.registerGlobalReceiver(SurveyorNetworking.S2C_UPDATE_REGION, (c, h, b, s) -> handleClientUnparsed(b, SurveyorClientNetworking::handleTerrainAdded));
         ClientPlayNetworking.registerGlobalReceiver(SurveyorNetworking.LANDMARKS_ADDED, (c, h, b, s) -> handleClient(b, LandmarksAddedPacket::read, SurveyorClientNetworking::handleLandmarksAdded));
         ClientPlayNetworking.registerGlobalReceiver(SurveyorNetworking.LANDMARKS_REMOVED, (c, h, b, s) -> handleClient(b, LandmarksRemovedPacket::read, SurveyorClientNetworking::handleLandmarksRemoved));
     }
 
-    private static void handleStructuresAdded(ClientWorld world, WorldSummary summary, StructuresAddedS2CPacket packet) {
+    private static void handleStructuresAdded(ClientWorld world, WorldSummary summary, S2CStructuresAddedPacket packet) {
         packet.structures().forEach((pos, structures) -> structures.forEach((structure, pair) -> summary.structures().put(world, pos, structure, pair.left(), pair.right())));
     }
 
     private static void handleTerrainAdded(ClientWorld world, WorldSummary summary, PacketByteBuf buf) {
-        UpdateRegionS2CPacket packet = UpdateRegionS2CPacket.handle(buf, world.getRegistryManager(), summary);
+        S2CUpdateRegionPacket packet = S2CUpdateRegionPacket.handle(buf, world.getRegistryManager(), summary);
         SurveyorEvents.Invoke.terrainUpdated(world, summary.terrain(), packet.chunks().stream().mapToObj(i -> new ChunkPos((packet.regionPos().x << RegionSummary.REGION_POWER) + (i / RegionSummary.REGION_SIZE), (packet.regionPos().z << RegionSummary.REGION_POWER) + (i % RegionSummary.REGION_SIZE))).toList());
     }
 

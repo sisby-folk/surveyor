@@ -3,7 +3,9 @@ package folk.sisby.surveyor.mixin.client;
 import folk.sisby.surveyor.SurveyorWorld;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.client.SurveyorClient;
-import folk.sisby.surveyor.packet.WorldLoadedC2SPacket;
+import folk.sisby.surveyor.packet.C2SKnownLandmarksPacket;
+import folk.sisby.surveyor.packet.C2SKnownStructuresPacket;
+import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.world.ClientWorld;
@@ -20,7 +22,9 @@ public class MinecraftClientMixin {
             csw.surveyor$getWorldSummary().save(MinecraftClient.getInstance().world, SurveyorClient.getSavePath(MinecraftClient.getInstance().world), false);
             if (newWorld instanceof SurveyorWorld nsw && nsw.surveyor$getWorldSummary().isClient()) {
                 WorldSummary summary = nsw.surveyor$getWorldSummary();
-                new WorldLoadedC2SPacket(summary.terrain().bitSet(), summary.structures().keySet()).send();
+                new C2SKnownTerrainPacket(summary.terrain().bitSet()).send();
+                new C2SKnownStructuresPacket(summary.structures().keySet()).send();
+                new C2SKnownLandmarksPacket(summary.landmarks().keySet().asMap()).send();
             }
         }
     }

@@ -52,6 +52,14 @@ public class WorldLandmarks {
         return outMap;
     }
 
+    public Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> asMap() {
+        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> outmap = new HashMap<>();
+        landmarks.forEach((type, map) -> map.forEach((pos, landmark) -> {
+            outmap.computeIfAbsent(type, t -> new HashMap<>()).put(pos, landmark);
+        }));
+        return outmap;
+    }
+
     public Multimap<LandmarkType<?>, BlockPos> keySet() {
         Multimap<LandmarkType<?>, BlockPos> outMap = HashMultimap.create();
         landmarks.forEach((type, map) -> outMap.putAll(type, map.keySet()));

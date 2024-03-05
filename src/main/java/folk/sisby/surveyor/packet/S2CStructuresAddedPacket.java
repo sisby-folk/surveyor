@@ -18,19 +18,19 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 
-public record StructuresAddedS2CPacket(Map<ChunkPos, Map<RegistryKey<Structure>, Pair<RegistryKey<StructureType<?>>, Collection<StructurePieceSummary>>>> structures) implements S2CPacket {
-    public static StructuresAddedS2CPacket of(StructureSummary summary) {
-        return new StructuresAddedS2CPacket(Map.of(summary.getPos(), Map.of(summary.getKey(), Pair.of(summary.getType(), summary.getChildren()))));
+public record S2CStructuresAddedPacket(Map<ChunkPos, Map<RegistryKey<Structure>, Pair<RegistryKey<StructureType<?>>, Collection<StructurePieceSummary>>>> structures) implements S2CPacket {
+    public static S2CStructuresAddedPacket of(StructureSummary summary) {
+        return new S2CStructuresAddedPacket(Map.of(summary.getPos(), Map.of(summary.getKey(), Pair.of(summary.getType(), summary.getChildren()))));
     }
 
-    public static StructuresAddedS2CPacket read(PacketByteBuf buf) {
-        return new StructuresAddedS2CPacket(
+    public static S2CStructuresAddedPacket read(PacketByteBuf buf) {
+        return new S2CStructuresAddedPacket(
             buf.readMap(
                 b -> new ChunkPos(b.readVarInt(), b.readVarInt()),
                 b -> b.readMap(
-                    b2 -> RegistryKey.of(RegistryKeys.STRUCTURE, new Identifier(b.readString())),
+                    b2 -> b2.readRegistryKey(RegistryKeys.STRUCTURE),
                     b2 -> Pair.of(
-                        RegistryKey.of(RegistryKeys.STRUCTURE_TYPE, new Identifier(b.readString())),
+                        b2.readRegistryKey(RegistryKeys.STRUCTURE_TYPE),
                         b2.readList(b3 -> WorldStructureSummary.readStructurePieceNbt(Objects.requireNonNull(b2.readNbt())))
                     )
                 )
@@ -40,19 +40,11 @@ public record StructuresAddedS2CPacket(Map<ChunkPos, Map<RegistryKey<Structure>,
 
     @Override
     public void writeBuf(PacketByteBuf buf) {
-        buf.writeMap(structures, (b, pos) -> {
-            b.writeVarInt(pos.x);
-            b.writeVarInt(pos.z);
-        }, (b, posMap) -> {
-            b.writeMap(posMap, (b2, key) -> {
-                b2.writeString(key.getValue().toString());
-            }, (b2, pair) -> {
-                b2.writeString(pair.left().getValue().toString());
-                b2.writeCollection(pair.right(), (b3, piece) -> {
-                    b3.writeNbt(piece.writeNbt(new NbtCompound()));
-                });
-            });
-        });
+        buf.writeMap(structures, PacketByteBuf::writeChunkPos,
+            (b, posMap) -> b.writeMap(posMap, PacketByteBuf::writeRegistryKey, (b2, pair) -> {
+                b2.writeRegistryKey(pair.left());
+                b2.writeCollection(pair.right(), (b3, piece) -> b3.writeNbt(piece.writeNbt(new NbtCompound())));
+            }));
     }
 
     @Override

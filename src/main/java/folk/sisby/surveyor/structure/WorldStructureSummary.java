@@ -3,7 +3,7 @@ package folk.sisby.surveyor.structure;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorWorld;
-import folk.sisby.surveyor.packet.StructuresAddedS2CPacket;
+import folk.sisby.surveyor.packet.S2CStructuresAddedPacket;
 import it.unimi.dsi.fastutil.Pair;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -92,7 +92,7 @@ public class WorldStructureSummary {
             StructureSummary summary = new StructureSummary(start.getPos(), key, structures.get(start.getPos()).get(key).left(), structures.get(start.getPos()).get(key).right());
             SurveyorEvents.Invoke.structureAdded(world, this, summary);
             if (world instanceof ServerWorld sw) {
-                new StructuresAddedS2CPacket(Map.of(summary.getPos(), Map.of(summary.getKey(), Pair.of(summary.getType(), summary.getChildren())))).send(sw);
+                new S2CStructuresAddedPacket(Map.of(summary.getPos(), Map.of(summary.getKey(), Pair.of(summary.getType(), summary.getChildren())))).send(sw);
             }
         }
     }

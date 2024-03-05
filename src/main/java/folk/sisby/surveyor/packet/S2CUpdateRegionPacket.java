@@ -15,12 +15,12 @@ import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
 
-public record UpdateRegionS2CPacket(ChunkPos regionPos, RegionSummary summary, BitSet chunks) implements S2CPacket {
-    public static UpdateRegionS2CPacket handle(PacketByteBuf buf, DynamicRegistryManager manager, WorldSummary summary) {
+public record S2CUpdateRegionPacket(ChunkPos regionPos, RegionSummary summary, BitSet chunks) implements S2CPacket {
+    public static S2CUpdateRegionPacket handle(PacketByteBuf buf, DynamicRegistryManager manager, WorldSummary summary) {
         ChunkPos regionPos = buf.readChunkPos();
         RegionSummary region = summary.terrain().getRegion(regionPos);
         BitSet chunks = region.readBuf(manager, buf);
-        return new UpdateRegionS2CPacket(
+        return new S2CUpdateRegionPacket(
             regionPos,
             region,
             chunks
@@ -43,7 +43,7 @@ public record UpdateRegionS2CPacket(ChunkPos regionPos, RegionSummary summary, B
         } else {
             if (chunks.cardinality() == 1) throw new RuntimeException("Couldn't create a terrain update packet - an individual chunk would be too large to send!");
             for (BitSet splitChunks : BitSetUtil.half(chunks)) {
-                bufs.addAll(new UpdateRegionS2CPacket(regionPos, summary, splitChunks).toBufs());
+                bufs.addAll(new S2CUpdateRegionPacket(regionPos, summary, splitChunks).toBufs());
             }
         }
         return bufs;
