@@ -2,13 +2,14 @@ package folk.sisby.surveyor.player;
 
 import net.minecraft.util.math.ChunkPos;
 
-import java.util.Set;
+import java.util.BitSet;
+import java.util.Map;
 
 public interface SurveyorPlayer {
     String KEY_DATA = "surveyor";
-    String KEY_EXPLORED_CHUNKS = "exploredChunks";
+    String KEY_EXPLORED_TERRAIN = "exploredTerrain";
 
-    Set<ChunkPos> surveyor$getExploredChunks();
+    Map<ChunkPos, BitSet> surveyor$getExploredTerrain();
 
     void surveyor$addExploredChunk(ChunkPos pos);
 }
