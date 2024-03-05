@@ -1,6 +1,8 @@
 package folk.sisby.surveyor.player;
 
+import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.gen.structure.Structure;
 
 import java.util.BitSet;
 import java.util.Map;
@@ -8,8 +10,13 @@ import java.util.Map;
 public interface SurveyorPlayer {
     String KEY_DATA = "surveyor";
     String KEY_EXPLORED_TERRAIN = "exploredTerrain";
+    String KEY_EXPLORED_STRUCTURES = "exploredStructures";
 
     Map<ChunkPos, BitSet> surveyor$getExploredTerrain();
 
+    Map<Structure, LongSet> surveyor$getExploredStructures();
+
     void surveyor$addExploredChunk(ChunkPos pos);
+
+    void surveyor$addExploredStructure(Structure structure, ChunkPos pos);
 }
