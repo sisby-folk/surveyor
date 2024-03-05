@@ -10,7 +10,7 @@
   * Terrain is shared from the server to the client when it's missing
   * Structures are sent to the client when generated or if they're missing
   * Server landmarks are sent to clients
-  * Client landmarks are sent to the server and shared with other players
+  * Client landmarks are sent to the server and other clients
 * Player Tracking:
   * Player terrain exploration is recorded and stored
   * Player structure exploration is recorded and stored
