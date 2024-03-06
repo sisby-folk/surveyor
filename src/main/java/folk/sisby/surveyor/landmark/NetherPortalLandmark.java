@@ -1,5 +1,6 @@
 package folk.sisby.surveyor.landmark;
 
+import com.google.common.collect.Multimap;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import folk.sisby.surveyor.Surveyor;
 import net.minecraft.registry.RegistryKey;
@@ -32,8 +33,10 @@ public record NetherPortalLandmark(BlockBox box, Direction.Axis axis) implements
     }
 
     @Override
-    public void onPut(World world, WorldLandmarks landmarks) {
-        tryMerge(world, landmarks);
+    public Multimap<LandmarkType<?>, BlockPos> put(Multimap<LandmarkType<?>, BlockPos> changes, World world, WorldLandmarks landmarks) {
+        Landmark.super.put(changes, world, landmarks);
+        tryMerge(changes, world, landmarks);
+        return changes;
     }
 
     @Override

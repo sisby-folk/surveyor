@@ -1,5 +1,7 @@
 package folk.sisby.surveyor.landmark;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -8,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 public interface HasAxisBlockBoxMergeable extends HasAxis, HasBlockBox {
-    private static boolean tryMergeOnce(World world, WorldLandmarks landmarks) {
+    private static Multimap<LandmarkType<?>, BlockPos> tryMergeOnce(Multimap<LandmarkType<?>, BlockPos> changed, World world, WorldLandmarks landmarks) {
         Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> mergeableLandmarks = landmarks.asMap();
 
         for (Map<BlockPos, Landmark<?>> posMap : mergeableLandmarks.values()) {
@@ -20,20 +22,27 @@ public interface HasAxisBlockBoxMergeable extends HasAxis, HasBlockBox {
                     if (landmark.axis().equals(landmark2.axis())) {
                         BlockBox joined = BlockBox.encompass(List.of(landmark.box(), landmark2.box())).orElseThrow();
                         if (joined.getBlockCountX() * joined.getBlockCountY() * joined.getBlockCountZ() == landmark.box().getBlockCountX() * landmark.box().getBlockCountY() * landmark.box().getBlockCountZ() + landmark2.box().getBlockCountX() * landmark2.box().getBlockCountY() * landmark2.box().getBlockCountZ()) {
-                            landmarks.remove(world, genericLandmark.type(), genericLandmark.pos());
-                            landmarks.remove(world, genericLandmark2.type(), genericLandmark2.pos());
                             landmark.box().encompass(landmark2.box());
-                            landmarks.put(world, genericLandmark);
-                            return true;
+                            genericLandmark2.remove(changed, world, landmarks);
+                            genericLandmark.put(changed, world, landmarks);
+                            return changed;
                         }
                     }
                 }
             }
         }
-        return false;
+        return changed;
     }
 
-    default void tryMerge(World world, WorldLandmarks landmarks) {
-        while (tryMergeOnce(world, landmarks)) {}
+    default Multimap<LandmarkType<?>, BlockPos> tryMerge(Multimap<LandmarkType<?>, BlockPos> changed, World world, WorldLandmarks landmarks) {
+        Multimap<LandmarkType<?>, BlockPos> changes = HashMultimap.create();
+        int oldSize;
+        int newSize;
+        do {
+            oldSize = changes.size();
+            tryMergeOnce(changed, world, landmarks);
+            newSize = changes.size();
+        } while (newSize > oldSize);
+        return changed;
     }
 }

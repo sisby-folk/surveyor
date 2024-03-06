@@ -12,6 +12,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,6 +25,10 @@ public class WorldLandmarks {
 
     public WorldLandmarks(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks) {
         this.landmarks = landmarks;
+    }
+
+    public boolean contains(LandmarkType<?> type, BlockPos pos) {
+        return landmarks.containsKey(type) && landmarks.get(type).containsKey(pos);
     }
 
     @SuppressWarnings("unchecked")
@@ -52,52 +57,84 @@ public class WorldLandmarks {
         return outMap;
     }
 
-    public void putLocal(World world, Landmark<?> landmark) {
-        landmarks.computeIfAbsent(landmark.type(), t -> new HashMap<>()).put(landmark.pos(), landmark);
-        SurveyorEvents.Invoke.landmarkAdded(world, this, landmark);
-    }
-
-    public void put(World world, Landmark<?> landmark) {
-        putLocal(world, landmark);
-        if (world instanceof ServerWorld sw) {
-            LandmarksAddedPacket.of(landmark).send(sw);
-        } else {
-            LandmarksAddedPacket.of(landmark).send();
-        }
-        landmark.onPut(world, this);
-    }
-
-    public void put(ServerPlayerEntity sender, ServerWorld world, Landmark<?> landmark) {
-        putLocal(world, landmark);
-        LandmarksAddedPacket.of(landmark).send(sender, world);
-    }
-
-    public Landmark<?> removeLocal(World world, LandmarkType<?> type, BlockPos pos) {
-        Landmark<?> landmark = landmarks.get(type).remove(pos);
-        SurveyorEvents.Invoke.landmarkRemoved(world, this, type, pos);
-        return landmark;
-    }
-
-    public void remove(World world, LandmarkType<?> type, BlockPos pos) {
-        removeLocal(world, type, pos);
-        if (world instanceof ServerWorld sw) {
-            LandmarksRemovedPacket.of(type, pos).send(sw);
-        } else {
-            LandmarksRemovedPacket.of(type, pos).send();
-        }
-    }
-
-    public void removeAll(World world, Class<?> clazz, BlockPos pos) {
-        landmarks.forEach((type, map) -> {
-            if (map.containsKey(pos) && clazz.isAssignableFrom(map.get(pos).getClass())) {
-                remove(world, map.get(pos).type(), pos);
+    protected void handleChanged(World world, Multimap<LandmarkType<?>, BlockPos> changed, boolean local, @Nullable ServerPlayerEntity sender) {
+        changed.forEach((type, pos) -> {
+            Landmark<?> landmark = get(type, pos);
+            if (landmark != null) { // Added/Changed
+                SurveyorEvents.Invoke.landmarkAdded(world, this, landmark);
+                if (!local) {
+                    if (world instanceof ServerWorld sw) {
+                        LandmarksAddedPacket.of(landmark).send(sender, sw);
+                    } else {
+                        LandmarksAddedPacket.of(landmark).send();
+                    }
+                }
+            } else { // Removed
+                SurveyorEvents.Invoke.landmarkRemoved(world, this, type, pos);
+                if (!local) {
+                    if (world instanceof ServerWorld sw) {
+                        LandmarksRemovedPacket.of(type, pos).send(sender, sw);
+                    } else {
+                        LandmarksRemovedPacket.of(type, pos).send();
+                    }
+                }
             }
         });
     }
 
+    public Multimap<LandmarkType<?>, BlockPos> putLocalBatched(Multimap<LandmarkType<?>, BlockPos> changed, Landmark<?> landmark) {
+        landmarks.computeIfAbsent(landmark.type(), t -> new HashMap<>()).put(landmark.pos(), landmark);
+        changed.put(landmark.type(), landmark.pos());
+        return changed;
+    }
+
+    public void putLocal(World world, Landmark<?> landmark) {
+        Multimap<LandmarkType<?>, BlockPos> changed = landmark.put(HashMultimap.create(), world, this);
+        handleChanged(world, changed, true, null);
+    }
+
+    public void put(World world, Landmark<?> landmark) {
+        Multimap<LandmarkType<?>, BlockPos> changed = landmark.put(HashMultimap.create(), world, this);
+        handleChanged(world, changed, false, null);
+    }
+
+    public void put(ServerPlayerEntity sender, ServerWorld world, Landmark<?> landmark) {
+        Multimap<LandmarkType<?>, BlockPos> changed = landmark.put(HashMultimap.create(), world, this);
+        handleChanged(world, changed, false, sender);
+    }
+
+    public Multimap<LandmarkType<?>, BlockPos> removeLocalBatched(Multimap<LandmarkType<?>, BlockPos> changed, LandmarkType<?> type, BlockPos pos) {
+        landmarks.get(type).remove(pos);
+        changed.put(type, pos);
+        return changed;
+    }
+
+    public void removeLocal(World world, LandmarkType<?> type, BlockPos pos) {
+        Multimap<LandmarkType<?>, BlockPos> changed = landmarks.get(type).get(pos).remove(HashMultimap.create(), world, this);
+        handleChanged(world, changed, true, null);
+    }
+
+    public void remove(World world, LandmarkType<?> type, BlockPos pos) {
+        Multimap<LandmarkType<?>, BlockPos> changed = landmarks.get(type).get(pos).remove(HashMultimap.create(), world, this);
+        handleChanged(world, changed, false, null);
+    }
+
     public void remove(ServerPlayerEntity sender, ServerWorld world, LandmarkType<?> type, BlockPos pos) {
-        removeLocal(world, type, pos);
-        LandmarksRemovedPacket.of(type, pos).send(sender, world);
+        Multimap<LandmarkType<?>, BlockPos> changed = landmarks.get(type).get(pos).remove(HashMultimap.create(), world, this);
+        handleChanged(world, changed, false, sender);
+    }
+
+    public void removeAll(World world, Class<?> clazz, BlockPos pos) {
+        Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
+        landmarks.forEach((type, map) -> {
+            if (map.containsKey(pos)) {
+                Landmark<?> landmark = map.get(pos);
+                if (clazz.isAssignableFrom(landmark.getClass())) {
+                    changed.putAll(landmark.remove(HashMultimap.create(), world, this));
+                }
+            }
+        });
+        handleChanged(world, changed, false, null);
     }
 
     public int save(World world, File folder) {

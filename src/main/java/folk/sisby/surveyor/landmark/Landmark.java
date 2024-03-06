@@ -1,5 +1,6 @@
 package folk.sisby.surveyor.landmark;
 
+import com.google.common.collect.Multimap;
 import net.minecraft.text.Text;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.Identifier;
@@ -30,5 +31,11 @@ public interface Landmark<T extends Landmark<T>> {
         return null;
     }
 
-    default void onPut(World world, WorldLandmarks landmarks) {}
+    default Multimap<LandmarkType<?>, BlockPos> put(Multimap<LandmarkType<?>, BlockPos> changed, World world, WorldLandmarks landmarks) {
+        return landmarks.putLocalBatched(changed, this);
+    }
+
+    default Multimap<LandmarkType<?>, BlockPos> remove(Multimap<LandmarkType<?>, BlockPos> changed, World world, WorldLandmarks landmarks) {
+        return landmarks.removeLocalBatched(changed, this.type(), this.pos());
+    }
 }
