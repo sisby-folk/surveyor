@@ -21,6 +21,7 @@ import java.util.function.Function;
 public class SurveyorClientNetworking {
     public static void init() {
         SurveyorNetworking.C2S_SENDER = p -> {
+            if (!ClientPlayNetworking.canSend(p.getId())) return;
             p.toBufs().forEach(buf -> ClientPlayNetworking.send(p.getId(), buf));
         };
         ClientPlayNetworking.registerGlobalReceiver(S2CStructuresAddedPacket.ID, (c, h, b, s) -> handleClient(b, S2CStructuresAddedPacket::read, SurveyorClientNetworking::handleStructuresAdded));

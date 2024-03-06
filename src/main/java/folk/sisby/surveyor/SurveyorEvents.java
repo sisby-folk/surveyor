@@ -54,12 +54,12 @@ public class SurveyorEvents {
             structuresAdded(world, worldStructures, MapUtil.hashMultiMapOf(Map.of(key, List.of(pos))));
         }
 
-        public static void landmarksAdded(World world, WorldLandmarks worldLandmarks, Collection<Landmark<?>> landmarks) {
+        public static void landmarksAdded(World world, WorldLandmarks worldLandmarks, Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks) {
             landmarkAddedHandlers.forEach((id, handler) -> handler.onLandmarksAdded(world, worldLandmarks, landmarks));
         }
 
         public static void landmarkAdded(World world, WorldLandmarks worldLandmarks, Landmark<?> landmark) {
-            landmarksAdded(world, worldLandmarks, List.of(landmark));
+            landmarksAdded(world, worldLandmarks, Map.of(landmark.type(), Map.of(landmark.pos(), landmark)));
         }
 
         public static void landmarksRemoved(World world, WorldLandmarks worldLandmarks, Multimap<LandmarkType<?>, BlockPos> landmarks) {
@@ -121,7 +121,7 @@ public class SurveyorEvents {
 
     @FunctionalInterface
     public interface LandmarksAdded {
-        void onLandmarksAdded(World world, WorldLandmarks worldLandmarks, Collection<Landmark<?>> landmarks);
+        void onLandmarksAdded(World world, WorldLandmarks worldLandmarks, Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks);
     }
 
     @FunctionalInterface

@@ -1,6 +1,5 @@
 package folk.sisby.surveyor.landmark;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
@@ -22,8 +21,9 @@ public interface HasAxisBlockBoxMergeable extends HasAxis, HasBlockBox {
                     if (landmark.axis().equals(landmark2.axis())) {
                         BlockBox joined = BlockBox.encompass(List.of(landmark.box(), landmark2.box())).orElseThrow();
                         if (joined.getBlockCountX() * joined.getBlockCountY() * joined.getBlockCountZ() == landmark.box().getBlockCountX() * landmark.box().getBlockCountY() * landmark.box().getBlockCountZ() + landmark2.box().getBlockCountX() * landmark2.box().getBlockCountY() * landmark2.box().getBlockCountZ()) {
-                            landmark.box().encompass(landmark2.box());
+                            genericLandmark.remove(changed, world, landmarks);
                             genericLandmark2.remove(changed, world, landmarks);
+                            landmark.box().encompass(landmark2.box());
                             genericLandmark.put(changed, world, landmarks);
                             return changed;
                         }
@@ -35,13 +35,12 @@ public interface HasAxisBlockBoxMergeable extends HasAxis, HasBlockBox {
     }
 
     default Multimap<LandmarkType<?>, BlockPos> tryMerge(Multimap<LandmarkType<?>, BlockPos> changed, World world, WorldLandmarks landmarks) {
-        Multimap<LandmarkType<?>, BlockPos> changes = HashMultimap.create();
         int oldSize;
         int newSize;
         do {
-            oldSize = changes.size();
+            oldSize = changed.size();
             tryMergeOnce(changed, world, landmarks);
-            newSize = changes.size();
+            newSize = changed.size();
         } while (newSize > oldSize);
         return changed;
     }

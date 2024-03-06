@@ -1,36 +1,45 @@
 package folk.sisby.surveyor.packet;
 
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 
+import java.util.Collection;
+import java.util.List;
+
 public interface S2CPacket extends SurveyorPacket {
-    default void send(ServerPlayerEntity playerEntity) {
-        toBufs().forEach(buf -> ServerPlayNetworking.send(playerEntity, getId(), buf));
+    default void send(Collection<ServerPlayerEntity> players) {
+        Collection<PacketByteBuf> bufs = null;
+        for (ServerPlayerEntity player : players) {
+            if (!ServerPlayNetworking.canSend(player, getId()) || player.getServer().isHost(player.getGameProfile())) continue;
+            if (bufs == null) bufs = toBufs();
+            bufs.forEach(buf -> ServerPlayNetworking.send(player, getId(), buf));
+        }
+    }
+
+    default void send(ServerPlayerEntity player) {
+        send(List.of(player));
     }
 
     default void send(ServerWorld world) {
-        for (ServerPlayerEntity player : world.getPlayers()) {
-            send(player);
-        }
+        send(world.getPlayers());
     }
 
     default void send(ServerPlayerEntity sender, ServerWorld world) {
-        for (ServerPlayerEntity player : world.getPlayers()) {
-            if (player != sender) send(player);
-        }
+        List<ServerPlayerEntity> players = world.getPlayers();
+        players.remove(sender);
+        send(players);
     }
 
     default void send(MinecraftServer server) {
-        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-            send(player);
-        }
+        send(server.getPlayerManager().getPlayerList());
     }
 
     default void send(ServerPlayerEntity sender, MinecraftServer server) {
-        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-            if (player != sender) send(player);
-        }
+        List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
+        players.remove(sender);
+        send(players);
     }
 }

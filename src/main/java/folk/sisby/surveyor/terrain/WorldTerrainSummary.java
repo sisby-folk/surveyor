@@ -24,12 +24,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class WorldTerrainSummary {
-    protected final Map<ChunkPos, RegionSummary> regions;
+    protected final Map<ChunkPos, RegionSummary> regions = new ConcurrentHashMap<>();
 
     public WorldTerrainSummary(Map<ChunkPos, RegionSummary> regions) {
-        this.regions = regions;
+        this.regions.putAll(regions);
     }
 
     protected static ChunkPos regionPosOf(ChunkPos pos) {

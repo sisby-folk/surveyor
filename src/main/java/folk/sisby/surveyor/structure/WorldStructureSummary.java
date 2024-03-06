@@ -2,6 +2,7 @@ package folk.sisby.surveyor.structure;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorWorld;
@@ -35,6 +36,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class WorldStructureSummary {
     public static final String KEY_STRUCTURES = "structures";
@@ -43,15 +45,15 @@ public class WorldStructureSummary {
     public static final String KEY_STARTS = "starts";
     public static final String KEY_PIECES = "pieces";
 
-    private final Map<RegistryKey<Structure>, Map<ChunkPos, StructureSummary>> structures;
-    private final Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> structureTypes;
-    private final Multimap<RegistryKey<Structure>, TagKey<Structure>> structureTags;
+    private final Map<RegistryKey<Structure>, Map<ChunkPos, StructureSummary>> structures = new ConcurrentHashMap<>();
+    private final Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> structureTypes = new ConcurrentHashMap<>();
+    private final Multimap<RegistryKey<Structure>, TagKey<Structure>> structureTags = Multimaps.synchronizedSetMultimap(HashMultimap.create());
     protected boolean dirty = false;
 
     public WorldStructureSummary(Map<RegistryKey<Structure>, Map<ChunkPos, StructureSummary>> structures, Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> structureTypes, Multimap<RegistryKey<Structure>, TagKey<Structure>> structureTags) {
-        this.structures = structures;
-        this.structureTypes = structureTypes;
-        this.structureTags = structureTags;
+        this.structures.putAll(structures);
+        this.structureTypes.putAll(structureTypes);
+        this.structureTags.putAll(structureTags);
     }
 
     public RegistryKey<StructureType<?>> getType(RegistryKey<Structure> key) {
@@ -103,7 +105,7 @@ public class WorldStructureSummary {
 
     public void put(World world, StructureStart start) {
         RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElseThrow();
-        structures.computeIfAbsent(key, k -> new HashMap<>());
+        structures.computeIfAbsent(key, k -> new ConcurrentHashMap<>());
         ChunkPos pos = start.getPos();
         if (!structures.get(key).containsKey(pos)) {
             StructureSummary summary = summarisePieces(start);
@@ -122,7 +124,7 @@ public class WorldStructureSummary {
     }
 
     public void put(World world, RegistryKey<Structure> key, ChunkPos pos, StructureSummary summary, RegistryKey<StructureType<?>> type, Collection<TagKey<Structure>> tagKeys) {
-        structures.computeIfAbsent(key, k -> new HashMap<>()).put(pos, summary);
+        structures.computeIfAbsent(key, k -> new ConcurrentHashMap<>()).put(pos, summary);
         structureTypes.put(key, type);
         structureTags.putAll(key, tagKeys);
         dirty = true;
@@ -171,8 +173,8 @@ public class WorldStructureSummary {
     }
 
     protected static WorldStructureSummary readNbt(NbtCompound nbt) {
-        Map<RegistryKey<Structure>, Map<ChunkPos, StructureSummary>> structures = new HashMap<>();
-        Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> structureTypes = new HashMap<>();
+        Map<RegistryKey<Structure>, Map<ChunkPos, StructureSummary>> structures = new ConcurrentHashMap<>();
+        Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> structureTypes = new ConcurrentHashMap<>();
         Multimap<RegistryKey<Structure>, TagKey<Structure>> structureTags = HashMultimap.create();
         NbtCompound structuresCompound = nbt.getCompound(KEY_STRUCTURES);
         for (String structureId : structuresCompound.getKeys()) {
@@ -191,7 +193,7 @@ public class WorldStructureSummary {
                 for (NbtElement pieceElement : startCompound.getList(KEY_PIECES, NbtElement.COMPOUND_TYPE)) {
                     pieces.add(readStructurePieceNbt((NbtCompound) pieceElement));
                 }
-                structures.computeIfAbsent(key, p -> new HashMap<>()).put(new ChunkPos(x, z), new StructureSummary(pieces));
+                structures.computeIfAbsent(key, p -> new ConcurrentHashMap<>()).put(new ChunkPos(x, z), new StructureSummary(pieces));
             }
         }
         return new WorldStructureSummary(structures, structureTypes, structureTags);

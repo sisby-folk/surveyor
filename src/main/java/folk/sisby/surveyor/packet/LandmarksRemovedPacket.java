@@ -11,7 +11,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-public record LandmarksRemovedPacket(Map<LandmarkType<?>, Collection<BlockPos>> landmarks) implements S2CPacket, C2SPacket {
+public record LandmarksRemovedPacket(Map<LandmarkType<?>, Collection<BlockPos>> landmarks) implements SyncPacket {
     public static final Identifier ID = new Identifier(Surveyor.ID, "landmarks_removed");
 
     public static LandmarksRemovedPacket of(LandmarkType<?> type, BlockPos pos) {

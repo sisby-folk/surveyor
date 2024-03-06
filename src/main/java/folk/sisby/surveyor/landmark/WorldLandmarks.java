@@ -18,13 +18,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class WorldLandmarks {
-    protected final Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks;
-    protected boolean dirty = true;
+    protected final Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks = new ConcurrentHashMap<>();
+    protected boolean dirty = false;
 
     public WorldLandmarks(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks) {
-        this.landmarks = landmarks;
+        this.landmarks.putAll(landmarks);
     }
 
     public boolean contains(LandmarkType<?> type, BlockPos pos) {
@@ -58,32 +59,27 @@ public class WorldLandmarks {
     }
 
     protected void handleChanged(World world, Multimap<LandmarkType<?>, BlockPos> changed, boolean local, @Nullable ServerPlayerEntity sender) {
+        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarksAddedChanged = new HashMap<>();
+        Multimap<LandmarkType<?>, BlockPos> landmarksRemoved = HashMultimap.create();
         changed.forEach((type, pos) -> {
             Landmark<?> landmark = get(type, pos);
-            if (landmark != null) { // Added/Changed
-                SurveyorEvents.Invoke.landmarkAdded(world, this, landmark);
-                if (!local) {
-                    if (world instanceof ServerWorld sw) {
-                        LandmarksAddedPacket.of(landmark).send(sender, sw);
-                    } else {
-                        LandmarksAddedPacket.of(landmark).send();
-                    }
-                }
-            } else { // Removed
-                SurveyorEvents.Invoke.landmarkRemoved(world, this, type, pos);
-                if (!local) {
-                    if (world instanceof ServerWorld sw) {
-                        LandmarksRemovedPacket.of(type, pos).send(sender, sw);
-                    } else {
-                        LandmarksRemovedPacket.of(type, pos).send();
-                    }
-                }
+            if (landmark != null) {
+                landmarksAddedChanged.computeIfAbsent(type, t -> new HashMap<>()).put(pos, landmark);
+            } else {
+                landmarksRemoved.put(type, pos);
             }
         });
+        SurveyorEvents.Invoke.landmarksAdded(world, this, landmarksAddedChanged);
+        SurveyorEvents.Invoke.landmarksRemoved(world, this, landmarksRemoved);
+        if (!local) {
+            new LandmarksRemovedPacket(landmarksRemoved.asMap()).send(sender, world);
+            new LandmarksAddedPacket(landmarksAddedChanged).send(sender, world);
+        }
     }
 
     public Multimap<LandmarkType<?>, BlockPos> putLocalBatched(Multimap<LandmarkType<?>, BlockPos> changed, Landmark<?> landmark) {
-        landmarks.computeIfAbsent(landmark.type(), t -> new HashMap<>()).put(landmark.pos(), landmark);
+        landmarks.computeIfAbsent(landmark.type(), t -> new ConcurrentHashMap<>()).put(landmark.pos(), landmark);
+        dirty = true;
         changed.put(landmark.type(), landmark.pos());
         return changed;
     }
@@ -104,22 +100,28 @@ public class WorldLandmarks {
     }
 
     public Multimap<LandmarkType<?>, BlockPos> removeLocalBatched(Multimap<LandmarkType<?>, BlockPos> changed, LandmarkType<?> type, BlockPos pos) {
+        if (!landmarks.containsKey(type) || !landmarks.get(type).containsKey(pos)) return changed;
         landmarks.get(type).remove(pos);
+        if (landmarks.get(type).isEmpty()) landmarks.remove(type);
+        dirty = true;
         changed.put(type, pos);
         return changed;
     }
 
     public void removeLocal(World world, LandmarkType<?> type, BlockPos pos) {
+        if (!landmarks.containsKey(type) || !landmarks.get(type).containsKey(pos)) return;
         Multimap<LandmarkType<?>, BlockPos> changed = landmarks.get(type).get(pos).remove(HashMultimap.create(), world, this);
         handleChanged(world, changed, true, null);
     }
 
     public void remove(World world, LandmarkType<?> type, BlockPos pos) {
+        if (!landmarks.containsKey(type) || !landmarks.get(type).containsKey(pos)) return;
         Multimap<LandmarkType<?>, BlockPos> changed = landmarks.get(type).get(pos).remove(HashMultimap.create(), world, this);
         handleChanged(world, changed, false, null);
     }
 
     public void remove(ServerPlayerEntity sender, ServerWorld world, LandmarkType<?> type, BlockPos pos) {
+        if (!landmarks.containsKey(type) || !landmarks.get(type).containsKey(pos)) return;
         Multimap<LandmarkType<?>, BlockPos> changed = landmarks.get(type).get(pos).remove(HashMultimap.create(), world, this);
         handleChanged(world, changed, false, sender);
     }
@@ -130,7 +132,7 @@ public class WorldLandmarks {
             if (map.containsKey(pos)) {
                 Landmark<?> landmark = map.get(pos);
                 if (clazz.isAssignableFrom(landmark.getClass())) {
-                    changed.putAll(landmark.remove(HashMultimap.create(), world, this));
+                    landmark.remove(changed, world, this);
                 }
             }
         });

@@ -12,7 +12,7 @@ import net.minecraft.util.math.BlockPos;
 
 import java.util.Map;
 
-public record LandmarksAddedPacket(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks) implements S2CPacket, C2SPacket {
+public record LandmarksAddedPacket(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks) implements SyncPacket {
     public static final Identifier ID = new Identifier(Surveyor.ID, "landmarks_added");
 
     public static LandmarksAddedPacket of(Landmark<?> landmark) {

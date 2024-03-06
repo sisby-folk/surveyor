@@ -16,7 +16,7 @@ import net.minecraft.world.poi.PointOfInterestTypes;
 
 public record NetherPortalLandmark(BlockBox box, Direction.Axis axis) implements Landmark<NetherPortalLandmark>, HasAxisBlockBoxMergeable, HasPoiType {
     public NetherPortalLandmark(BlockPos pos, Direction.Axis axis) {
-        this(BlockBox.create(pos, pos), axis);
+        this(new BlockBox(pos), axis);
     }
 
     public static LandmarkType<NetherPortalLandmark> TYPE = new SimpleLandmarkType<>(
@@ -41,7 +41,7 @@ public record NetherPortalLandmark(BlockBox box, Direction.Axis axis) implements
 
     @Override
     public BlockPos pos() {
-        return box.getCenter();
+        return new BlockPos(box.getMinX(), box.getMinY(), box.getMinZ());
     }
 
     @Override
