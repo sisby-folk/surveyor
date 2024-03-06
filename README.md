@@ -190,4 +190,6 @@ In future, we'll expose an API to allow dimension mods to specify the layers to 
 
 All mods are built on the work of many others.
 
+Special thanks to: [Ampflower](https://github.com/Ampflower), [Falkreon](https://github.com/falkreon), [Kat](https://git.sleeping.town/Kat), [Solo](https://github.com/solonovamax), [Crosby](https://github.com/RacoonDog), [Lemma](https://github.com/LemmaEOF), [Leo](https://github.com/leo60228), [Jasmine](https://github.com/jaskarth), [Aqua](https://github.com/Aquaeyes), [Wonder](https://git.sleeping.town/wonder), [Infinidoge](https://github.com/Infinidoge), [Emi](https://github.com/emilyploszaj), and [Una](https://github.com/unascribed).
+
 We're open to suggestions for how to implement stuff better - if you see something wonky and have an idea - let us know.
