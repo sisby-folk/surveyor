@@ -62,9 +62,8 @@ public class WorldLandmarks {
         Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarksAddedChanged = new HashMap<>();
         Multimap<LandmarkType<?>, BlockPos> landmarksRemoved = HashMultimap.create();
         changed.forEach((type, pos) -> {
-            Landmark<?> landmark = get(type, pos);
-            if (landmark != null) {
-                landmarksAddedChanged.computeIfAbsent(type, t -> new HashMap<>()).put(pos, landmark);
+            if (contains(type, pos)) {
+                landmarksAddedChanged.computeIfAbsent(type, t -> new HashMap<>()).put(pos, get(type, pos));
             } else {
                 landmarksRemoved.put(type, pos);
             }
