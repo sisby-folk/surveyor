@@ -4,6 +4,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
@@ -28,4 +29,6 @@ public interface Landmark<T extends Landmark<T>> {
     default @Nullable Identifier texture() {
         return null;
     }
+
+    default void onPut(World world, WorldLandmarks landmarks) {}
 }

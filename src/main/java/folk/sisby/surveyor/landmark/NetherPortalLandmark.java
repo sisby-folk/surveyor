@@ -1,25 +1,44 @@
 package folk.sisby.surveyor.landmark;
 
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.DataResult;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import folk.sisby.surveyor.Surveyor;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.text.Text;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.world.World;
 import net.minecraft.world.poi.PointOfInterestType;
 import net.minecraft.world.poi.PointOfInterestTypes;
 
-public record NetherPortalLandmark(BlockPos pos) implements PointOfInterestLandmark<NetherPortalLandmark> {
+public record NetherPortalLandmark(BlockBox box, Direction.Axis axis) implements Landmark<NetherPortalLandmark>, HasAxisBlockBoxMergeable, HasPoiType {
+    public NetherPortalLandmark(BlockPos pos, Direction.Axis axis) {
+        this(BlockBox.create(pos, pos), axis);
+    }
+
     public static LandmarkType<NetherPortalLandmark> TYPE = new SimpleLandmarkType<>(
-            new Identifier(Surveyor.ID, "poi/nether_portal"),
-            pos -> Codec.EMPTY.codec().comapFlatMap(u -> DataResult.success(new NetherPortalLandmark(pos)), u -> null)
+        new Identifier(Surveyor.ID, "poi/nether_portal"),
+        pos -> RecordCodecBuilder.create(instance -> instance.group(
+            BlockBox.CODEC.fieldOf("box").forGetter(HasBlockBox::box),
+            Direction.Axis.CODEC.fieldOf("axis").forGetter(HasAxis::axis)
+        ).apply(instance, NetherPortalLandmark::new))
     );
 
     @Override
     public LandmarkType<NetherPortalLandmark> type() {
         return TYPE;
+    }
+
+    @Override
+    public void onPut(World world, WorldLandmarks landmarks) {
+        tryMerge(world, landmarks);
+    }
+
+    @Override
+    public BlockPos pos() {
+        return box.getCenter();
     }
 
     @Override

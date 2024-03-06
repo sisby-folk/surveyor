@@ -4,8 +4,9 @@ import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorWorld;
 import folk.sisby.surveyor.WorldSummary;
+import folk.sisby.surveyor.landmark.HasPoiType;
 import folk.sisby.surveyor.landmark.NetherPortalLandmark;
-import folk.sisby.surveyor.landmark.PointOfInterestLandmark;
+import net.minecraft.block.NetherPortalBlock;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
@@ -34,13 +35,14 @@ public class ServerWorldMixin implements SurveyorWorld {
 
     @Inject(method = "method_19499", at = @At("HEAD"))
     public void onPointOfInterestAdded(BlockPos blockPos, RegistryEntry<PointOfInterestType> poiType, CallbackInfo ci) {
-        if (poiType.getKey().orElse(null) == PointOfInterestTypes.NETHER_PORTAL) {
-            surveyor$getWorldSummary().landmarks().put((ServerWorld) (Object) this, new NetherPortalLandmark(blockPos.toImmutable()));
+        ServerWorld self = (ServerWorld) (Object) this;
+        if (poiType.getKey().orElse(null) == PointOfInterestTypes.NETHER_PORTAL && self.getBlockState(blockPos).contains(NetherPortalBlock.AXIS)) {
+            surveyor$getWorldSummary().landmarks().put((ServerWorld) (Object) this, new NetherPortalLandmark(blockPos, self.getBlockState(blockPos).get(NetherPortalBlock.AXIS)));
         }
     }
 
     @Inject(method = "method_39222", at = @At("HEAD"))
     public void onPointOfInterestRemoved(BlockPos blockPos, CallbackInfo ci) {
-        surveyor$getWorldSummary().landmarks().removeAll((ServerWorld) (Object) this, PointOfInterestLandmark.class, blockPos);
+        surveyor$getWorldSummary().landmarks().removeAll((ServerWorld) (Object) this, HasPoiType.class, blockPos);
     }
 }

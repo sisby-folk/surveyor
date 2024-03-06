@@ -32,23 +32,9 @@ public class WorldLandmarks {
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends Landmark<T>> Map<BlockPos, Landmark<T>> getAll(LandmarkType<T> type) {
-        Map<BlockPos, Landmark<T>> outMap = new HashMap<>();
-        if (landmarks.containsKey(type)) landmarks.get(type).forEach((pos, landmark) -> outMap.put(pos, (Landmark<T>) landmark));
-        return outMap;
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T extends Landmark<T>> Map<BlockPos, Landmark<T>> getAll(Class<T> clazz) {
-        Map<BlockPos, Landmark<T>> outMap = new HashMap<>();
-        landmarks.forEach((type, map) -> {
-            map.forEach((pos, landmark) -> {
-                if (clazz.isAssignableFrom(landmark.getClass())) {
-                    outMap.put(pos, (Landmark<T>) landmark);
-                }
-            });
-
-        });
+    public <T extends Landmark<T>> Map<BlockPos, T> getAll(LandmarkType<T> type) {
+        Map<BlockPos, T> outMap = new HashMap<>();
+        if (landmarks.containsKey(type)) landmarks.get(type).forEach((pos, landmark) -> outMap.put(pos, (T) landmark));
         return outMap;
     }
 
@@ -78,6 +64,7 @@ public class WorldLandmarks {
         } else {
             LandmarksAddedPacket.of(landmark).send();
         }
+        landmark.onPut(world, this);
     }
 
     public void put(ServerPlayerEntity sender, ServerWorld world, Landmark<?> landmark) {
