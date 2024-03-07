@@ -65,7 +65,7 @@ dependencies {
 
 **Terrain Summaries** (or "Chunk" or "Region" summaries) represent blocks for rendering on maps.<br/>
 They're added and changed per-chunk, but paletted and saved per-region.<br/>
-Each chunk summary is comprised of **Floors**, non-clear solid blocks below two contiguous non-solid blocks.<br/>
+Each chunk summary consists of **Floors**, non-clear solid blocks below two contiguous non-solid blocks.<br/>
 Floors are stored in **Layers**, which hold the topmost floors for each x,z column over specific range of y-values.<br/>
 This is best explained by example.
 
@@ -138,7 +138,7 @@ These can be used to create automatic waypoints for structures, draw abstract ve
 
 #### Landmark Rendering & Management
 
-Landmarks can be retrieved using `WorldLandmarks.getAll(LandmarkType)`, `WorldLandmarks.getAll(Class<?>)`, or `WorldLandmarks.keySet()` and `WorldLandmarks.get(LandmarkType, BlockPos)`.
+Landmarks can be retrieved using `WorldLandmarks.asMap()` - or one of the type or class specific getters as needed.
 
 Landmarks can be most simply represented as a point on the map. They may include a dye color (for vanilla banner style rendering) as well as some name text for labels or tooltips.
 
@@ -148,7 +148,7 @@ To add a custom waypoint landmark, just construct a `SimplePointLandmark` owned 
 
 #### Live Updates
 
-You should also tune into the `ChunkAdded`, `StructureAdded`, `LandmarkAdded`, and `LandmarkRemoved` events, which will fire whenever the world summary changes. Ensure that your handler for `ChunkAdded` is non-blocking (reuse the queue).
+You should also tune into the `TerrainUpdated`, `StructuresAdded`, `LandmarksAdded`, and `LandmarksRemoved` events, which will fire whenever the world summary changes.
 
 #### Examples
 
