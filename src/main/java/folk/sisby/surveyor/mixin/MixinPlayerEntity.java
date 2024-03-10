@@ -75,7 +75,7 @@ public class MixinPlayerEntity implements SurveyorPlayer {
         surveyor$exploredStructures.clear();
         NbtCompound structuresCompound = modCompound.getCompound(KEY_EXPLORED_STRUCTURES);
         for (String key : structuresCompound.getKeys()) {
-            surveyor$exploredStructures.put(structureRegistry.get(new Identifier(key)), LongSet.of(structuresCompound.getLongArray(key)));
+            surveyor$exploredStructures.put(structureRegistry.get(new Identifier(key)), new LongOpenHashSet(LongSet.of(structuresCompound.getLongArray(key))));
         }
     }
 
