@@ -46,7 +46,7 @@ public class Surveyor implements ModInitializer {
         if (!structureReferences.isEmpty()) {
             structureReferences.forEach((structure, chunkPosSet) -> {
                 LongSet unexploredSet = new LongArraySet(chunkPosSet.toLongArray());
-                if (sp.surveyor$getExploredStructures().containsKey(structure)) unexploredSet.removeAll(sp.surveyor$getExploredStructures().get(structure));
+                if (sp.surveyor$getExploredStructures().containsKey(world.getRegistryKey()) && sp.surveyor$getExploredStructures().get(world.getRegistryKey()).containsKey(structure)) unexploredSet.removeAll(sp.surveyor$getExploredStructures().get(world.getRegistryKey()).get(structure));
                 for (Long longPos : unexploredSet) {
                     ChunkPos startPos = new ChunkPos(longPos);
                     StructureStart start = world.getChunk(startPos.x, startPos.z, ChunkStatus.STRUCTURE_STARTS).getStructureStart(structure);
