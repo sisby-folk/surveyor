@@ -6,6 +6,7 @@ import net.minecraft.nbt.NbtElement;
 import net.minecraft.network.PacketByteBuf;
 
 import java.util.Arrays;
+import java.util.BitSet;
 
 /**
  * A compressed representation of an int[256] for holding optional unsigned ints.
@@ -27,20 +28,18 @@ public interface UIntArray {
 
     int[] getUncompressed();
 
-    int[] getUnmasked(UIntArray mask);
+    int[] getUnmasked(BitSet mask);
 
     void writeNbt(NbtCompound nbt, String key);
 
     void writeBuf(PacketByteBuf buf);
 
-    boolean isEmpty(int i);
-
     int get(int i);
 
-    default int getMasked(UIntArray mask, int i) {
+    default int getMasked(BitSet mask, int i) {
         int empty = 0;
         for (int j = 0; j < i; j++) {
-            if (mask.isEmpty(j)) empty++;
+            if (!mask.get(j)) empty++;
         }
         return get(i - empty);
     }

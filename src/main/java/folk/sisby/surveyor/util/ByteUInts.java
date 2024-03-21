@@ -5,6 +5,8 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.network.PacketByteBuf;
 
+import java.util.BitSet;
+
 public record ByteUInts(byte value) implements UIntArray {
     public static final int TYPE = NbtElement.BYTE_TYPE;
 
@@ -27,23 +29,18 @@ public record ByteUInts(byte value) implements UIntArray {
     }
 
     @Override
-    public int[] getUnmasked(UIntArray mask) {
+    public int[] getUnmasked(BitSet mask) {
         return ArrayUtil.ofSingle(value + UINT_BYTE_OFFSET, 256);
     }
 
     @Override
     public void writeNbt(NbtCompound nbt, String key) {
-        if (value != -128) nbt.putByte(key, value);
+        nbt.putByte(key, value);
     }
 
     @Override
     public void writeBuf(PacketByteBuf buf) {
         buf.writeByte(value);
-    }
-
-    @Override
-    public boolean isEmpty(int i) {
-        return value == -128;
     }
 
     @Override

@@ -17,33 +17,38 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Objects;
 
 public class LayerSummary {
+    public static final String KEY_FOUND = "found";
     public static final String KEY_DEPTH = "depth";
     public static final String KEY_BIOME = "biome";
     public static final String KEY_BLOCK = "block";
     public static final String KEY_LIGHT = "light";
     public static final String KEY_WATER = "water";
 
-    public static final int DEPTH_DEFAULT = -1;
+    public static final int DEPTH_DEFAULT = 0;
     public static final int BIOME_DEFAULT = 0;
     public static final int BLOCK_DEFAULT = 0;
     public static final int LIGHT_DEFAULT = 0;
     public static final int WATER_DEFAULT = 0;
 
+    public static final int[] DEPTH_DEFAULT_ARRAY = ArrayUtil.ofSingle(DEPTH_DEFAULT, 256);
     public static final int[] BIOME_DEFAULT_ARRAY = ArrayUtil.ofSingle(BIOME_DEFAULT, 256);
     public static final int[] BLOCK_DEFAULT_ARRAY = ArrayUtil.ofSingle(BLOCK_DEFAULT, 256);
     public static final int[] LIGHT_DEFAULT_ARRAY = ArrayUtil.ofSingle(LIGHT_DEFAULT, 256);
     public static final int[] WATER_DEFAULT_ARRAY = ArrayUtil.ofSingle(WATER_DEFAULT, 256);
 
-    protected final @NotNull UIntArray depth; // Null Mask
+    protected final @NotNull BitSet found;
+    protected final @Nullable UIntArray depth;
     protected final @Nullable UIntArray biome;
     protected final @Nullable UIntArray block;
     protected final @Nullable UIntArray light;
     protected final @Nullable UIntArray water;
 
-    protected LayerSummary(@NotNull UIntArray depth, @Nullable UIntArray biome, @Nullable UIntArray block, @Nullable UIntArray light, @Nullable UIntArray water) {
+    protected LayerSummary(@NotNull BitSet found, @Nullable UIntArray depth, @Nullable UIntArray biome, @Nullable UIntArray block, @Nullable UIntArray light, @Nullable UIntArray water) {
+        this.found = found;
         this.depth = depth;
         this.biome = biome;
         this.block = block;
@@ -54,27 +59,34 @@ public class LayerSummary {
     public static LayerSummary fromSummaries(World world, FloorSummary[][] floorSummaries, int layerY, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Integer> rawBiomePalette, Int2ObjectBiMap<Block> blockPalette, Int2ObjectBiMap<Integer> rawBlockPalette) {
         Registry<Biome> biomeRegistry = world.getRegistryManager().get(RegistryKeys.BIOME);
         Registry<Block> blockRegistry = world.getRegistryManager().get(RegistryKeys.BLOCK);
-        UIntArray depth = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).mapToInt(f -> f == null ? -1 : layerY - f.y()).toArray(), DEPTH_DEFAULT);
-        if (depth == null) return null;
+        BitSet found = new BitSet(256);
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                found.set(x * 16 + z, floorSummaries[x][z] != null);
+            }
+        }
+        UIntArray depth = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(f -> layerY - f.y()).toArray(), LIGHT_DEFAULT);
         UIntArray biome = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::biome).mapToInt(b -> PaletteUtil.idOrAdd(biomePalette, rawBiomePalette, b, biomeRegistry)).toArray(), BIOME_DEFAULT);
         UIntArray block = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::block).mapToInt(b -> PaletteUtil.idOrAdd(blockPalette, rawBlockPalette, b, blockRegistry)).toArray(), BLOCK_DEFAULT);
         UIntArray light = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(FloorSummary::lightLevel).toArray(), LIGHT_DEFAULT);
         UIntArray fluid = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(FloorSummary::fluidDepth).toArray(), WATER_DEFAULT);
-        return new LayerSummary(depth, biome, block, light, fluid);
+        return new LayerSummary(found, depth, biome, block, light, fluid);
     }
 
     public static LayerSummary fromNbt(NbtCompound nbt) {
+        if (!nbt.contains(KEY_FOUND)) return null;
+        BitSet found = BitSet.valueOf(nbt.getLongArray(KEY_FOUND));
         UIntArray depth = UIntArray.readNbt(nbt.get(KEY_DEPTH), DEPTH_DEFAULT);
-        if (depth == null) return null;
         UIntArray biome = UIntArray.readNbt(nbt.get(KEY_BIOME), BIOME_DEFAULT);
         UIntArray block = UIntArray.readNbt(nbt.get(KEY_BLOCK), BLOCK_DEFAULT);
         UIntArray light = UIntArray.readNbt(nbt.get(KEY_LIGHT), LIGHT_DEFAULT);
         UIntArray water = UIntArray.readNbt(nbt.get(KEY_WATER), WATER_DEFAULT);
-        return new LayerSummary(depth, biome, block, light, water);
+        return new LayerSummary(found, depth, biome, block, light, water);
     }
 
     public static LayerSummary fromBuf(PacketByteBuf buf) {
         return new LayerSummary(
+            buf.readBitSet(256),
             UIntArray.readBuf(buf),
             UIntArray.readBuf(buf),
             UIntArray.readBuf(buf),
@@ -84,7 +96,8 @@ public class LayerSummary {
     }
 
     public NbtCompound writeNbt(NbtCompound nbt) {
-        this.depth.writeNbt(nbt, KEY_DEPTH);
+        nbt.putLongArray(KEY_FOUND, found.toLongArray());
+        if (depth != null) this.depth.writeNbt(nbt, KEY_DEPTH);
         if (biome != null) this.biome.writeNbt(nbt, KEY_BIOME);
         if (block != null) this.block.writeNbt(nbt, KEY_BLOCK);
         if (light != null) this.light.writeNbt(nbt, KEY_LIGHT);
@@ -93,6 +106,7 @@ public class LayerSummary {
     }
 
     public void writeBuf(PacketByteBuf buf) {
+        buf.writeBitSet(found, 256);
         UIntArray.writeBuf(depth, buf);
         UIntArray.writeBuf(biome, buf);
         UIntArray.writeBuf(block, buf);
@@ -101,27 +115,27 @@ public class LayerSummary {
     }
 
     public boolean isEmpty(int x, int z) {
-        return depth.isEmpty(x * 16 + z);
+        return !found.get(x * 16 + z);
     }
 
     public int getDepth(int x, int z) {
-        return depth.get(x * 16 + z);
+        return depth == null ? DEPTH_DEFAULT : isEmpty(x, z) ? -1 : depth.getMasked(found, x * 16 + z);
     }
 
     public int getBiome(int x, int z) {
-        return biome == null ? BIOME_DEFAULT : isEmpty(x, z) ? -1 : biome.getMasked(depth, x * 16 + z);
+        return biome == null ? BIOME_DEFAULT : isEmpty(x, z) ? -1 : biome.getMasked(found, x * 16 + z);
     }
 
     public int getBlock(int x, int z) {
-        return block == null ? BLOCK_DEFAULT : isEmpty(x, z) ? -1 : block.getMasked(depth, x * 16 + z);
+        return block == null ? BLOCK_DEFAULT : isEmpty(x, z) ? -1 : block.getMasked(found, x * 16 + z);
     }
 
     public int getLight(int x, int z) {
-        return light == null ? LIGHT_DEFAULT : isEmpty(x, z) ? -1 : light.getMasked(depth, x * 16 + z);
+        return light == null ? LIGHT_DEFAULT : isEmpty(x, z) ? -1 : light.getMasked(found, x * 16 + z);
     }
 
     public int getWater(int x, int z) {
-        return water == null ? WATER_DEFAULT : isEmpty(x, z) ? -1 : water.getMasked(depth, x * 16 + z);
+        return water == null ? WATER_DEFAULT : isEmpty(x, z) ? -1 : water.getMasked(found, x * 16 + z);
     }
 
     public int getHeight(int x, int z, int layerHeight, boolean ignoreWater) {
@@ -137,33 +151,33 @@ public class LayerSummary {
     }
 
     public int[] rawDepths() {
-        return depth.getUncompressed();
+        return depth == null ? DEPTH_DEFAULT_ARRAY : depth.getUnmasked(found);
     }
 
     public int[] rawBiomes() {
-        return biome == null ? BIOME_DEFAULT_ARRAY : biome.getUnmasked(depth);
+        return biome == null ? BIOME_DEFAULT_ARRAY : biome.getUnmasked(found);
     }
 
     public int[] rawBlocks() {
-        return block == null ? BLOCK_DEFAULT_ARRAY : block.getUnmasked(depth);
+        return block == null ? BLOCK_DEFAULT_ARRAY : block.getUnmasked(found);
     }
 
     public int[] rawLightLevels() {
-        return light == null ? LIGHT_DEFAULT_ARRAY : light.getUnmasked(depth);
+        return light == null ? LIGHT_DEFAULT_ARRAY : light.getUnmasked(found);
     }
 
     public int[] rawWaterDepths() {
-        return water == null ? WATER_DEFAULT_ARRAY : water.getUnmasked(depth);
+        return water == null ? WATER_DEFAULT_ARRAY : water.getUnmasked(found);
     }
 
-    public void fillEmptyFloors(int depthOffset, int minDepth, int maxDepth, int[] outDepth, int[] outBiome, int[] outBlock, int[] outLight, int[] outWater) {
+    public void fillEmptyFloors(int depthOffset, int minDepth, int maxDepth, BitSet outFound, int[] outDepth, int[] outBiome, int[] outBlock, int[] outLight, int[] outWater) {
         int[] depthFull = rawDepths();
         int[] biomeFull = rawBiomes();
         int[] blockFull = rawBlocks();
         int[] lightFull = rawLightLevels();
         int[] waterFull = rawWaterDepths();
         for (int i = 0; i < 256; i++) {
-            if (outDepth[i] == -1 && depthFull[i] != -1 && depthFull[i] <= maxDepth && depthFull[i] >= minDepth) {
+            if (!outFound.get(i) && found.get(i) && depthFull[i] <= maxDepth && depthFull[i] >= minDepth) {
                 outDepth[i] = depthFull[i] + depthOffset;
                 outBiome[i] = biomeFull[i];
                 outBlock[i] = blockFull[i];
@@ -174,4 +188,6 @@ public class LayerSummary {
     }
 
     public record Raw(int[] depths, int[] biomes, int[] blocks, int[] lightLevels, int[] waterDepths) { }
+
+    public record FloorSummary(int y, Biome biome, Block block, int lightLevel, int fluidDepth) { }
 }

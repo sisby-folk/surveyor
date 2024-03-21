@@ -5,6 +5,8 @@ import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtIntArray;
 import net.minecraft.network.PacketByteBuf;
 
+import java.util.BitSet;
+
 public record IntArrayUInts(int[] value) implements UIntArray {
     public static final int TYPE = NbtElement.INT_ARRAY_TYPE;
 
@@ -29,11 +31,11 @@ public record IntArrayUInts(int[] value) implements UIntArray {
     }
 
     @Override
-    public int[] getUnmasked(UIntArray mask) {
+    public int[] getUnmasked(BitSet mask) {
         int[] unmasked = new int[256];
         int maskedIndex = 0;
         for (int i = 0; i < 256; i++) {
-            if (!mask.isEmpty(i)) {
+            if (mask.get(i)) {
                 unmasked[i] = value[maskedIndex];
                 maskedIndex++;
             }
@@ -49,11 +51,6 @@ public record IntArrayUInts(int[] value) implements UIntArray {
     @Override
     public void writeBuf(PacketByteBuf buf) {
         buf.writeIntArray(value);
-    }
-
-    @Override
-    public boolean isEmpty(int i) {
-        return i > value.length - 1 || value[i] == -1;
     }
 
     @Override

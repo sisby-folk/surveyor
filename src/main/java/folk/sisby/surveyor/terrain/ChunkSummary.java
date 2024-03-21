@@ -20,6 +20,7 @@ import net.minecraft.world.chunk.ChunkSection;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableSet;
@@ -36,7 +37,7 @@ public class ChunkSummary {
 
     public ChunkSummary(World world, Chunk chunk, NavigableSet<Integer> layerYs, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Integer> rawBiomePalette, Int2ObjectBiMap<Block> blockPalette, Int2ObjectBiMap<Integer> rawBlockPalette, boolean countAir) {
         this.airCount = countAir ? ChunkUtil.airCount(chunk) : null;
-        TreeMap<Integer, FloorSummary[][]> uncompressedLayers = new TreeMap<>();
+        TreeMap<Integer, LayerSummary.FloorSummary[][]> uncompressedLayers = new TreeMap<>();
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 int airDepth = 0;
@@ -45,7 +46,7 @@ public class ChunkSummary {
                     if (!layerYs.first().equals(i)) {
                         int bottomY = layerYs.lower(i);
                         ChunkSection[] chunkSections = chunk.getSectionArray();
-                        FloorSummary foundFloor = null;
+                        LayerSummary.FloorSummary foundFloor = null;
                         for (int y = i; y > bottomY; y--) {
                             int sectionIndex = chunk.getSectionIndex(y);
                             if (chunkSections[sectionIndex].isEmpty()) {
@@ -65,7 +66,7 @@ public class ChunkSummary {
                                 waterDepth++;
                             } else if (state.getMapColor(world, new BlockPos(x, y, z)) != MapColor.CLEAR) {
                                 if (foundFloor == null && airDepth > MINIMUM_AIR_DEPTH) {
-                                    foundFloor = new FloorSummary(y, chunkSections[sectionIndex].getBiome(x & 3, y & 3, z & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y - 1, z)), waterDepth);
+                                    foundFloor = new LayerSummary.FloorSummary(y, chunkSections[sectionIndex].getBiome(x & 3, y & 3, z & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y - 1, z)), waterDepth);
                                 }
                                 airDepth = 0;
                                 waterDepth = 0;
@@ -73,7 +74,7 @@ public class ChunkSummary {
                                 waterDepth = 0;
                             }
                         }
-                        uncompressedLayers.computeIfAbsent(i, k -> new FloorSummary[16][16])[x][z] = foundFloor;
+                        uncompressedLayers.computeIfAbsent(i, k -> new LayerSummary.FloorSummary[16][16])[x][z] = foundFloor;
                     }
                 }
             }
@@ -138,7 +139,7 @@ public class ChunkSummary {
                 for (int i = 0; i < oldBlock.length; i++) {
                     if (oldBlock[i] != -1) remappedBlock[i] = blockRemap.get(oldBlock[i]);
                 }
-                newLayers.put(y, new LayerSummary(layer.depth, UIntArray.fromUInts(remappedBiome, LayerSummary.BIOME_DEFAULT), UIntArray.fromUInts(remappedBlock, LayerSummary.BLOCK_DEFAULT), layer.light, layer.water));
+                newLayers.put(y, new LayerSummary(layer.found, layer.depth, UIntArray.fromUInts(remappedBiome, LayerSummary.BIOME_DEFAULT), UIntArray.fromUInts(remappedBlock, LayerSummary.BLOCK_DEFAULT), layer.light, layer.water));
             }
         });
         layers.clear();
@@ -158,7 +159,8 @@ public class ChunkSummary {
      * @return A layer summary of top floors.
      */
     public @Nullable LayerSummary.Raw toSingleLayer(Integer minY, Integer maxY, int worldHeight) {
-        int[] depth = ArrayUtil.ofSingle(-1, 256);
+        BitSet found = new BitSet(256);
+        int[] depth = new int[256];
         int[] biome = new int[256];
         int[] block = new int[256];
         int[] light = new int[256];
@@ -169,10 +171,10 @@ public class ChunkSummary {
                     worldHeight - y,
                     minY == null ? Integer.MIN_VALUE : y - minY,
                     maxY == null ? Integer.MAX_VALUE : y - maxY,
-                    depth, biome, block, light, water
+                    found, depth, biome, block, light, water
                 );
             }
         });
-        return depth[0] == -1 && ArrayUtil.distinctCount(depth) == 1 ? null : new LayerSummary.Raw(depth, biome, block, light, water);
+        return found.cardinality() == 0 ? null : new LayerSummary.Raw(depth, biome, block, light, water);
     }
 }
