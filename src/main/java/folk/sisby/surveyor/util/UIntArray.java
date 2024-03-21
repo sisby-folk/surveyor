@@ -17,11 +17,11 @@ import java.util.BitSet;
  * @author Ampflower
  */
 public interface UIntArray {
-    int UINT_BYTE_OFFSET = 127;
+    int UINT_BYTE_OFFSET = 128;
     int NULL_TYPE = NbtElement.END_TYPE;
 
     static boolean fitsInByte(int value) {
-        return value >= -128 + UINT_BYTE_OFFSET && value < 127 + UINT_BYTE_OFFSET;
+        return value >= 0 && value <= 255;
     }
 
     int getType();
