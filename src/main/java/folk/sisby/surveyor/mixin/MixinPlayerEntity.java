@@ -35,70 +35,18 @@ public class MixinPlayerEntity implements SurveyorPlayer {
     @Unique
     private final Map<RegistryKey<World>, Map<ChunkPos, BitSet>> surveyor$exploredTerrain = new HashMap<>();
     @Unique
-    private final Map<RegistryKey<World>, Map<Structure, LongSet>> surveyor$exploredStructures = new HashMap<>();
+    private final Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> surveyor$exploredStructures = new HashMap<>();
     @Unique
     private int surveyor$playerViewDistance = -1;
 
     @Inject(at = @At("TAIL"), method = "writeCustomDataToNbt")
     public void writeSurveyorData(NbtCompound nbt, CallbackInfo ci) {
-        ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
-        NbtCompound modCompound = new NbtCompound();
-
-        NbtCompound terrainCompound = new NbtCompound();
-        surveyor$exploredTerrain.forEach((worldKey, map) -> {
-            long[] regionArray = new long[map.size() * 17];
-            int i = 0;
-            for (Map.Entry<ChunkPos, BitSet> entry : map.entrySet()) {
-                regionArray[i * 17] = entry.getKey().toLong();
-                long[] regionBits = entry.getValue().toLongArray();
-                System.arraycopy(regionBits, 0, regionArray, (i * 17) + 1, regionBits.length);
-                i++;
-            }
-            terrainCompound.putLongArray(worldKey.getValue().toString(), regionArray);
-        });
-        modCompound.put(KEY_EXPLORED_TERRAIN, terrainCompound);
-
-        Registry<Structure> structureRegistry = self.getWorld().getRegistryManager().get(RegistryKeys.STRUCTURE);
-
-        NbtCompound structuresCompound = new NbtCompound();
-        surveyor$exploredStructures.forEach((worldKey, map) -> {
-            NbtCompound worldStructuresCompound = new NbtCompound();
-            for (Structure structure : map.keySet()) {
-                worldStructuresCompound.putLongArray(structureRegistry.getId(structure).toString(), map.get(structure).toLongArray());
-            }
-            structuresCompound.put(worldKey.getValue().toString(), worldStructuresCompound);
-        });
-        modCompound.put(KEY_EXPLORED_STRUCTURES, structuresCompound);
-        nbt.put(KEY_DATA, modCompound);
+        nbt.put(KEY_DATA, writeNbt(new NbtCompound()));
     }
 
     @Inject(at = @At("TAIL"), method = "readCustomDataFromNbt")
     public void readSurveyorData(NbtCompound nbt, CallbackInfo ci) {
-        ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
-        NbtCompound modCompound = nbt.getCompound(KEY_DATA);
-
-        surveyor$exploredTerrain.clear();
-        NbtCompound terrainCompound = modCompound.getCompound(KEY_EXPLORED_TERRAIN);
-        for (String worldKeyString : terrainCompound.getKeys()) {
-            long[] regionArray = terrainCompound.getLongArray(worldKeyString);
-            Map<ChunkPos, BitSet> regionMap = new HashMap<>();
-            for (int i = 0; i < regionArray.length / 17; i++) {
-                regionMap.put(new ChunkPos(regionArray[i * 17]), BitSet.valueOf(Arrays.copyOfRange(regionArray, i * 17 + 1, (i + 1) * 17)));
-                i++;
-            }
-            surveyor$exploredTerrain.put(RegistryKey.of(RegistryKeys.WORLD, new Identifier(worldKeyString)), regionMap);
-        }
-
-        Registry<Structure> structureRegistry = self.getWorld().getRegistryManager().get(RegistryKeys.STRUCTURE);
-        surveyor$exploredStructures.clear();
-        NbtCompound structuresCompound = modCompound.getCompound(KEY_EXPLORED_STRUCTURES);
-        for (String worldKeyString : structuresCompound.getKeys()) {
-            Map<Structure, LongSet> structureMap = new HashMap<>();
-            NbtCompound worldStructuresCompound = structuresCompound.getCompound(worldKeyString);
-            for (String key : worldStructuresCompound.getKeys()) {
-                structureMap.put(structureRegistry.get(new Identifier(key)), new LongOpenHashSet(LongSet.of(structuresCompound.getLongArray(key))));
-            }
-        }
+        readNbt(nbt);
     }
 
     @Inject(at = @At("TAIL"), method = "copyFrom")
@@ -134,7 +82,7 @@ public class MixinPlayerEntity implements SurveyorPlayer {
     }
 
     @Override
-    public Map<RegistryKey<World>, Map<Structure, LongSet>> surveyor$getExploredStructures() {
+    public Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> surveyor$getExploredStructures() {
         return surveyor$exploredStructures;
     }
 
@@ -153,6 +101,6 @@ public class MixinPlayerEntity implements SurveyorPlayer {
     @Override
     public void surveyor$addExploredStructure(Structure structure, ChunkPos pos) {
         PlayerEntity self = (PlayerEntity) (Object) this;
-        surveyor$exploredStructures.computeIfAbsent(self.getWorld().getRegistryKey(), k -> new HashMap<>()).computeIfAbsent(structure, s -> new LongOpenHashSet()).add(pos.toLong());
+        surveyor$exploredStructures.computeIfAbsent(self.getWorld().getRegistryKey(), k -> new HashMap<>()).computeIfAbsent(self.getWorld().getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(structure).orElseThrow(), s -> new LongOpenHashSet()).add(pos.toLong());
     }
 }
