@@ -179,6 +179,7 @@ public class LayerSummary {
         int[] waterFull = rawWaterDepths();
         for (int i = 0; i < 256; i++) {
             if (!outFound.get(i) && found.get(i) && depthFull[i] <= maxDepth && depthFull[i] >= minDepth) {
+                outFound.set(i);
                 outDepth[i] = depthFull[i] + depthOffset;
                 outBiome[i] = biomeFull[i];
                 outBlock[i] = blockFull[i];
@@ -188,7 +189,7 @@ public class LayerSummary {
         }
     }
 
-    public record Raw(int[] depths, int[] biomes, int[] blocks, int[] lightLevels, int[] waterDepths) { }
+    public record Raw(BitSet exists, int[] depths, int[] biomes, int[] blocks, int[] lightLevels, int[] waterDepths) { }
 
     public record FloorSummary(int y, Biome biome, Block block, int lightLevel, int fluidDepth) { }
 }

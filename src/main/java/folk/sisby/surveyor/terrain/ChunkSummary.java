@@ -175,6 +175,6 @@ public class ChunkSummary {
                 );
             }
         });
-        return found.cardinality() == 0 ? null : new LayerSummary.Raw(depth, biome, block, light, water);
+        return found.cardinality() == 0 ? null : new LayerSummary.Raw(found, depth, biome, block, light, water);
     }
 }
