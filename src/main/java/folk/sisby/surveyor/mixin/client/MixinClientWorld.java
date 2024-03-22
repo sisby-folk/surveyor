@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 
 @Mixin(ClientWorld.class)
-public class ClientWorldMixin implements SurveyorWorld {
+public class MixinClientWorld implements SurveyorWorld {
     @Unique
     private WorldSummary surveyor$worldSummary = null;
 
@@ -20,7 +20,7 @@ public class ClientWorldMixin implements SurveyorWorld {
             if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
                 surveyor$worldSummary = ((SurveyorWorld) MinecraftClient.getInstance().getServer().getWorld(((ClientWorld) (Object) this).getRegistryKey())).surveyor$getWorldSummary();
             } else {
-                surveyor$worldSummary = WorldSummary.load((ClientWorld) (Object) this, SurveyorClient.getSavePath((ClientWorld) (Object) this), true);
+                surveyor$worldSummary = WorldSummary.load((ClientWorld) (Object) this, SurveyorClient.getWorldSavePath((ClientWorld) (Object) this), true);
                 SurveyorEvents.Invoke.clientWorldLoad((ClientWorld) (Object) this, surveyor$worldSummary);
             }
         }

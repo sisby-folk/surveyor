@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ServerWorld.class)
-public class ServerWorldMixin implements SurveyorWorld {
+public class MixinServerWorld implements SurveyorWorld {
     @Unique private WorldSummary surveyor$worldSummary = null;
 
     @Override

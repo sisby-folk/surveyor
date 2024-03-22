@@ -1,6 +1,6 @@
 package folk.sisby.surveyor.mixin;
 
-import folk.sisby.surveyor.player.SurveyorPlayer;
+import folk.sisby.surveyor.SurveyorExploration;
 import net.minecraft.network.packet.s2c.play.ChunkDataS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ThreadedAnvilChunkStorage;
@@ -15,6 +15,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MixinThreadedAnvilChunkStorage {
     @Inject(method = "sendChunkDataPackets", at = @At("HEAD"))
     private void sendChunkDataPackets(ServerPlayerEntity player, MutableObject<ChunkDataS2CPacket> cachedDataPacket, WorldChunk chunk, CallbackInfo ci) {
-        if (player instanceof SurveyorPlayer aap) aap.surveyor$addExploredChunk(chunk.getPos());
+        if (player instanceof SurveyorExploration aap) aap.surveyor$addExploredChunk(chunk.getPos());
     }
 }

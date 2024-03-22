@@ -1,6 +1,5 @@
 package folk.sisby.surveyor;
 
-import folk.sisby.surveyor.player.SurveyorPlayer;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.terrain.WorldTerrainSummary;
 import it.unimi.dsi.fastutil.longs.LongArraySet;
@@ -9,6 +8,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -40,13 +40,14 @@ public class Surveyor implements ModInitializer {
     }
 
     public static void checkStructureExploration(ServerWorld world, ServerPlayerEntity player, BlockPos pos) {
-        SurveyorPlayer sp = (SurveyorPlayer) player;
+        SurveyorExploration sp = (SurveyorExploration) player;
         if (!world.isChunkLoaded(pos.getX() >> 4, pos.getZ() >> 4)) return;
         Map<Structure, LongSet> structureReferences = world.getChunk(pos.getX() >> 4, pos.getZ() >> 4, ChunkStatus.STRUCTURE_REFERENCES).getStructureReferences();
         if (!structureReferences.isEmpty()) {
             structureReferences.forEach((structure, chunkPosSet) -> {
+                RegistryKey<Structure> structureKey = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(structure).orElseThrow();
                 LongSet unexploredSet = new LongArraySet(chunkPosSet.toLongArray());
-                if (sp.surveyor$getExploredStructures().containsKey(world.getRegistryKey()) && sp.surveyor$getExploredStructures().get(world.getRegistryKey()).containsKey(structure)) unexploredSet.removeAll(sp.surveyor$getExploredStructures().get(world.getRegistryKey()).get(structure));
+                if (sp.surveyor$exploredStructures().containsKey(world.getRegistryKey()) && sp.surveyor$exploredStructures().get(world.getRegistryKey()).containsKey(structureKey)) unexploredSet.removeAll(sp.surveyor$exploredStructures().get(world.getRegistryKey()).get(structureKey));
                 for (Long longPos : unexploredSet) {
                     ChunkPos startPos = new ChunkPos(longPos);
                     StructureStart start = world.getChunk(startPos.x, startPos.z, ChunkStatus.STRUCTURE_STARTS).getStructureStart(structure);
@@ -78,7 +79,7 @@ public class Surveyor implements ModInitializer {
             if ((world.getTime() & 7) != 0) return;
             for (ServerPlayerEntity player : world.getPlayers()) {
                 checkStructureExploration(world, player, player.getBlockPos());
-                checkStructureExploration(world, player, BlockPos.ofFloored(player.raycast(((SurveyorPlayer) player).surveyor$getViewDistance() << 4, 1.0F, false).getPos()));
+                checkStructureExploration(world, player, BlockPos.ofFloored(player.raycast(((SurveyorExploration) player).surveyor$getViewDistance() << 4, 1.0F, false).getPos()));
             }
         }));
     }
