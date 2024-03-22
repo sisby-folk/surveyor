@@ -44,7 +44,7 @@ public class SurveyorNetworking {
     }
 
     private static void handleKnownTerrain(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownTerrainPacket packet) {
-        Map<ChunkPos, BitSet> serverBits = summary.terrain().bitSet();
+        Map<ChunkPos, BitSet> serverBits = summary.terrain().bitSet(SurveyorExploration.of(player));
         Map<ChunkPos, BitSet> clientBits = packet.regionBits();
         serverBits.forEach((rPos, set) -> {
             if (clientBits.containsKey(rPos)) set.andNot(clientBits.get(rPos));
@@ -53,7 +53,7 @@ public class SurveyorNetworking {
     }
 
     private static void handleKnownStructures(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownStructuresPacket packet) {
-        Map<RegistryKey<Structure>, Map<ChunkPos, StructureSummary>> structures = summary.structures().asMap();
+        Map<RegistryKey<Structure>, Map<ChunkPos, StructureSummary>> structures = summary.structures().asMap(SurveyorExploration.of(player));
         packet.structureKeys().forEach((key, starts) -> {
             if (structures.containsKey(key)) {
                 starts.forEach(p -> structures.get(key).remove(p));
@@ -70,7 +70,7 @@ public class SurveyorNetworking {
     }
 
     private static void handleKnownLandmarks(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownLandmarksPacket packet) {
-        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks = summary.landmarks().asMap();
+        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks = summary.landmarks().asMap(SurveyorExploration.of(player));
         packet.landmarks().forEach((type, positions) -> {
             if (landmarks.containsKey(type)) {
                 positions.forEach(p -> landmarks.get(type).remove(p));

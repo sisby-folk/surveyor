@@ -10,7 +10,7 @@ import java.util.Map;
 
 public interface HasAxisBlockBoxMergeable extends HasAxis, HasBlockBox {
     private static Multimap<LandmarkType<?>, BlockPos> tryMergeOnce(Multimap<LandmarkType<?>, BlockPos> changed, World world, WorldLandmarks landmarks) {
-        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> mergeableLandmarks = landmarks.asMap();
+        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> mergeableLandmarks = landmarks.asMap(null);
 
         for (Map<BlockPos, Landmark<?>> posMap : mergeableLandmarks.values()) {
             for (Landmark<?> genericLandmark : posMap.values()) {

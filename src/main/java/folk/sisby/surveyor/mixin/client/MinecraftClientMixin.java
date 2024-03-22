@@ -22,9 +22,9 @@ public class MinecraftClientMixin {
             csw.surveyor$getWorldSummary().save(MinecraftClient.getInstance().world, SurveyorClient.getWorldSavePath(MinecraftClient.getInstance().world), false);
             if (newWorld instanceof SurveyorWorld nsw && nsw.surveyor$getWorldSummary().isClient()) {
                 WorldSummary summary = nsw.surveyor$getWorldSummary();
-                new C2SKnownTerrainPacket(summary.terrain().bitSet()).send();
-                new C2SKnownStructuresPacket(summary.structures().keySet()).send();
-                new C2SKnownLandmarksPacket(summary.landmarks().keySet().asMap()).send();
+                new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
+                new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
+                new C2SKnownLandmarksPacket(summary.landmarks().keySet(null).asMap()).send();
             }
         }
     }

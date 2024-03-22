@@ -4,6 +4,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
+import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.packet.SyncLandmarksAddedPacket;
 import folk.sisby.surveyor.packet.SyncLandmarksRemovedPacket;
 import net.minecraft.nbt.NbtCompound;
@@ -38,13 +39,13 @@ public class WorldLandmarks {
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends Landmark<T>> Map<BlockPos, T> getAll(LandmarkType<T> type) {
+    public <T extends Landmark<T>> Map<BlockPos, T> getAll(LandmarkType<T> type, SurveyorExploration exploration) {
         Map<BlockPos, T> outMap = new HashMap<>();
         if (landmarks.containsKey(type)) landmarks.get(type).forEach((pos, landmark) -> outMap.put(pos, (T) landmark));
         return outMap;
     }
 
-    public Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> asMap() {
+    public Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> asMap(SurveyorExploration exploration) {
         Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> outmap = new HashMap<>();
         landmarks.forEach((type, map) -> map.forEach((pos, landmark) -> {
             outmap.computeIfAbsent(type, t -> new HashMap<>()).put(pos, landmark);
@@ -52,7 +53,7 @@ public class WorldLandmarks {
         return outmap;
     }
 
-    public Multimap<LandmarkType<?>, BlockPos> keySet() {
+    public Multimap<LandmarkType<?>, BlockPos> keySet(SurveyorExploration exploration) {
         Multimap<LandmarkType<?>, BlockPos> outMap = HashMultimap.create();
         landmarks.forEach((type, map) -> outMap.putAll(type, map.keySet()));
         return outMap;

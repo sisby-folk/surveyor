@@ -65,15 +65,19 @@ public class SurveyorClient implements ClientModInitializer {
         return ClientPlayNetworking.canSend(C2SKnownTerrainPacket.ID);
     }
 
+    public static SurveyorExploration getExploration() {
+        return ClientExploration.INSTANCE;
+    }
+
     @Override
     public void onInitializeClient() {
         SurveyorClientNetworking.init();
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(() -> {
             if (MinecraftClient.getInstance().world instanceof SurveyorWorld nsw && nsw.surveyor$getWorldSummary().isClient()) {
                 WorldSummary summary = nsw.surveyor$getWorldSummary();
-                new C2SKnownTerrainPacket(summary.terrain().bitSet()).send();
-                new C2SKnownStructuresPacket(summary.structures().keySet()).send();
-                new C2SKnownLandmarksPacket(summary.landmarks().keySet().asMap()).send();
+                new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
+                new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
+                new C2SKnownLandmarksPacket(summary.landmarks().keySet(null).asMap()).send();
                 ClientExploration.onLoad();
             }
         }));
@@ -92,7 +96,7 @@ public class SurveyorClient implements ClientModInitializer {
         });
     }
 
-    record ClientExploration(Map<RegistryKey<World>, Map<ChunkPos, BitSet>> surveyor$exploredTerrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> surveyor$exploredStructures) implements SurveyorExploration {
+    private record ClientExploration(Map<RegistryKey<World>, Map<ChunkPos, BitSet>> surveyor$exploredTerrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> surveyor$exploredStructures) implements SurveyorExploration {
         public static ClientExploration INSTANCE = new ClientExploration(new HashMap<>(), new HashMap<>());
         public static File saveFile = null;
 

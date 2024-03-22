@@ -21,6 +21,10 @@ import java.util.Map;
 import java.util.Set;
 
 public interface SurveyorExploration {
+    static SurveyorExploration of(ServerPlayerEntity player) {
+        return (SurveyorExploration) player;
+    }
+
     String KEY_DATA = "surveyor";
     String KEY_EXPLORED_TERRAIN = "exploredTerrain";
     String KEY_EXPLORED_STRUCTURES = "exploredStructures";

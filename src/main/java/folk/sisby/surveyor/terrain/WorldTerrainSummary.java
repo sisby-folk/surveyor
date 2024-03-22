@@ -2,12 +2,14 @@ package folk.sisby.surveyor.terrain;
 
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
+import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.SurveyorWorld;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.util.ChunkUtil;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.util.collection.IndexedIterable;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -26,10 +28,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static folk.sisby.surveyor.terrain.RegionSummary.REGION_SIZE;
+
 public class WorldTerrainSummary {
+    protected final RegistryKey<World> worldKey;
     protected final Map<ChunkPos, RegionSummary> regions = new ConcurrentHashMap<>();
 
-    public WorldTerrainSummary(Map<ChunkPos, RegionSummary> regions) {
+    public WorldTerrainSummary(RegistryKey<World> worldKey, Map<ChunkPos, RegionSummary> regions) {
+        this.worldKey = worldKey;
         this.regions.putAll(regions);
     }
 
@@ -61,16 +67,24 @@ public class WorldTerrainSummary {
         return regions.get(regionPos).getBlockPalette();
     }
 
-    public Map<ChunkPos, BitSet> bitSet() {
+    public Map<ChunkPos, BitSet> bitSet(SurveyorExploration exploration) {
         Map<ChunkPos, BitSet> map = new HashMap<>();
-        regions.forEach((p, r) -> map.put(p, r.bitSet()));
+        if (exploration != null) {
+            map.putAll(exploration.surveyor$exploredTerrain().getOrDefault(worldKey, Map.of()));
+        } else {
+            regions.forEach((p, r) -> map.put(p, r.bitSet()));
+        }
         return map;
     }
 
-    public Set<ChunkPos> keySet() {
-        Set<ChunkPos> chunkPosCollection = new HashSet<>();
-        regions.forEach((p, r) -> chunkPosCollection.addAll(r.keySet(p)));
-        return chunkPosCollection;
+    public Set<ChunkPos> keySet(SurveyorExploration exploration) {
+        Set<ChunkPos> set = new HashSet<>();
+        if (exploration != null) {
+            set.addAll(exploration.surveyor$exploredTerrain().getOrDefault(worldKey, Map.of()).entrySet().stream().flatMap(e -> e.getValue().stream().mapToObj(i -> new ChunkPos((e.getKey().x * REGION_SIZE) + i / REGION_SIZE, (e.getKey().z * REGION_SIZE) + i % REGION_SIZE))).toList());
+        } else {
+            regions.forEach((p, r) -> set.addAll(r.keySet(p)));
+        }
+        return set;
     }
 
     public void put(World world, Chunk chunk) {
@@ -121,7 +135,7 @@ public class WorldTerrainSummary {
                 if (regionCompound != null) regions.put(regionPos, new RegionSummary().readNbt(regionCompound, world.getRegistryManager()));
             }
         }
-        return new WorldTerrainSummary(regions);
+        return new WorldTerrainSummary(world.getRegistryKey(), regions);
     }
 
     public static void onChunkLoad(World world, Chunk chunk) {
