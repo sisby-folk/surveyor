@@ -8,8 +8,8 @@ import folk.sisby.surveyor.packet.C2SKnownLandmarksPacket;
 import folk.sisby.surveyor.packet.C2SKnownStructuresPacket;
 import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
 import folk.sisby.surveyor.packet.C2SPacket;
-import folk.sisby.surveyor.packet.LandmarksAddedPacket;
-import folk.sisby.surveyor.packet.LandmarksRemovedPacket;
+import folk.sisby.surveyor.packet.SyncLandmarksAddedPacket;
+import folk.sisby.surveyor.packet.SyncLandmarksRemovedPacket;
 import folk.sisby.surveyor.packet.S2CStructuresAddedPacket;
 import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
 import folk.sisby.surveyor.structure.StructureSummary;
@@ -39,13 +39,13 @@ public class SurveyorNetworking {
         ServerPlayNetworking.registerGlobalReceiver(C2SKnownTerrainPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, C2SKnownTerrainPacket::read, SurveyorNetworking::handleKnownTerrain));
         ServerPlayNetworking.registerGlobalReceiver(C2SKnownStructuresPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, C2SKnownStructuresPacket::read, SurveyorNetworking::handleKnownStructures));
         ServerPlayNetworking.registerGlobalReceiver(C2SKnownLandmarksPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, C2SKnownLandmarksPacket::read, SurveyorNetworking::handleKnownLandmarks));
-        ServerPlayNetworking.registerGlobalReceiver(LandmarksAddedPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, LandmarksAddedPacket::read, SurveyorNetworking::handleLandmarksAdded));
-        ServerPlayNetworking.registerGlobalReceiver(LandmarksRemovedPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, LandmarksRemovedPacket::read, SurveyorNetworking::handleLandmarksRemoved));
+        ServerPlayNetworking.registerGlobalReceiver(SyncLandmarksAddedPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, SyncLandmarksAddedPacket::read, SurveyorNetworking::handleLandmarksAdded));
+        ServerPlayNetworking.registerGlobalReceiver(SyncLandmarksRemovedPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, SyncLandmarksRemovedPacket::read, SurveyorNetworking::handleLandmarksRemoved));
     }
 
     private static void handleKnownTerrain(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownTerrainPacket packet) {
         Map<ChunkPos, BitSet> serverBits = summary.terrain().bitSet();
-        Map<ChunkPos, BitSet> clientBits = packet.terrainBits();
+        Map<ChunkPos, BitSet> clientBits = packet.regionBits();
         serverBits.forEach((rPos, set) -> {
             if (clientBits.containsKey(rPos)) set.andNot(clientBits.get(rPos));
             new S2CUpdateRegionPacket(rPos, summary.terrain().getRegion(rPos), set).send(player);
@@ -77,14 +77,14 @@ public class SurveyorNetworking {
                 if (landmarks.get(type).isEmpty()) landmarks.remove(type);
             }
         });
-        new LandmarksAddedPacket(landmarks).send(player);
+        new SyncLandmarksAddedPacket(landmarks).send(player);
     }
 
-    private static void handleLandmarksAdded(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, LandmarksAddedPacket packet) {
+    private static void handleLandmarksAdded(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, SyncLandmarksAddedPacket packet) {
         packet.landmarks().forEach((type, map) -> map.forEach(((pos, landmark) -> summary.landmarks().put(player, world, landmark))));
     }
 
-    private static void handleLandmarksRemoved(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, LandmarksRemovedPacket packet) {
+    private static void handleLandmarksRemoved(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, SyncLandmarksRemovedPacket packet) {
         packet.landmarks().forEach((type, positions) -> positions.forEach((pos -> summary.landmarks().remove(player, world, type, pos))));
     }
 

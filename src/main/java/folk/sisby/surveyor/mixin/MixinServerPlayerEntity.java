@@ -3,20 +3,18 @@ package folk.sisby.surveyor.mixin;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.SurveyorWorld;
 import folk.sisby.surveyor.landmark.PlayerDeathLandmark;
-import folk.sisby.surveyor.terrain.RegionSummary;
 import folk.sisby.surveyor.util.TextUtil;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.c2s.play.ClientSettingsC2SPacket;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.Structure;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -87,20 +85,13 @@ public class MixinServerPlayerEntity implements SurveyorExploration {
     }
 
     @Override
+    public @Nullable ServerPlayerEntity surveyor$getServerPlayer() {
+        return (ServerPlayerEntity) (Object) this;
+    }
+
+    @Override
     public int surveyor$getViewDistance() {
         PlayerEntity self = (PlayerEntity) (Object) this;
         return surveyor$playerViewDistance == -1 ? self.getServer().getPlayerManager().getViewDistance() : surveyor$playerViewDistance;
-    }
-
-    @Override
-    public void surveyor$addExploredChunk(ChunkPos pos) {
-        PlayerEntity self = (PlayerEntity) (Object) this;
-        surveyor$exploredTerrain.computeIfAbsent(self.getWorld().getRegistryKey(), k -> new HashMap<>()).computeIfAbsent(new ChunkPos(pos.getRegionX(), pos.getRegionZ()), k -> new BitSet(RegionSummary.REGION_SIZE * RegionSummary.REGION_SIZE)).set(pos.getRegionRelativeX() * RegionSummary.REGION_SIZE + pos.getRegionRelativeZ());
-    }
-
-    @Override
-    public void surveyor$addExploredStructure(Structure structure, ChunkPos pos) {
-        PlayerEntity self = (PlayerEntity) (Object) this;
-        surveyor$exploredStructures.computeIfAbsent(self.getWorld().getRegistryKey(), k -> new HashMap<>()).computeIfAbsent(self.getWorld().getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(structure).orElseThrow(), s -> new LongOpenHashSet()).add(pos.toLong());
     }
 }

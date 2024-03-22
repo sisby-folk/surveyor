@@ -6,12 +6,12 @@
   "mixins": [
     "MixinMinecraftServer",
     "MixinServerPlayerEntity",
-    "MixinPlayerEntity",
     "MixinStructureStart",
     "MixinThreadedAnvilChunkStorage",
     "MixinServerWorld"
   ],
   "client": [
+    "client.MixinPlayerEntity",
     "client.MixinClientWorld",
     "client.MinecraftClientMixin"
   ],

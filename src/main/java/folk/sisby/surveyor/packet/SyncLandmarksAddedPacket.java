@@ -12,15 +12,15 @@ import net.minecraft.util.math.BlockPos;
 
 import java.util.Map;
 
-public record LandmarksAddedPacket(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks) implements SyncPacket {
+public record SyncLandmarksAddedPacket(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks) implements SyncPacket {
     public static final Identifier ID = new Identifier(Surveyor.ID, "landmarks_added");
 
-    public static LandmarksAddedPacket of(Landmark<?> landmark) {
-        return new LandmarksAddedPacket(Map.of(landmark.type(), Map.of(landmark.pos(), landmark)));
+    public static SyncLandmarksAddedPacket of(Landmark<?> landmark) {
+        return new SyncLandmarksAddedPacket(Map.of(landmark.type(), Map.of(landmark.pos(), landmark)));
     }
 
-    public static LandmarksAddedPacket read(PacketByteBuf buf) {
-        return new LandmarksAddedPacket(buf.readMap(
+    public static SyncLandmarksAddedPacket read(PacketByteBuf buf) {
+        return new SyncLandmarksAddedPacket(buf.readMap(
             b -> Landmarks.getType(b.readIdentifier()),
             b -> b.readMap(PacketByteBuf::readBlockPos, b2 -> Landmarks.CODEC.decode(NbtOps.INSTANCE, b2.readNbt()).getOrThrow(false, Surveyor.LOGGER::error).getFirst().values().stream().findFirst().orElseThrow().values().stream().findFirst().orElseThrow())
         ));

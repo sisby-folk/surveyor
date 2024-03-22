@@ -4,8 +4,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
-import folk.sisby.surveyor.packet.LandmarksAddedPacket;
-import folk.sisby.surveyor.packet.LandmarksRemovedPacket;
+import folk.sisby.surveyor.packet.SyncLandmarksAddedPacket;
+import folk.sisby.surveyor.packet.SyncLandmarksRemovedPacket;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -71,8 +71,8 @@ public class WorldLandmarks {
         SurveyorEvents.Invoke.landmarksAdded(world, this, landmarksAddedChanged);
         SurveyorEvents.Invoke.landmarksRemoved(world, this, landmarksRemoved);
         if (!local) {
-            new LandmarksRemovedPacket(landmarksRemoved.asMap()).send(sender, world);
-            new LandmarksAddedPacket(landmarksAddedChanged).send(sender, world);
+            new SyncLandmarksRemovedPacket(landmarksRemoved.asMap()).send(sender, world);
+            new SyncLandmarksAddedPacket(landmarksAddedChanged).send(sender, world);
         }
     }
 

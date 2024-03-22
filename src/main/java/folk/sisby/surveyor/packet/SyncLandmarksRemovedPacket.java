@@ -11,15 +11,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-public record LandmarksRemovedPacket(Map<LandmarkType<?>, Collection<BlockPos>> landmarks) implements SyncPacket {
+public record SyncLandmarksRemovedPacket(Map<LandmarkType<?>, Collection<BlockPos>> landmarks) implements SyncPacket {
     public static final Identifier ID = new Identifier(Surveyor.ID, "landmarks_removed");
 
-    public static LandmarksRemovedPacket of(LandmarkType<?> type, BlockPos pos) {
-        return new LandmarksRemovedPacket(Map.of(type, List.of(pos)));
+    public static SyncLandmarksRemovedPacket of(LandmarkType<?> type, BlockPos pos) {
+        return new SyncLandmarksRemovedPacket(Map.of(type, List.of(pos)));
     }
 
-    public static LandmarksRemovedPacket read(PacketByteBuf buf) {
-        return new LandmarksRemovedPacket(buf.readMap(
+    public static SyncLandmarksRemovedPacket read(PacketByteBuf buf) {
+        return new SyncLandmarksRemovedPacket(buf.readMap(
             b -> Landmarks.getType(b.readIdentifier()),
             b -> b.readList(PacketByteBuf::readBlockPos)
         ));

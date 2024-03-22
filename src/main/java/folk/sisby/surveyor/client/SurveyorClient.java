@@ -20,11 +20,13 @@ import net.minecraft.client.network.ServerInfo;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Uuids;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.Structure;
 import org.apache.commons.io.FileUtils;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -120,6 +122,11 @@ public class SurveyorClient implements ClientModInitializer {
         @Override
         public World surveyor$getWorld() {
             return MinecraftClient.getInstance().world;
+        }
+
+        @Override
+        public @Nullable ServerPlayerEntity surveyor$getServerPlayer() {
+            return null;
         }
 
         @Override

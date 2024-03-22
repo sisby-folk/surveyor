@@ -1,20 +1,24 @@
 package folk.sisby.surveyor;
 
+import folk.sisby.surveyor.packet.SyncExploredStructuresPacket;
 import folk.sisby.surveyor.terrain.RegionSummary;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.Structure;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public interface SurveyorExploration {
     String KEY_DATA = "surveyor";
@@ -27,6 +31,8 @@ public interface SurveyorExploration {
 
     World surveyor$getWorld();
 
+    @Nullable ServerPlayerEntity surveyor$getServerPlayer();
+
     int surveyor$getViewDistance();
 
     default void surveyor$addExploredChunk(ChunkPos pos) {
@@ -34,7 +40,11 @@ public interface SurveyorExploration {
     }
 
     default void surveyor$addExploredStructure(Structure structure, ChunkPos pos) {
-        surveyor$exploredStructures().computeIfAbsent(surveyor$getWorld().getRegistryKey(), k -> new HashMap<>()).computeIfAbsent(surveyor$getWorld().getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(structure).orElseThrow(), s -> new LongOpenHashSet()).add(pos.toLong());
+        RegistryKey<World> worldKey = surveyor$getWorld().getRegistryKey();
+        RegistryKey<Structure> structureKey = surveyor$getWorld().getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(structure).orElseThrow();
+        surveyor$exploredStructures().computeIfAbsent(worldKey, k -> new HashMap<>()).computeIfAbsent(structureKey, s -> new LongOpenHashSet()).add(pos.toLong());
+        ServerPlayerEntity serverPlayer = surveyor$getServerPlayer();
+        if (serverPlayer != null) new SyncExploredStructuresPacket(worldKey, Map.of(structureKey, new LongOpenHashSet(Set.of(pos.toLong())))).send(serverPlayer);
     }
 
     default NbtCompound writeExplorationData(NbtCompound nbt) {
