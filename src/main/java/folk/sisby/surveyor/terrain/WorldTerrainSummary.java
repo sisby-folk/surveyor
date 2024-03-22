@@ -69,7 +69,7 @@ public class WorldTerrainSummary {
 
     public Map<ChunkPos, BitSet> bitSet(SurveyorExploration exploration) {
         Map<ChunkPos, BitSet> map = new HashMap<>();
-        if (exploration != null) {
+        if (exploration != null && !Surveyor.CONFIG.shareAllTerrain) {
             map.putAll(exploration.surveyor$exploredTerrain().getOrDefault(worldKey, Map.of()));
         } else {
             regions.forEach((p, r) -> map.put(p, r.bitSet()));
@@ -79,7 +79,7 @@ public class WorldTerrainSummary {
 
     public Set<ChunkPos> keySet(SurveyorExploration exploration) {
         Set<ChunkPos> set = new HashSet<>();
-        if (exploration != null) {
+        if (exploration != null && !Surveyor.CONFIG.shareAllTerrain) {
             set.addAll(exploration.surveyor$exploredTerrain().getOrDefault(worldKey, Map.of()).entrySet().stream().flatMap(e -> e.getValue().stream().mapToObj(i -> new ChunkPos((e.getKey().x * REGION_SIZE) + i / REGION_SIZE, (e.getKey().z * REGION_SIZE) + i % REGION_SIZE))).toList());
         } else {
             regions.forEach((p, r) -> set.addAll(r.keySet(p)));

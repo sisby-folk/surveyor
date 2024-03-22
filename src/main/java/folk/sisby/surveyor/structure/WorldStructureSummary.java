@@ -84,7 +84,7 @@ public class WorldStructureSummary {
     public Map<RegistryKey<Structure>, Map<ChunkPos, StructureSummary>> asMap(SurveyorExploration exploration) {
         Map<RegistryKey<Structure>, Map<ChunkPos, StructureSummary>> map = new HashMap<>();
         structures.forEach((key, starts) -> starts.forEach((pos, summary) -> map.computeIfAbsent(key, t -> new HashMap<>()).put(pos, summary)));
-        if (exploration != null) {
+        if (exploration != null && !Surveyor.CONFIG.shareAllStructures) {
             exploration.surveyor$exploredStructures().getOrDefault(worldKey, Map.of()).forEach((key, starts) -> {
                 if (map.containsKey(key)) {
                     starts.forEach(l -> map.get(key).remove(new ChunkPos(l)));
@@ -96,7 +96,7 @@ public class WorldStructureSummary {
 
     public Map<RegistryKey<Structure>, Set<ChunkPos>> keySet(SurveyorExploration exploration) {
         Map<RegistryKey<Structure>, Set<ChunkPos>> map = new HashMap<>();
-        if (exploration != null) {
+        if (exploration != null && !Surveyor.CONFIG.shareAllStructures) {
             map.putAll(exploration.surveyor$exploredStructures().getOrDefault(worldKey, Map.of()).entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().longStream().mapToObj(ChunkPos::new).collect(Collectors.toSet()))));
         } else {
             structures.forEach((key, starts) -> starts.forEach((pos, summary) -> map.computeIfAbsent(key, p -> new HashSet<>()).add(pos)));

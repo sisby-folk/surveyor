@@ -39,7 +39,7 @@ public class WorldLandmarks {
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends Landmark<T>> Map<BlockPos, T> getAll(LandmarkType<T> type, SurveyorExploration exploration) {
+    public <T extends Landmark<T>> Map<BlockPos, T> asMap(LandmarkType<T> type, SurveyorExploration exploration) {
         Map<BlockPos, T> outMap = new HashMap<>();
         if (landmarks.containsKey(type)) landmarks.get(type).forEach((pos, landmark) -> outMap.put(pos, (T) landmark));
         return outMap;
