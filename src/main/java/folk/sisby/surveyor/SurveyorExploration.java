@@ -19,6 +19,7 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 public interface SurveyorExploration {
     static SurveyorExploration of(ServerPlayerEntity player) {
@@ -33,11 +34,18 @@ public interface SurveyorExploration {
 
     Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> surveyor$exploredStructures();
 
+    Set<UUID> surveyor$sharedPlayers();
+
     World surveyor$getWorld();
 
     @Nullable ServerPlayerEntity surveyor$getServerPlayer();
 
     int surveyor$getViewDistance();
+
+    default boolean surveyor$exploredChunk(RegistryKey<World> worldKey, ChunkPos pos) {
+        ChunkPos regionPos = new ChunkPos(pos.getRegionX(), pos.getRegionZ());
+        return surveyor$exploredTerrain().containsKey(worldKey) && surveyor$exploredTerrain().get(worldKey).containsKey(regionPos) && surveyor$exploredTerrain().get(worldKey).get(regionPos).get(pos.getRegionRelativeX() * RegionSummary.REGION_SIZE + pos.getRegionRelativeZ());
+    }
 
     default void surveyor$addExploredChunk(ChunkPos pos) {
         surveyor$exploredTerrain().computeIfAbsent(surveyor$getWorld().getRegistryKey(), k -> new HashMap<>()).computeIfAbsent(new ChunkPos(pos.getRegionX(), pos.getRegionZ()), k -> new BitSet(RegionSummary.REGION_SIZE * RegionSummary.REGION_SIZE)).set(pos.getRegionRelativeX() * RegionSummary.REGION_SIZE + pos.getRegionRelativeZ());

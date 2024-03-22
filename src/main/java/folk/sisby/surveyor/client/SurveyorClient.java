@@ -35,6 +35,8 @@ import java.nio.file.Path;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 public class SurveyorClient implements ClientModInitializer {
     public static final String SERVERS_FILE_NAME = "servers.txt";
@@ -121,6 +123,11 @@ public class SurveyorClient implements ClientModInitializer {
                 Surveyor.LOGGER.error("[Surveyor] Error saving client exploration file.", e);
             }
             saveFile = null;
+        }
+
+        @Override
+        public Set<UUID> surveyor$sharedPlayers() {
+            return Set.of(Uuids.getUuidFromProfile(MinecraftClient.getInstance().getSession().getProfile()));
         }
 
         @Override

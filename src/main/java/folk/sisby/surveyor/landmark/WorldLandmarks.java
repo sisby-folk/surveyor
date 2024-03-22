@@ -9,9 +9,11 @@ import folk.sisby.surveyor.packet.SyncLandmarksAddedPacket;
 import folk.sisby.surveyor.packet.SyncLandmarksRemovedPacket;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,10 +24,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class WorldLandmarks {
+    protected final RegistryKey<World> worldKey;
     protected final Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks = new ConcurrentHashMap<>();
     protected boolean dirty = false;
 
-    public WorldLandmarks(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks) {
+    public WorldLandmarks(RegistryKey<World> worldKey, Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks) {
+        this.worldKey = worldKey;
         this.landmarks.putAll(landmarks);
     }
 
@@ -38,24 +42,32 @@ public class WorldLandmarks {
         return (Landmark<T>) landmarks.get(type).get(pos);
     }
 
+    protected boolean exploredLandmark(Landmark<?> landmark, SurveyorExploration exploration) {
+        return exploration == null || Surveyor.CONFIG.shareAllLandmarks || (landmark.owner() == null ? exploration.surveyor$exploredChunk(worldKey, new ChunkPos(landmark.pos())) : exploration.surveyor$sharedPlayers().contains(landmark.owner()));
+    }
+
     @SuppressWarnings("unchecked")
     public <T extends Landmark<T>> Map<BlockPos, T> asMap(LandmarkType<T> type, SurveyorExploration exploration) {
         Map<BlockPos, T> outMap = new HashMap<>();
-        if (landmarks.containsKey(type)) landmarks.get(type).forEach((pos, landmark) -> outMap.put(pos, (T) landmark));
+        if (landmarks.containsKey(type)) landmarks.get(type).forEach((pos, landmark) -> {
+            if (exploredLandmark(landmark, exploration)) outMap.put(pos, (T) landmark);
+        });
         return outMap;
     }
 
     public Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> asMap(SurveyorExploration exploration) {
         Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> outmap = new HashMap<>();
         landmarks.forEach((type, map) -> map.forEach((pos, landmark) -> {
-            outmap.computeIfAbsent(type, t -> new HashMap<>()).put(pos, landmark);
+            if (exploredLandmark(landmark, exploration)) outmap.computeIfAbsent(type, t -> new HashMap<>()).put(pos, landmark);
         }));
         return outmap;
     }
 
     public Multimap<LandmarkType<?>, BlockPos> keySet(SurveyorExploration exploration) {
         Multimap<LandmarkType<?>, BlockPos> outMap = HashMultimap.create();
-        landmarks.forEach((type, map) -> outMap.putAll(type, map.keySet()));
+        landmarks.forEach((type, map) -> map.forEach((pos, landmark) -> {
+            if (exploredLandmark(landmark, exploration)) outMap.put(type, pos);
+        }));
         return outMap;
     }
 
@@ -162,6 +174,6 @@ public class WorldLandmarks {
                 Surveyor.LOGGER.error("[Surveyor] Error loading landmarks file for {}.", world.getRegistryKey().getValue(), e);
             }
         }
-        return new WorldLandmarks(Landmarks.fromNbt(landmarkNbt));
+        return new WorldLandmarks(world.getRegistryKey(), Landmarks.fromNbt(landmarkNbt));
     }
 }

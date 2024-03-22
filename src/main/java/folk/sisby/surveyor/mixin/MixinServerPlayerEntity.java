@@ -24,6 +24,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 @Mixin(ServerPlayerEntity.class)
 public class MixinServerPlayerEntity implements SurveyorExploration {
@@ -76,6 +78,12 @@ public class MixinServerPlayerEntity implements SurveyorExploration {
     @Override
     public Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> surveyor$exploredStructures() {
         return surveyor$exploredStructures;
+    }
+
+    @Override
+    public Set<UUID> surveyor$sharedPlayers() {
+        ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
+        return Set.of(self.getUuid());
     }
 
     @Override
