@@ -12,7 +12,7 @@ import folk.sisby.surveyor.packet.SyncLandmarksAddedPacket;
 import folk.sisby.surveyor.packet.SyncLandmarksRemovedPacket;
 import folk.sisby.surveyor.packet.S2CStructuresAddedPacket;
 import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
-import folk.sisby.surveyor.structure.StructureSummary;
+import folk.sisby.surveyor.structure.StructureStartSummary;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.RegistryKey;
@@ -53,7 +53,7 @@ public class SurveyorNetworking {
     }
 
     private static void handleKnownStructures(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownStructuresPacket packet) {
-        Map<RegistryKey<Structure>, Map<ChunkPos, StructureSummary>> structures = summary.structures().asMap(SurveyorExploration.of(player));
+        Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> structures = summary.structures().asMap(SurveyorExploration.of(player));
         packet.structureKeys().forEach((key, starts) -> {
             if (structures.containsKey(key)) {
                 starts.forEach(p -> structures.get(key).remove(p));

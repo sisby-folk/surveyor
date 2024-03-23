@@ -1,51 +1,41 @@
 package folk.sisby.surveyor.structure;
 
-import folk.sisby.surveyor.Surveyor;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.Registries;
+import net.minecraft.structure.StructureContext;
 import net.minecraft.structure.StructurePiece;
 import net.minecraft.structure.StructurePieceType;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockBox;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.random.Random;
+import net.minecraft.world.StructureWorldAccess;
+import net.minecraft.world.gen.StructureAccessor;
+import net.minecraft.world.gen.chunk.ChunkGenerator;
 
-public class StructurePieceSummary {
-    public static final String KEY_TYPE = "type";
-    public static final String KEY_BOX = "BB";
+public class StructurePieceSummary extends StructurePiece {
+    public StructurePieceSummary(StructurePieceType type, int chainLength, BlockBox boundingBox) {
+        super(type, chainLength, boundingBox);
+    }
 
-    protected final StructurePieceType type;
-    protected final BlockBox boundingBox;
-
-    public StructurePieceSummary(StructurePieceType type, BlockBox boundingBox) {
-        this.type = type;
-        this.boundingBox = boundingBox;
+    public StructurePieceSummary(NbtCompound nbt) {
+        super(Registries.STRUCTURE_PIECE.get(new Identifier(nbt.getString("id"))), nbt);
     }
 
     public static StructurePieceSummary fromPiece(StructurePiece piece) {
-        return new StructurePieceSummary(piece.getType(), piece.getBoundingBox());
+        return new StructurePieceSummary(piece.getType(), piece.getChainLength(), piece.getBoundingBox());
     }
 
-    public static StructurePieceSummary fromNbt(NbtCompound nbt) {
-        return new StructurePieceSummary(
-            Registries.STRUCTURE_PIECE.get(new Identifier(nbt.getString(KEY_TYPE))),
-            BlockBox.CODEC
-                .parse(NbtOps.INSTANCE, nbt.get("BB"))
-                .resultOrPartial(Surveyor.LOGGER::error)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid boundingbox"))
-        );
+    public final NbtCompound toNbt() {
+        return toNbt(null); // context only used for writeNbt
     }
 
-    public NbtCompound writeNbt(NbtCompound nbt) {
-        nbt.putString(KEY_TYPE, Registries.STRUCTURE_PIECE.getId(type).toString());
-        BlockBox.CODEC.encodeStart(NbtOps.INSTANCE, this.boundingBox).resultOrPartial(Surveyor.LOGGER::error).ifPresent(element -> nbt.put(KEY_BOX, element));
-        return nbt;
+    @Override
+    protected void writeNbt(StructureContext context, NbtCompound nbt) {
     }
 
-    public StructurePieceType getType() {
-        return type;
-    }
-
-    public BlockBox getBoundingBox() {
-        return boundingBox;
+    @Override
+    public void generate(StructureWorldAccess world, StructureAccessor structureAccessor, ChunkGenerator chunkGenerator, Random random, BlockBox chunkBox, ChunkPos chunkPos, BlockPos pivot) {
     }
 }

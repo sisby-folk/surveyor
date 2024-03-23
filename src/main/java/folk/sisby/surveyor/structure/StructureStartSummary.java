@@ -4,11 +4,11 @@ import net.minecraft.util.math.BlockBox;
 
 import java.util.Collection;
 
-public class StructureSummary {
+public class StructureStartSummary {
     protected final Collection<StructurePieceSummary> children;
     protected BlockBox boundingBox;
 
-    public StructureSummary(Collection<StructurePieceSummary> children) {
+    public StructureStartSummary(Collection<StructurePieceSummary> children) {
         this.children = children;
     }
 
