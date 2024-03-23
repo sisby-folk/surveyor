@@ -1,33 +1,9 @@
 <!--suppress HtmlDeprecatedTag, XmlDeprecatedElement -->
 
-**Notice: Surveyor is still a work in progress, and does nothing on its own!**
-
-* Map Data Creation:
-  * Terrain summaries are generated on both the server and client
-  * Structure summaries are generated on the server
-  * Landmarks can be created on the server and client
-* Map Data Synchronization:
-  * Terrain is shared from the server to the client when it's missing
-  * Structures are sent to the client when generated or if they're missing
-  * Server landmarks are sent to clients
-  * Client landmarks are sent to the server and other clients
-* Player Tracking:
-  * Player terrain exploration is recorded and stored
-  * Player structure exploration is recorded and stored
-* Map Data Visibility:
-  * Data is all shared globally, map-sharing "teams" are not yet implemented
-  * Landmark visibility settings are not yet implemented.
-* API is not yet stable
-* Poor error handling
-* Limited javadoc
-
-**Current releases are for early testing and experiments!**
-
----
 
 <center>
 <img alt="surveyor banner" src="https://github.com/sisby-folk/surveyor/assets/55819817/a591c325-e87b-48cb-8e00-bda80c9ac8a2"><br/>
-A unified save and server-integration framework for client-side map mods (and their friends).<br/>
+A unified save and server-integration framework for client-side map mods (and others).<br/>
 Used in <a href="https://modrinth.com/mod/antique-atlas-4">Antique Atlas 4</a>.<br/>
 <!-- Requires <a href="https://modrinth.com/mod/connector">Connector</a> and <a href="https://modrinth.com/mod/forgified-fabric-api">FFAPI</a> on forge.<br/> -->
 <i>Other names considered: Polaris, Ichnite, Trackway, Lay of the Land, Worldsense, and Lithography.</i>
@@ -35,18 +11,34 @@ Used in <a href="https://modrinth.com/mod/antique-atlas-4">Antique Atlas 4</a>.<
 
 ---
 
-Surveyor is a map library that:
+> *Surveyor is a library for map mod developers! You shouldn't need to download it alone.*
+
+**Surveyor** is a map library that:
 * Records terrain, structure, and "landmark" data suitable for maps as the world is explored / changed.
 * Holds the data in a small, compressed format in-memory and on-disk to allow full dimensions to be loaded.
 * Uses data formats that are map-mod-agnostic - i.e:
   * Terrain data is recorded as "floors" for each x,z - including the height, block, biome, and light level.
   * Terrain data records multiple layers of floors, allowing for usable cave and nether maps.
-  * Structures are recorded with their IDs, type IDs, piece IDs, piece BBs, jigsaw piece IDs & junctions - all intact.
+  * Structures are recorded with all their base data (pieces, jigsaws with IDs etc.) intact.
   * Landmarks can generically represent all other positional map data - e.g. waypoints, POIs, or faction claims.
-* Syncs structure and POI data to the client for use on maps.
-* Syncs terrain data to the client if it's missing any.
-* Syncs player-made waypoints (landmarks) with other players.
+* Syncs structure summaries to the client for use on maps.
+* Restores missing terrain and landmark data from the server if the client loses it.
 * Removes the need for map mods to implement save data or networking in most cases.
+
+
+### Configuration
+
+To force surveyor to show and share as much map data as possible globally, you can set the `shareAll` settings in `config/surveyor.toml`.
+
+---
+
+**Notice: Surveyor is still early in development.**
+- The API might break several times during 0.x
+- The networking format will break several times during 0.x.
+- The save format will likely break on the change to 1.x
+- Javadoc is very limited
+
+---
 
 ## Developers
 
@@ -56,8 +48,8 @@ repositories {
 }
 
 dependencies {
-    modImplementation 'folk.sisby:surveyor:0.1.0-alpha.1+1.20'
-    include 'folk.sisby:surveyor:0.1.0-alpha.1+1.20'
+    modImplementation 'folk.sisby:surveyor:0.1.0-beta.1+1.20'
+    include 'folk.sisby:surveyor:0.1.0-beta.1+1.20'
 }
 ```
 
@@ -105,21 +97,22 @@ You should never need to look at the currently loaded chunks - Otherwise, let us
 
 #### Initial Setup
 
-Tune into loading via `SurveyorEvents.Register.clientWorldLoad` - this will trigger as soon as the client world has access to surveyor data. Keep in mind that the **client player may not exist yet**.
+Tune into loading via `SurveyorClientEvents.Register.clientPlayerLoad` - this will trigger when the client world has access to surveyor data and the player is available (for prioritizing nearby regions).
 
 You can call `WorldSummary.terrain().keySet()` to get all summarized chunk positions - feel free to add these to a queue or deque to render later.
+
+`keySet()` and `asMap()` methods accept `SurveyorExploration` - on the client this can be accessed from `SurveyorClient.getExploration()` - which ensures only map area the player should see is shown.
 
 #### Terrain Rendering
 
 To process a chunk, first get the summary using `WorldTerrainSummary.get(ChunkPos)`.<br/>
 Remember you can always get the world summary from using `SurveyorWorld` if you're processing on world tick.<br/>
 Then, crunch the result into floors using `ChunkSummary.toSingleLayer()` which outputs usable int arrays:
+* **exists[256]** - Set where a floor exists, unset otherwise - where unset, all other fields are junk.
 * **depths[256]** - The distance of the floor below your specified world height. so y = worldHeight - depth.
-  * Will be **-1** when no floor exists on the layer - either because there's no solid blocks, or no walkspace.
-  * When the depth is **-1**, all other array values at that index are meaningless and may be invalid.
 * **blocks[256]** - The floor block. Indexed per-region via `WorldTerrainSummary.getBlockPalette(ChunkPos)`.
 * **biomes[256]** - The floor biome. Indexed per-region via `WorldTerrainSummary.getBiomePalette(ChunkPos)`.
-* **lightLevels[256]** - The block light level directly above the floor (i.e the block light for its top face). 0-15.
+* **lightLevels[256]** - The block light level directly above the floor (i.e. the block light for its top face). 0-15.
 * **waterDepths[256]** - How deep the contiguous water above the floor is.
   * All other liquid surfaces are considered floors, but water is special-cased.
   * The sea floor (e.g. sand) is recorded, and this depth value indicates the water surface instead.
@@ -132,7 +125,7 @@ You may be rendering hundreds of thousands of chunks here - this is the hot loop
 
 #### Structure Rendering
 
-Structures can be retrieved using `WorldStructureSummary.values()` - these come in a `StructureSummary` format, which clearly defines identifiers for structures and pieces, along with piece bounding boxes, but no further data.
+Structures can be retrieved using `WorldStructureSummary.asMap()` - these come in a `StructureSummary` format, which clearly defines all type-independent data, along with extra data for jigsaws.
 
 These can be used to create automatic waypoints for structures, draw abstract versions of them to the map by ID, etc.
 
@@ -165,13 +158,13 @@ A minecraftless vanilla-map-like implementation that reads surveyor's NBT save f
 
 Landmark types can be registered via the registry in `Landmarks`.<br/>
 This allows you to set and serialize custom data relevant to your landmark.<br/>
-Your landmark can usually be a record - see `NetherPortalLandmark` for a very brief example.
+Your landmark can usually be a record.
 
 To make new data accessible to map mods, declare a new interface to access it from, so it can be applied to more than one type.
 
 To add a landmark (custom or builtin), just use `WorldLandmarks.put(Landmark)`. This works fine on either side - feel free to add a landmark on the server to send it to the client.
 
-Right now, both the server and client need a landmark type registered to use it, but we'll be adding a fallback system in future.
+Landmark types can't yet have fallback types - so use a simple type (or PR a new one!) if your mod is only on one side.
 
 </details>
 
@@ -180,7 +173,7 @@ Right now, both the server and client need a landmark type registered to use it,
 <details>
 <summary>Click to show the dimension mod integration guide</summary>
 
-Chunk summaries are currently layered based on the dimension via a few basic heuristics on world height, ceiling and sky presence, etc - as well as a few hardcoded layer additions for the nether.
+Chunk summaries are currently layered based on the dimension via a few basic heuristics on world height, ceiling and sky presence, etc. - as well as a few hardcoded layer additions for the nether.
 
 In future, we'll expose an API to allow dimension mods to specify the layers to generate chunk summaries with.
 
