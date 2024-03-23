@@ -18,6 +18,7 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.structure.StructureContext;
 import net.minecraft.structure.StructurePiece;
 import net.minecraft.structure.StructurePieceType;
 import net.minecraft.structure.StructureStart;
@@ -104,24 +105,24 @@ public class WorldStructureSummary {
         return map;
     }
 
-    protected static StructureStartSummary summarisePieces(StructureStart start) {
+    protected static StructureStartSummary summarisePieces(StructureContext context, StructureStart start) {
         List<StructurePieceSummary> pieces = new ArrayList<>();
         for (StructurePiece piece : start.getChildren()) {
             if (piece.getType().equals(StructurePieceType.JIGSAW)) {
                 pieces.addAll(JigsawPieceSummary.tryFromPiece(piece));
             } else {
-                pieces.add(StructurePieceSummary.fromPiece(piece));
+                pieces.add(StructurePieceSummary.fromPiece(context, piece));
             }
         }
         return new StructureStartSummary(pieces);
     }
 
-    public void put(World world, StructureStart start) {
+    public void put(ServerWorld world, StructureStart start) {
         RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElseThrow();
         structures.computeIfAbsent(key, k -> new ConcurrentHashMap<>());
         ChunkPos pos = start.getPos();
         if (!structures.get(key).containsKey(pos)) {
-            StructureStartSummary summary = summarisePieces(start);
+            StructureStartSummary summary = summarisePieces(StructureContext.from(world), start);
             RegistryKey<StructureType<?>> type = world.getRegistryManager().get(RegistryKeys.STRUCTURE_TYPE).getKey(start.getStructure().getType()).orElseThrow();
             List<TagKey<Structure>> tags = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getEntry(start.getStructure()).streamTags().toList();
             structures.get(key).put(pos, summary);
@@ -130,9 +131,7 @@ public class WorldStructureSummary {
             dirty = true;
 
             SurveyorEvents.Invoke.structureAdded(world, this, key, pos);
-            if (world instanceof ServerWorld sw) {
-                S2CStructuresAddedPacket.of(key, pos, summary, type, tags).send(sw);
-            }
+            S2CStructuresAddedPacket.of(key, pos, summary, type, tags).send(world);
         }
     }
 
@@ -225,14 +224,14 @@ public class WorldStructureSummary {
         return WorldStructureSummary.readNbt(world.getRegistryKey(), structureNbt);
     }
 
-    public static void onChunkLoad(World world, Chunk chunk) {
+    public static void onChunkLoad(ServerWorld world, Chunk chunk) {
         WorldStructureSummary structures = ((SurveyorWorld) world).surveyor$getWorldSummary().structures();
         chunk.getStructureStarts().forEach((structure, start) -> {
             if (!structures.contains(world, start)) structures.put(world, start);
         });
     }
 
-    public static void onStructurePlace(World world, StructureStart start) {
+    public static void onStructurePlace(ServerWorld world, StructureStart start) {
         WorldStructureSummary structures = ((SurveyorWorld) world).surveyor$getWorldSummary().structures();
         if (!structures.contains(world, start)) structures.put(world, start);
     }

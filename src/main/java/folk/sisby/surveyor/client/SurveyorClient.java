@@ -4,7 +4,6 @@ import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.SurveyorWorld;
 import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
-import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.terrain.WorldTerrainSummary;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.fabricmc.api.ClientModInitializer;
@@ -81,7 +80,6 @@ public class SurveyorClient implements ClientModInitializer {
             if (((SurveyorWorld) world).surveyor$getWorldSummary().isClient()) {
                 ClientExploration.INSTANCE.surveyor$addExploredChunk(chunk.getPos());
                 WorldTerrainSummary.onChunkLoad(world, chunk);
-                WorldStructureSummary.onChunkLoad(world, chunk);
             }
         });
         ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {

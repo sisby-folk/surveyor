@@ -15,16 +15,29 @@ import net.minecraft.world.gen.StructureAccessor;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
 
 public class StructurePieceSummary extends StructurePiece {
-    public StructurePieceSummary(StructurePieceType type, int chainLength, BlockBox boundingBox) {
+    protected final NbtCompound pieceNbt;
+
+    public StructurePieceSummary(StructurePieceType type, int chainLength, BlockBox boundingBox, NbtCompound pieceNbt) {
         super(type, chainLength, boundingBox);
+        this.pieceNbt = pieceNbt;
     }
 
     public StructurePieceSummary(NbtCompound nbt) {
         super(Registries.STRUCTURE_PIECE.get(new Identifier(nbt.getString("id"))), nbt);
+        this.pieceNbt = nbt.getCompound("nbt");
     }
 
-    public static StructurePieceSummary fromPiece(StructurePiece piece) {
-        return new StructurePieceSummary(piece.getType(), piece.getChainLength(), piece.getBoundingBox());
+    public static StructurePieceSummary fromPiece(StructureContext context, StructurePiece piece) {
+        StructurePieceSummary summary = new StructurePieceSummary(piece.getType(), piece.getChainLength(), piece.getBoundingBox(), new NbtCompound());
+        NbtCompound summaryNbt = summary.toNbt();
+        NbtCompound pieceNbt = piece.toNbt(context);
+        for (String key : summaryNbt.getKeys()) {
+            pieceNbt.remove(key);
+        }
+        for (String key : pieceNbt.getKeys()) {
+            summary.pieceNbt.put(key, pieceNbt.get(key));
+        }
+        return summary;
     }
 
     public final NbtCompound toNbt() {
@@ -33,6 +46,7 @@ public class StructurePieceSummary extends StructurePiece {
 
     @Override
     protected void writeNbt(StructureContext context, NbtCompound nbt) {
+        if (!pieceNbt.isEmpty()) nbt.put("nbt", pieceNbt);
     }
 
     @Override

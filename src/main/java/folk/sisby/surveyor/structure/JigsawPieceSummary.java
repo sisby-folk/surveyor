@@ -45,7 +45,7 @@ public class JigsawPieceSummary extends StructurePieceSummary {
     protected final Identifier id;
 
     public JigsawPieceSummary(BlockPos pos, int deltaY, BlockRotation rotation, StructurePoolElementType<?> elementType, Identifier id, int chainLength, BlockBox boundingBox, List<JigsawJunction> junctions) {
-        super(StructurePieceType.JIGSAW, chainLength, boundingBox);
+        super(StructurePieceType.JIGSAW, chainLength, boundingBox, new NbtCompound());
         this.pos = pos;
         this.deltaY = deltaY;
         this.rotation = rotation;
