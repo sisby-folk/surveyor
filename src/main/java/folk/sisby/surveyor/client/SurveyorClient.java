@@ -66,7 +66,7 @@ public class SurveyorClient implements ClientModInitializer {
 
     public static SurveyorExploration getExploration(ClientPlayerEntity player) {
         if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
-            return (SurveyorExploration) MinecraftClient.getInstance().world.getPlayerByUuid(player.getUuid());
+            return (SurveyorExploration) MinecraftClient.getInstance().getServer().getWorld(MinecraftClient.getInstance().world.getRegistryKey()).getPlayerByUuid(player.getUuid());
         } else {
             return ClientExploration.INSTANCE;
         }
