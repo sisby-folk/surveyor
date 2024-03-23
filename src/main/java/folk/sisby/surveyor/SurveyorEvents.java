@@ -23,7 +23,6 @@ import java.util.Map;
 
 public class SurveyorEvents {
     private static final Map<Identifier, WorldLoad> worldLoadHandlers = new HashMap<>();
-    private static final Map<Identifier, ClientWorldLoad> clientWorldLoadHandlers = new HashMap<>();
     private static final Map<Identifier, TerrainUpdated> chunkAddedHandlers = new HashMap<>();
     private static final Map<Identifier, StructuresAdded> structureAddedHandlers = new HashMap<>();
     private static final Map<Identifier, LandmarksAdded> landmarkAddedHandlers = new HashMap<>();
@@ -32,10 +31,6 @@ public class SurveyorEvents {
     public static class Invoke {
         public static void worldLoad(ServerWorld world, WorldSummary worldSummary) {
             worldLoadHandlers.forEach((id, handler) -> handler.onWorldLoad(world, worldSummary));
-        }
-
-        public static void clientWorldLoad(World world, WorldSummary worldSummary) {
-            clientWorldLoadHandlers.forEach((id, handler) -> handler.onClientWorldLoad(world, worldSummary));
         }
 
         public static void terrainUpdated(World world, WorldTerrainSummary worldTerrain, Collection<ChunkPos> chunks) {
@@ -78,10 +73,6 @@ public class SurveyorEvents {
             worldLoadHandlers.put(id, handler);
         }
 
-        public static void clientWorldLoad(Identifier id, ClientWorldLoad handler) {
-            clientWorldLoadHandlers.put(id, handler);
-        }
-
         public static void terrainUpdated(Identifier id, TerrainUpdated handler) {
             chunkAddedHandlers.put(id, handler);
         }
@@ -102,11 +93,6 @@ public class SurveyorEvents {
     @FunctionalInterface
     public interface WorldLoad {
         void onWorldLoad(ServerWorld world, WorldSummary worldSummary);
-    }
-
-    @FunctionalInterface
-    public interface ClientWorldLoad {
-        void onClientWorldLoad(World world, WorldSummary worldSummary);
     }
 
     @FunctionalInterface

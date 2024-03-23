@@ -1,6 +1,5 @@
 package folk.sisby.surveyor.mixin.client;
 
-import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorWorld;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.client.SurveyorClient;
@@ -21,7 +20,6 @@ public class MixinClientWorld implements SurveyorWorld {
                 surveyor$worldSummary = ((SurveyorWorld) MinecraftClient.getInstance().getServer().getWorld(((ClientWorld) (Object) this).getRegistryKey())).surveyor$getWorldSummary();
             } else {
                 surveyor$worldSummary = WorldSummary.load((ClientWorld) (Object) this, SurveyorClient.getWorldSavePath((ClientWorld) (Object) this), true);
-                SurveyorEvents.Invoke.clientWorldLoad((ClientWorld) (Object) this, surveyor$worldSummary);
             }
         }
         return surveyor$worldSummary;

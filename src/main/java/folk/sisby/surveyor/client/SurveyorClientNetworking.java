@@ -57,12 +57,15 @@ public class SurveyorClientNetworking {
 
     private static <T extends S2CPacket> void handleClient(PacketByteBuf buf, Function<PacketByteBuf, T> reader, ClientPacketHandler<T> handler) {
         T packet = reader.apply(buf);
-        MinecraftClient.getInstance().execute(() -> handler.handle(MinecraftClient.getInstance().world, MinecraftClient.getInstance().world == null ? null : ((SurveyorWorld) MinecraftClient.getInstance().world).surveyor$getWorldSummary(), packet));
+        WorldSummary summary = ((SurveyorWorld) MinecraftClient.getInstance().world).surveyor$getWorldSummary();
+        if (!summary.isClient()) return;
+        MinecraftClient.getInstance().execute(() -> handler.handle(MinecraftClient.getInstance().world, summary, packet));
     }
 
     private static void handleClientUnparsed(PacketByteBuf buf, ClientPacketHandler<PacketByteBuf> handler) {
         ClientWorld world = MinecraftClient.getInstance().world;
         WorldSummary summary = ((SurveyorWorld) MinecraftClient.getInstance().world).surveyor$getWorldSummary();
+        if (!summary.isClient()) return;
         handler.handle(world, summary, buf);
     }
 

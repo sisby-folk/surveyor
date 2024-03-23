@@ -1,12 +1,9 @@
 package folk.sisby.surveyor.client;
 
 import folk.sisby.surveyor.Surveyor;
-import folk.sisby.surveyor.SurveyorWorld;
-import folk.sisby.surveyor.WorldSummary;
-import folk.sisby.surveyor.packet.C2SKnownLandmarksPacket;
-import folk.sisby.surveyor.packet.C2SKnownStructuresPacket;
-import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
 import folk.sisby.surveyor.SurveyorExploration;
+import folk.sisby.surveyor.SurveyorWorld;
+import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.terrain.WorldTerrainSummary;
 import it.unimi.dsi.fastutil.longs.LongSet;
@@ -71,24 +68,18 @@ public class SurveyorClient implements ClientModInitializer {
         return ClientExploration.INSTANCE;
     }
 
+    public static SurveyorExploration getSharedExploration() {
+        return ClientExploration.SHARED;
+    }
+
     @Override
     public void onInitializeClient() {
         SurveyorClientNetworking.init();
-        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(() -> {
-            if (MinecraftClient.getInstance().world instanceof SurveyorWorld nsw && nsw.surveyor$getWorldSummary().isClient()) {
-                WorldSummary summary = nsw.surveyor$getWorldSummary();
-                new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
-                new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
-                new C2SKnownLandmarksPacket(summary.landmarks().keySet(null).asMap()).send();
-                ClientExploration.onLoad();
-            }
-        }));
-        ClientPlayConnectionEvents.DISCONNECT.register(((handler, client) -> {
-            ClientExploration.onUnload();
-        }));
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(ClientExploration::onLoad));
+        ClientPlayConnectionEvents.DISCONNECT.register(((handler, client) -> ClientExploration.onUnload()));
         ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
-            ClientExploration.INSTANCE.surveyor$addExploredChunk(chunk.getPos());
             if (((SurveyorWorld) world).surveyor$getWorldSummary().isClient()) {
+                ClientExploration.INSTANCE.surveyor$addExploredChunk(chunk.getPos());
                 WorldTerrainSummary.onChunkLoad(world, chunk);
                 WorldStructureSummary.onChunkLoad(world, chunk);
             }
@@ -99,26 +90,34 @@ public class SurveyorClient implements ClientModInitializer {
     }
 
     private record ClientExploration(Map<RegistryKey<World>, Map<ChunkPos, BitSet>> surveyor$exploredTerrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> surveyor$exploredStructures) implements SurveyorExploration {
-        public static ClientExploration INSTANCE = new ClientExploration(new HashMap<>(), new HashMap<>());
+        public static final String KEY_SHARED = "shared";
+        public static final ClientExploration INSTANCE = new ClientExploration(new HashMap<>(), new HashMap<>());
+        public static final ClientExploration SHARED = new ClientExploration(new HashMap<>(), new HashMap<>());
         public static File saveFile = null;
 
         public static void onLoad() {
-            saveFile = getSavePath(INSTANCE.surveyor$getWorld()).toPath().resolve(Uuids.getUuidFromProfile(MinecraftClient.getInstance().getSession().getProfile()).toString() + ".dat").toFile();
-            NbtCompound explorationNbt = new NbtCompound();
-            if (saveFile.exists()) {
-                try {
-                    explorationNbt = NbtIo.readCompressed(saveFile);
-                } catch (IOException e) {
-                    Surveyor.LOGGER.error("[Surveyor] Error loading client exploration file.", e);
+            if (((SurveyorWorld) MinecraftClient.getInstance().world).surveyor$getWorldSummary().isClient()) {
+                saveFile = getSavePath(INSTANCE.surveyor$getWorld()).toPath().resolve(Uuids.getUuidFromProfile(MinecraftClient.getInstance().getSession().getProfile()).toString() + ".dat").toFile();
+                NbtCompound explorationNbt = new NbtCompound();
+                if (saveFile.exists()) {
+                    try {
+                        explorationNbt = NbtIo.readCompressed(saveFile);
+                    } catch (IOException e) {
+                        Surveyor.LOGGER.error("[Surveyor] Error loading client exploration file.", e);
+                    }
                 }
+                ClientExploration.INSTANCE.readExplorationData(explorationNbt);
+                ClientExploration.SHARED.readExplorationData(explorationNbt.getCompound(KEY_SHARED));
             }
-            ClientExploration.INSTANCE.readExplorationData(explorationNbt);
         }
 
         public static void onUnload() {
             if (saveFile == null) return;
             try {
-                NbtIo.writeCompressed(ClientExploration.INSTANCE.writeExplorationData(new NbtCompound()), saveFile);
+                NbtCompound nbt = ClientExploration.INSTANCE.writeExplorationData(new NbtCompound());
+                NbtCompound sharedNbt = ClientExploration.SHARED.writeExplorationData(new NbtCompound());
+                nbt.put(KEY_SHARED, sharedNbt);
+                NbtIo.writeCompressed(nbt, saveFile);
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error saving client exploration file.", e);
             }
