@@ -33,8 +33,8 @@ public class MixinMinecraftClient {
             new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
             new C2SKnownLandmarksPacket(summary.landmarks().keySet(null).asMap()).send();
             SurveyorClientEvents.Invoke.clientWorldLoad(newWorld, summary);
-            SurveyorClientEvents.INITIALIZING_WORLD = true;
         }
+        SurveyorClientEvents.INITIALIZING_WORLD = true;
     }
 
     @Inject(method = "disconnect(Lnet/minecraft/client/gui/screen/Screen;)V", at = @At("HEAD"))
