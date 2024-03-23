@@ -12,6 +12,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ServerInfo;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
@@ -63,12 +64,12 @@ public class SurveyorClient implements ClientModInitializer {
         return ClientPlayNetworking.canSend(C2SKnownTerrainPacket.ID);
     }
 
-    public static SurveyorExploration getExploration() {
-        return ClientExploration.INSTANCE;
-    }
-
-    public static SurveyorExploration getSharedExploration() {
-        return ClientExploration.SHARED;
+    public static SurveyorExploration getExploration(ClientPlayerEntity player) {
+        if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
+            return (SurveyorExploration) MinecraftClient.getInstance().world.getPlayerByUuid(player.getUuid());
+        } else {
+            return ClientExploration.INSTANCE;
+        }
     }
 
     @Override

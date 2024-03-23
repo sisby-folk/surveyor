@@ -52,7 +52,7 @@ public class SurveyorClientNetworking {
     }
 
     private static void handleExploredStructures(ClientWorld world, WorldSummary summary, SyncExploredStructuresPacket packet) {
-        packet.structureKeys().forEach((key, starts) -> SurveyorClient.getExploration().surveyor$exploredStructures().computeIfAbsent(packet.worldKey(), k -> new HashMap<>()).computeIfAbsent(key, k -> new LongOpenHashSet()).addAll(starts));
+        packet.structureKeys().forEach((key, starts) -> SurveyorClient.getExploration(null).surveyor$exploredStructures().computeIfAbsent(packet.worldKey(), k -> new HashMap<>()).computeIfAbsent(key, k -> new LongOpenHashSet()).addAll(starts));
     }
 
     private static <T extends S2CPacket> void handleClient(PacketByteBuf buf, Function<PacketByteBuf, T> reader, ClientPacketHandler<T> handler) {
