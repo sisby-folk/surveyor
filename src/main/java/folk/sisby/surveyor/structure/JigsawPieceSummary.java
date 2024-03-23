@@ -58,7 +58,7 @@ public class JigsawPieceSummary extends StructurePieceSummary {
         super(nbt);
         this.pos = BlockPos.fromLong(nbt.getLong(KEY_POS));
         this.deltaY = nbt.getInt(KEY_DELTA_Y);
-        this.rotation = BlockRotation.values()[nbt.getInt(KEY_DELTA_Y)];
+        this.rotation = BlockRotation.values()[nbt.getInt(KEY_ROTATION)];
         this.junctions = new ArrayList<>();
         if (nbt.contains(KEY_JUNCTIONS)) {
             int[] junctionArray = nbt.getIntArray(KEY_JUNCTIONS);

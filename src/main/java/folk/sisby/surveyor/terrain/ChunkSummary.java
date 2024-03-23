@@ -12,9 +12,11 @@ import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.util.collection.Int2ObjectBiMap;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkSectionPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.LightType;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.source.BiomeCoords;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
 import org.jetbrains.annotations.Nullable;
@@ -66,7 +68,7 @@ public class ChunkSummary {
                                 waterDepth++;
                             } else if (state.getMapColor(world, new BlockPos(x, y, z)) != MapColor.CLEAR) {
                                 if (foundFloor == null && airDepth > MINIMUM_AIR_DEPTH) {
-                                    foundFloor = new LayerSummary.FloorSummary(y, chunkSections[sectionIndex].getBiome(x & 3, y & 3, z & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y - 1, z)), waterDepth);
+                                    foundFloor = new LayerSummary.FloorSummary(y, chunkSections[sectionIndex].getBiome(BiomeCoords.fromBlock(x) & 3, MathHelper.clamp(BiomeCoords.fromBlock(y), BiomeCoords.fromBlock(world.getBottomY()), BiomeCoords.fromBlock(world.getTopY()) - 1) & 3, BiomeCoords.fromBlock(z) & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y - 1, z)), waterDepth);
                                 }
                                 airDepth = 0;
                                 waterDepth = 0;
