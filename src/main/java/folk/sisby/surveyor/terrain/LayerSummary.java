@@ -178,7 +178,7 @@ public class LayerSummary {
         int[] lightFull = rawLightLevels();
         int[] waterFull = rawWaterDepths();
         for (int i = 0; i < 256; i++) {
-            if (!outFound.get(i) && found.get(i) && depthFull[i] <= maxDepth && depthFull[i] >= minDepth) {
+            if (!outFound.get(i) && found.get(i) && depthFull[i] >= minDepth && depthFull[i] <= maxDepth) {
                 outFound.set(i);
                 outDepth[i] = depthFull[i] + depthOffset;
                 outBiome[i] = biomeFull[i];

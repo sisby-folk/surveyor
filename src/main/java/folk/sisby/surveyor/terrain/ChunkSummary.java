@@ -171,8 +171,8 @@ public class ChunkSummary {
             if (layer != null) {
                 layer.fillEmptyFloors(
                     worldHeight - y,
-                    minY == null ? Integer.MIN_VALUE : y - minY,
-                    maxY == null ? Integer.MAX_VALUE : y - maxY,
+                    maxY == null ? Integer.MIN_VALUE : y - maxY,
+                    minY == null ? Integer.MAX_VALUE : y - minY,
                     found, depth, biome, block, light, water
                 );
             }
