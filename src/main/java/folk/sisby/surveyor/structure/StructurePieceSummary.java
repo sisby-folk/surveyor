@@ -52,4 +52,8 @@ public class StructurePieceSummary extends StructurePiece {
     @Override
     public void generate(StructureWorldAccess world, StructureAccessor structureAccessor, ChunkGenerator chunkGenerator, Random random, BlockBox chunkBox, ChunkPos chunkPos, BlockPos pivot) {
     }
+
+    public NbtCompound getPieceNbt() {
+        return pieceNbt;
+    }
 }
