@@ -43,7 +43,7 @@ public class MixinServerPlayerEntity implements SurveyorExploration {
 
     @Inject(at = @At("TAIL"), method = "readCustomDataFromNbt")
     public void readSurveyorData(NbtCompound nbt, CallbackInfo ci) {
-        readExplorationData(nbt);
+        readExplorationData(nbt.getCompound(KEY_DATA));
     }
 
     @Inject(at = @At("TAIL"), method = "copyFrom")

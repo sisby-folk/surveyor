@@ -63,12 +63,12 @@ public interface SurveyorExploration {
         NbtCompound terrainCompound = new NbtCompound();
         surveyor$exploredTerrain().forEach((worldKey, map) -> {
             long[] regionArray = new long[map.size() * 17];
-            int i = 0;
+            int i = 16;
             for (Map.Entry<ChunkPos, BitSet> entry : map.entrySet()) {
-                regionArray[i * 17] = entry.getKey().toLong();
+                regionArray[i - 16] = entry.getKey().toLong();
                 long[] regionBits = entry.getValue().toLongArray();
-                System.arraycopy(regionBits, 0, regionArray, (i * 17) + 1, regionBits.length);
-                i++;
+                System.arraycopy(regionBits, 0, regionArray, i - 15 + (16 - regionBits.length), regionBits.length);
+                i += 17;
             }
             terrainCompound.putLongArray(worldKey.getValue().toString(), regionArray);
         });
@@ -92,9 +92,8 @@ public interface SurveyorExploration {
         for (String worldKeyString : terrainCompound.getKeys()) {
             long[] regionArray = terrainCompound.getLongArray(worldKeyString);
             Map<ChunkPos, BitSet> regionMap = new HashMap<>();
-            for (int i = 0; i < regionArray.length / 17; i++) {
-                regionMap.put(new ChunkPos(regionArray[i * 17]), BitSet.valueOf(Arrays.copyOfRange(regionArray, i * 17 + 1, (i + 1) * 17)));
-                i++;
+            for (int i = 16; i < regionArray.length; i += 17) {
+                regionMap.put(new ChunkPos(regionArray[i - 16]), BitSet.valueOf(Arrays.copyOfRange(regionArray, i - 15, i)));
             }
             surveyor$exploredTerrain().put(RegistryKey.of(RegistryKeys.WORLD, new Identifier(worldKeyString)), regionMap);
         }
@@ -105,7 +104,7 @@ public interface SurveyorExploration {
             Map<RegistryKey<Structure>, LongSet> structureMap = new HashMap<>();
             NbtCompound worldStructuresCompound = structuresCompound.getCompound(worldKeyString);
             for (String key : worldStructuresCompound.getKeys()) {
-                structureMap.put(RegistryKey.of(RegistryKeys.STRUCTURE, new Identifier(key)), new LongOpenHashSet(LongSet.of(structuresCompound.getLongArray(key))));
+                structureMap.put(RegistryKey.of(RegistryKeys.STRUCTURE, new Identifier(key)), new LongOpenHashSet(LongSet.of(worldStructuresCompound.getLongArray(key))));
             }
             surveyor$exploredStructures().put(RegistryKey.of(RegistryKeys.WORLD, new Identifier(worldKeyString)), structureMap);
         }
