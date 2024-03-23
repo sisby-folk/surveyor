@@ -11,7 +11,6 @@
     "MixinThreadedAnvilChunkStorage"
   ],
   "client": [
-    "client.MixinClientPlayerEntity",
     "client.MixinClientWorld",
     "client.MixinMinecraftClient",
     "client.MixinPlayerEntity"
