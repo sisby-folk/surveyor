@@ -5,6 +5,8 @@ import folk.sisby.surveyor.packet.S2CStructuresAddedPacket;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.terrain.RegionSummary;
 import folk.sisby.surveyor.util.MapUtil;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.nbt.NbtCompound;
@@ -18,7 +20,6 @@ import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.Structure;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -120,15 +121,18 @@ public interface SurveyorExploration {
     default NbtCompound write(NbtCompound nbt) {
         NbtCompound terrainCompound = new NbtCompound();
         terrain().forEach((worldKey, map) -> {
-            long[] regionArray = new long[map.size() * 17];
-            int i = 16;
+            LongList regionLongs = new LongArrayList();
             for (Map.Entry<ChunkPos, BitSet> entry : map.entrySet()) {
-                regionArray[i - 16] = entry.getKey().toLong();
-                long[] regionBits = entry.getValue().toLongArray();
-                System.arraycopy(regionBits, 0, regionArray, i - 15 + (16 - regionBits.length), regionBits.length);
-                i += 17;
+                regionLongs.add(entry.getKey().toLong());
+                if (entry.getValue().cardinality() == RegionSummary.BITSET_SIZE) {
+                    regionLongs.add(-1);
+                } else {
+                    long[] regionBits = entry.getValue().toLongArray();
+                    regionLongs.add(regionBits.length);
+                    regionLongs.addAll(LongList.of(regionBits));
+                }
             }
-            terrainCompound.putLongArray(worldKey.getValue().toString(), regionArray);
+            terrainCompound.putLongArray(worldKey.getValue().toString(), regionLongs.toLongArray());
         });
         nbt.put(KEY_EXPLORED_TERRAIN, terrainCompound);
 
@@ -150,8 +154,19 @@ public interface SurveyorExploration {
         for (String worldKeyString : terrainCompound.getKeys()) {
             long[] regionArray = terrainCompound.getLongArray(worldKeyString);
             Map<ChunkPos, BitSet> regionMap = new HashMap<>();
-            for (int i = 16; i < regionArray.length; i += 17) {
-                regionMap.put(new ChunkPos(regionArray[i - 16]), BitSet.valueOf(Arrays.copyOfRange(regionArray, i - 15, i)));
+            for (int i = 0; i + 1 < regionArray.length; i += 2) {
+                ChunkPos rPos = new ChunkPos(regionArray[i]);
+                int bitLength = (int) regionArray[i + 1];
+                if (bitLength == -1) {
+                    BitSet set = new BitSet(RegionSummary.BITSET_SIZE);
+                    set.set(0, RegionSummary.BITSET_SIZE);
+                    regionMap.put(rPos, set);
+                } else {
+                    long[] bitArray = new long[bitLength];
+                    System.arraycopy(regionArray, i + 2, bitArray, 0, bitLength);
+                    regionMap.put(rPos, BitSet.valueOf(bitArray));
+                    i += bitLength;
+                }
             }
             terrain().put(RegistryKey.of(RegistryKeys.WORLD, new Identifier(worldKeyString)), regionMap);
         }
