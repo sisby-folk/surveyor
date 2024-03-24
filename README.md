@@ -17,10 +17,10 @@ Used in <a href="https://modrinth.com/mod/antique-atlas-4">Antique Atlas 4</a>. 
 * Records terrain, structure, and "landmark" data suitable for maps as the world is explored / changed.
 * Holds the data in a small, compressed format in-memory and on-disk to allow full dimensions to be loaded.
 * Uses data formats that are map-mod-agnostic - i.e:
-  * Terrain data is recorded as "floors" for each x,z - including the height, block, biome, and light level.
-  * Terrain data records multiple layers of floors, allowing for usable cave and nether maps.
-  * Structures are recorded with all their base data (pieces, jigsaws with IDs etc.) intact.
-  * Landmarks can generically represent all other positional map data - e.g. waypoints, POIs, or faction claims.
+  * Terrain is a top-down view of blocks with height, biome, light level, and water depth.
+  * Terrain contains multiple layers, allowing for usable cave and nether maps.
+  * Structures are recorded with all their base data intact.
+  * Landmarks generically represent other positional map data - e.g. waypoints, POIs, or faction claims.
 * Syncs structure summaries to the client for use on maps.
 * Restores missing terrain and landmark data from the server if the client loses it.
 * Removes the need for map mods to implement save data or networking in most cases.
@@ -28,7 +28,7 @@ Used in <a href="https://modrinth.com/mod/antique-atlas-4">Antique Atlas 4</a>. 
 
 ### Configuration
 
-To force surveyor to show and share as much map data as possible globally, you can set the `shareAll` settings in `config/surveyor.toml`.
+To force surveyor to show and share map data globally, you can set the `shareAll` settings in `config/surveyor.toml`.
 
 ---
 
