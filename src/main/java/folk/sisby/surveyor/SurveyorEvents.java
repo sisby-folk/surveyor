@@ -22,46 +22,46 @@ import java.util.List;
 import java.util.Map;
 
 public class SurveyorEvents {
-    private static final Map<Identifier, WorldLoad> worldLoadHandlers = new HashMap<>();
-    private static final Map<Identifier, TerrainUpdated> chunkAddedHandlers = new HashMap<>();
-    private static final Map<Identifier, StructuresAdded> structureAddedHandlers = new HashMap<>();
-    private static final Map<Identifier, LandmarksAdded> landmarkAddedHandlers = new HashMap<>();
-    private static final Map<Identifier, LandmarksRemoved> landmarkRemovedHandlers = new HashMap<>();
+    private static final Map<Identifier, WorldLoad> worldLoad = new HashMap<>();
+    private static final Map<Identifier, TerrainUpdated> terrainUpdated = new HashMap<>();
+    private static final Map<Identifier, StructuresAdded> structuresAdded = new HashMap<>();
+    private static final Map<Identifier, LandmarksAdded> landmarksAdded = new HashMap<>();
+    private static final Map<Identifier, LandmarksRemoved> landmarksRemoved = new HashMap<>();
 
     public static class Invoke {
         public static void worldLoad(ServerWorld world, WorldSummary worldSummary) {
-            worldLoadHandlers.forEach((id, handler) -> handler.onWorldLoad(world, worldSummary));
+            worldLoad.forEach((id, handler) -> handler.onWorldLoad(world, worldSummary));
         }
 
         public static void terrainUpdated(World world, WorldTerrainSummary worldTerrain, Collection<ChunkPos> chunks) {
-            chunkAddedHandlers.forEach((id, handler) -> handler.onTerrainUpdated(world, worldTerrain, chunks));
+            terrainUpdated.forEach((id, handler) -> handler.onTerrainUpdated(world, worldTerrain, chunks));
         }
 
-        public static void chunkUpdated(World world, WorldTerrainSummary worldTerrain, ChunkPos pos) {
+        public static void terrainUpdated(World world, WorldTerrainSummary worldTerrain, ChunkPos pos) {
             terrainUpdated(world, worldTerrain, List.of(pos));
         }
 
         public static void structuresAdded(World world, WorldStructureSummary worldStructures, Multimap<RegistryKey<Structure>, ChunkPos> structures) {
-            structureAddedHandlers.forEach((id, handler) -> handler.onStructuresAdded(world, worldStructures, structures));
+            structuresAdded.forEach((id, handler) -> handler.onStructuresAdded(world, worldStructures, structures));
         }
 
-        public static void structureAdded(World world, WorldStructureSummary worldStructures, RegistryKey<Structure> key, ChunkPos pos) {
+        public static void structuresAdded(World world, WorldStructureSummary worldStructures, RegistryKey<Structure> key, ChunkPos pos) {
             structuresAdded(world, worldStructures, MapUtil.hashMultiMapOf(Map.of(key, List.of(pos))));
         }
 
         public static void landmarksAdded(World world, WorldLandmarks worldLandmarks, Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks) {
-            landmarkAddedHandlers.forEach((id, handler) -> handler.onLandmarksAdded(world, worldLandmarks, landmarks));
+            landmarksAdded.forEach((id, handler) -> handler.onLandmarksAdded(world, worldLandmarks, landmarks));
         }
 
-        public static void landmarkAdded(World world, WorldLandmarks worldLandmarks, Landmark<?> landmark) {
+        public static void landmarksAdded(World world, WorldLandmarks worldLandmarks, Landmark<?> landmark) {
             landmarksAdded(world, worldLandmarks, Map.of(landmark.type(), Map.of(landmark.pos(), landmark)));
         }
 
         public static void landmarksRemoved(World world, WorldLandmarks worldLandmarks, Multimap<LandmarkType<?>, BlockPos> landmarks) {
-            landmarkRemovedHandlers.forEach((id, handler) -> handler.onLandmarksRemoved(world, worldLandmarks, landmarks));
+            landmarksRemoved.forEach((id, handler) -> handler.onLandmarksRemoved(world, worldLandmarks, landmarks));
         }
 
-        public static void landmarkRemoved(World world, WorldLandmarks worldLandmarks, LandmarkType<?> type, BlockPos pos) {
+        public static void landmarksRemoved(World world, WorldLandmarks worldLandmarks, LandmarkType<?> type, BlockPos pos) {
             Multimap<LandmarkType<?>, BlockPos> map = HashMultimap.create();
             map.put(type, pos);
             landmarksRemoved(world, worldLandmarks, map);
@@ -70,23 +70,23 @@ public class SurveyorEvents {
 
     public static class Register {
         public static void worldLoad(Identifier id, WorldLoad handler) {
-            worldLoadHandlers.put(id, handler);
+            worldLoad.put(id, handler);
         }
 
         public static void terrainUpdated(Identifier id, TerrainUpdated handler) {
-            chunkAddedHandlers.put(id, handler);
+            terrainUpdated.put(id, handler);
         }
 
         public static void structuresAdded(Identifier id, StructuresAdded handler) {
-            structureAddedHandlers.put(id, handler);
+            structuresAdded.put(id, handler);
         }
 
         public static void landmarksAdded(Identifier id, LandmarksAdded handler) {
-            landmarkAddedHandlers.put(id, handler);
+            landmarksAdded.put(id, handler);
         }
 
         public static void landmarksRemoved(Identifier id, LandmarksRemoved handler) {
-            landmarkRemovedHandlers.put(id, handler);
+            landmarksRemoved.put(id, handler);
         }
     }
 

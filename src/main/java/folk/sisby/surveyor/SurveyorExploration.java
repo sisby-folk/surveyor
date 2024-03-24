@@ -1,9 +1,11 @@
 package folk.sisby.surveyor;
 
+import folk.sisby.surveyor.client.SurveyorClientEvents;
 import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.packet.S2CStructuresAddedPacket;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.terrain.RegionSummary;
+import folk.sisby.surveyor.terrain.WorldTerrainSummary;
 import folk.sisby.surveyor.util.MapUtil;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -13,7 +15,6 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -99,22 +100,36 @@ public interface SurveyorExploration {
 
     default void addChunk(ChunkPos pos) {
         terrain().computeIfAbsent(getWorld().getRegistryKey(), k -> new HashMap<>()).computeIfAbsent(new ChunkPos(pos.getRegionX(), pos.getRegionZ()), k -> new BitSet(RegionSummary.BITSET_SIZE)).set(RegionSummary.bitForChunk(pos));
-        // Sync to shared players if serverPlayer exists and they don't have it
+        ServerPlayerEntity serverPlayer = getServerPlayer();
+        if (serverPlayer != null) {
+            WorldTerrainSummary summary = WorldSummary.of(serverPlayer.getWorld()).terrain();
+            if (serverPlayer.getServer().isHost(serverPlayer.getGameProfile())) { // Singleplayer Client
+                SurveyorClientEvents.Invoke.terrainUpdated(serverPlayer.getWorld(), summary, pos);
+                WorldSummary.of(getWorld()).landmarks().asMap(this).forEach((type, map) -> map.forEach((lPos, landmark) -> {
+                    if (new ChunkPos(lPos).equals(pos)) {
+                        if (exploredLandmark(getWorld().getRegistryKey(), landmark)) SurveyorClientEvents.Invoke.landmarksAdded(getWorld(), WorldSummary.of(getWorld()).landmarks(), landmark);
+                    }
+                }));
+            }
+            // Sync to shared players if they don't have it
+        }
     }
 
     default void addStructure(RegistryKey<World> worldKey, RegistryKey<Structure> structureKey, ChunkPos pos) {
         structures().computeIfAbsent(worldKey, k -> new HashMap<>()).computeIfAbsent(structureKey, s -> new LongOpenHashSet()).add(pos.toLong());
     }
 
-    default void addStructure(ServerWorld world, Structure structure, ChunkPos pos) {
+    default void addStructure(Structure structure, ChunkPos pos) {
         RegistryKey<World> worldKey = getWorld().getRegistryKey();
         RegistryKey<Structure> structureKey = getWorld().getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(structure).orElseThrow();
         structures().computeIfAbsent(worldKey, k -> new HashMap<>()).computeIfAbsent(structureKey, s -> new LongOpenHashSet()).add(pos.toLong());
         ServerPlayerEntity serverPlayer = getServerPlayer();
         if (serverPlayer != null) {
-            WorldStructureSummary summary = WorldSummary.of(world).structures();
+            WorldStructureSummary summary = WorldSummary.of(serverPlayer.getWorld()).structures();
             new S2CStructuresAddedPacket(Map.of(structureKey, Map.of(pos, summary.get(structureKey, pos))), Map.of(structureKey, summary.getType(structureKey)), MapUtil.hashMultiMapOf(Map.of(structureKey, summary.getTags(structureKey)))).send(serverPlayer);
-            // Sync to shared players if they don't have it
+            if (serverPlayer.getServer().isHost(serverPlayer.getGameProfile())) { // Singleplayer Client
+                SurveyorClientEvents.Invoke.structuresAdded(serverPlayer.getWorld(), summary, structureKey, pos);
+            }
         }
     }
 

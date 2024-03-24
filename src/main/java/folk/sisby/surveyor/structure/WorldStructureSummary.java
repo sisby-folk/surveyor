@@ -122,7 +122,7 @@ public class WorldStructureSummary {
             structureTags.putAll(key, tags);
             dirty = true;
 
-            SurveyorEvents.Invoke.structureAdded(world, this, key, pos);
+            SurveyorEvents.Invoke.structuresAdded(world, this, key, pos);
             S2CStructuresAddedPacket.of(key, pos, summary, type, tags).send(world);
         }
     }
@@ -132,7 +132,7 @@ public class WorldStructureSummary {
         structureTypes.put(key, type);
         structureTags.putAll(key, tagKeys);
         dirty = true;
-        SurveyorEvents.Invoke.structureAdded(world, this, key, pos);
+        SurveyorEvents.Invoke.structuresAdded(world, this, key, pos);
     }
 
     protected NbtCompound writeNbt(NbtCompound nbt) {

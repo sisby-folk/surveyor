@@ -38,7 +38,7 @@ public class MixinClientWorld implements SurveyorWorld {
         for (AbstractClientPlayerEntity player : self.getPlayers()) {
             if (MinecraftClient.getInstance().player == player && SurveyorClientEvents.INITIALIZING_WORLD) {
                 SurveyorClientEvents.INITIALIZING_WORLD = false;
-                SurveyorClientEvents.Invoke.clientPlayerLoad(player.clientWorld, WorldSummary.of(player.getWorld()), MinecraftClient.getInstance().player);
+                SurveyorClientEvents.Invoke.worldLoad(player.clientWorld, WorldSummary.of(player.getWorld()), MinecraftClient.getInstance().player);
             }
         }
     }

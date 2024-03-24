@@ -31,7 +31,6 @@ public class MixinMinecraftClient {
             new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
             new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
             new C2SKnownLandmarksPacket(summary.landmarks().keySet(null).asMap()).send();
-            SurveyorClientEvents.Invoke.clientWorldLoad(newWorld, summary);
         }
         SurveyorClientEvents.INITIALIZING_WORLD = true;
     }

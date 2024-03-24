@@ -142,5 +142,16 @@ public class SurveyorClient implements ClientModInitializer {
         public int getViewDistance() {
             return MinecraftClient.getInstance().options.getViewDistance().getValue();
         }
+
+        @Override
+        public void addChunk(ChunkPos pos) {
+            SurveyorExploration.super.addChunk(pos);
+            SurveyorClientEvents.Invoke.terrainUpdated(getWorld(), WorldSummary.of(getWorld()).terrain(), pos);
+            WorldSummary.of(getWorld()).landmarks().asMap(this).forEach((type, map) -> map.forEach((lPos, landmark) -> {
+                if (new ChunkPos(lPos).equals(pos)) {
+                    if (exploredLandmark(getWorld().getRegistryKey(), landmark)) SurveyorClientEvents.Invoke.landmarksAdded(getWorld(), WorldSummary.of(getWorld()).landmarks(), landmark);
+                }
+            }));
+        }
     }
 }

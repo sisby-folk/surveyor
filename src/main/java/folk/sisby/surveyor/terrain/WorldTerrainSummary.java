@@ -85,7 +85,7 @@ public class WorldTerrainSummary {
 
     public void put(World world, Chunk chunk) {
         regions.computeIfAbsent(regionPosOf(chunk.getPos()), k -> new RegionSummary()).putChunk(world, chunk);
-        SurveyorEvents.Invoke.chunkUpdated(world, this, chunk.getPos());
+        SurveyorEvents.Invoke.terrainUpdated(world, this, chunk.getPos());
     }
 
     public int save(World world, File folder) {
