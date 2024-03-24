@@ -15,6 +15,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -98,7 +99,8 @@ public interface SurveyorExploration {
         terrain().computeIfAbsent(worldKey, k -> new HashMap<>()).computeIfAbsent(regionPos, p -> new BitSet(RegionSummary.REGION_SIZE)).or(bitSet);
     }
 
-    default void addChunk(ChunkPos pos) {
+    default void addChunk(RegistryKey<World> worldKey, ChunkPos pos) {
+        if (exploredChunk(worldKey, pos)) return;
         terrain().computeIfAbsent(getWorld().getRegistryKey(), k -> new HashMap<>()).computeIfAbsent(new ChunkPos(pos.getRegionX(), pos.getRegionZ()), k -> new BitSet(RegionSummary.BITSET_SIZE)).set(RegionSummary.bitForChunk(pos));
         ServerPlayerEntity serverPlayer = getServerPlayer();
         if (serverPlayer != null) {
@@ -116,13 +118,13 @@ public interface SurveyorExploration {
     }
 
     default void addStructure(RegistryKey<World> worldKey, RegistryKey<Structure> structureKey, ChunkPos pos) {
+        if (exploredStructure(worldKey, structureKey, pos)) return;
         structures().computeIfAbsent(worldKey, k -> new HashMap<>()).computeIfAbsent(structureKey, s -> new LongOpenHashSet()).add(pos.toLong());
     }
 
-    default void addStructure(Structure structure, ChunkPos pos) {
-        RegistryKey<World> worldKey = getWorld().getRegistryKey();
-        RegistryKey<Structure> structureKey = getWorld().getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(structure).orElseThrow();
-        structures().computeIfAbsent(worldKey, k -> new HashMap<>()).computeIfAbsent(structureKey, s -> new LongOpenHashSet()).add(pos.toLong());
+    default void addStructure(ServerWorld world, RegistryKey<Structure> structureKey, ChunkPos pos) {
+        if (exploredStructure(world.getRegistryKey(), structureKey, pos)) return;
+        structures().computeIfAbsent(world.getRegistryKey(), k -> new HashMap<>()).computeIfAbsent(structureKey, s -> new LongOpenHashSet()).add(pos.toLong());
         ServerPlayerEntity serverPlayer = getServerPlayer();
         if (serverPlayer != null) {
             WorldStructureSummary summary = WorldSummary.of(serverPlayer.getWorld()).structures();
@@ -164,7 +166,6 @@ public interface SurveyorExploration {
     }
 
     default void read(NbtCompound nbt) {
-        terrain().clear();
         NbtCompound terrainCompound = nbt.getCompound(KEY_EXPLORED_TERRAIN);
         for (String worldKeyString : terrainCompound.getKeys()) {
             long[] regionArray = terrainCompound.getLongArray(worldKeyString);
@@ -186,7 +187,6 @@ public interface SurveyorExploration {
             terrain().put(RegistryKey.of(RegistryKeys.WORLD, new Identifier(worldKeyString)), regionMap);
         }
 
-        structures().clear();
         NbtCompound structuresCompound = nbt.getCompound(KEY_EXPLORED_STRUCTURES);
         for (String worldKeyString : structuresCompound.getKeys()) {
             Map<RegistryKey<Structure>, LongSet> structureMap = new HashMap<>();

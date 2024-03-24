@@ -80,7 +80,7 @@ public class SurveyorClient implements ClientModInitializer {
         ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
             if (WorldSummary.of(world).isClient()) {
                 WorldTerrainSummary.onChunkLoad(world, chunk);
-                ClientExploration.INSTANCE.addChunk(chunk.getPos());
+                ClientExploration.INSTANCE.addChunk(world.getRegistryKey(), chunk.getPos());
             }
         });
         ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
@@ -111,16 +111,21 @@ public class SurveyorClient implements ClientModInitializer {
         }
 
         public static void onUnload() {
-            if (saveFile == null) return;
-            try {
-                NbtCompound nbt = ClientExploration.INSTANCE.write(new NbtCompound());
-                NbtCompound sharedNbt = ClientExploration.SHARED.write(new NbtCompound());
-                nbt.put(KEY_SHARED, sharedNbt);
-                NbtIo.writeCompressed(nbt, saveFile);
-            } catch (IOException e) {
-                Surveyor.LOGGER.error("[Surveyor] Error saving client exploration file.", e);
+            if (saveFile != null) {
+                try {
+                    NbtCompound nbt = ClientExploration.INSTANCE.write(new NbtCompound());
+                    NbtCompound sharedNbt = ClientExploration.SHARED.write(new NbtCompound());
+                    nbt.put(KEY_SHARED, sharedNbt);
+                    NbtIo.writeCompressed(nbt, saveFile);
+                } catch (IOException e) {
+                    Surveyor.LOGGER.error("[Surveyor] Error saving client exploration file.", e);
+                }
+                saveFile = null;
             }
-            saveFile = null;
+            ClientExploration.INSTANCE.terrain().clear();
+            ClientExploration.INSTANCE.structures.clear();
+            ClientExploration.SHARED.terrain.clear();
+            ClientExploration.SHARED.structures.clear();
         }
 
         @Override
@@ -144,8 +149,14 @@ public class SurveyorClient implements ClientModInitializer {
         }
 
         @Override
-        public void addChunk(ChunkPos pos) {
-            SurveyorExploration.super.addChunk(pos);
+        public void addStructure(RegistryKey<World> worldKey, RegistryKey<Structure> structureKey, ChunkPos pos) {
+            SurveyorExploration.super.addStructure(worldKey, structureKey, pos);
+            SurveyorClientEvents.Invoke.structuresAdded(getWorld(), WorldSummary.of(getWorld()).structures(), structureKey, pos);
+        }
+
+        @Override
+        public void addChunk(RegistryKey<World> worldKey, ChunkPos pos) {
+            SurveyorExploration.super.addChunk(worldKey, pos);
             SurveyorClientEvents.Invoke.terrainUpdated(getWorld(), WorldSummary.of(getWorld()).terrain(), pos);
             WorldSummary.of(getWorld()).landmarks().asMap(this).forEach((type, map) -> map.forEach((lPos, landmark) -> {
                 if (new ChunkPos(lPos).equals(pos)) {
