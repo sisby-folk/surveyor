@@ -1,7 +1,11 @@
 package folk.sisby.surveyor.structure;
 
+import folk.sisby.surveyor.Surveyor;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.structure.StructureContext;
 import net.minecraft.structure.StructurePiece;
 import net.minecraft.structure.StructurePieceType;
@@ -9,6 +13,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.StructureWorldAccess;
 import net.minecraft.world.gen.StructureAccessor;
@@ -16,14 +21,17 @@ import net.minecraft.world.gen.chunk.ChunkGenerator;
 
 public class StructurePieceSummary extends StructurePiece {
     protected final NbtCompound pieceNbt;
+    protected final RegistryKey<StructurePieceType> typeKey;
 
     public StructurePieceSummary(StructurePieceType type, int chainLength, BlockBox boundingBox, NbtCompound pieceNbt) {
         super(type, chainLength, boundingBox);
+        this.typeKey = Registries.STRUCTURE_PIECE.getKey(type).orElseThrow();
         this.pieceNbt = pieceNbt;
     }
 
     public StructurePieceSummary(NbtCompound nbt) {
-        super(Registries.STRUCTURE_PIECE.get(new Identifier(nbt.getString("id"))), nbt);
+        super(Registries.STRUCTURE_PIECE.get(new Identifier(nbt.getString("id"))), nbt); // Might set the type as null
+        this.typeKey = RegistryKey.of(RegistryKeys.STRUCTURE_PIECE, new Identifier(nbt.getString("id")));
         this.pieceNbt = nbt.getCompound("nbt");
     }
 
@@ -41,7 +49,14 @@ public class StructurePieceSummary extends StructurePiece {
     }
 
     public final NbtCompound toNbt() {
-        return toNbt(null); // context only used for writeNbt
+        NbtCompound nbt = new NbtCompound();
+        nbt.putString("id", typeKey.getValue().toString());
+        BlockBox.CODEC.encodeStart(NbtOps.INSTANCE, this.boundingBox).resultOrPartial(Surveyor.LOGGER::error).ifPresent(nbtElement -> nbt.put("BB", nbtElement));
+        Direction direction = this.getFacing();
+        nbt.putInt("O", direction == null ? -1 : direction.getHorizontal());
+        nbt.putInt("GD", this.chainLength);
+        this.writeNbt(null, nbt);  // context only used for writeNbt
+        return nbt;
     }
 
     @Override
