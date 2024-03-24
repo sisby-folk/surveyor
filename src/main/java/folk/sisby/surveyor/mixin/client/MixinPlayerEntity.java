@@ -1,6 +1,6 @@
 package folk.sisby.surveyor.mixin.client;
 
-import folk.sisby.surveyor.SurveyorWorld;
+import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.client.SurveyorClient;
 import folk.sisby.surveyor.landmark.PlayerDeathLandmark;
 import folk.sisby.surveyor.util.TextUtil;
@@ -18,8 +18,8 @@ public class MixinPlayerEntity {
     public void onClientDeath(DamageSource damageSource, CallbackInfo ci) {
         PlayerEntity self = (PlayerEntity) (Object) this;
         if (self instanceof ServerPlayerEntity) return;
-        if (((SurveyorWorld) self.getWorld()).surveyor$getWorldSummary().isClient() && !SurveyorClient.serverSupported()) {
-            ((SurveyorWorld) self.getWorld()).surveyor$getWorldSummary().landmarks().put(
+        if (WorldSummary.of(self.getWorld()).isClient() && !SurveyorClient.serverSupported()) {
+            WorldSummary.of(self.getWorld()).landmarks().put(
                 self.getWorld(),
                 new PlayerDeathLandmark(self.getBlockPos(), self.getUuid(), TextUtil.stripInteraction(self.getDamageTracker().getDeathMessage()), self.getWorld().getTimeOfDay(), self.getRandom().nextInt())
             );

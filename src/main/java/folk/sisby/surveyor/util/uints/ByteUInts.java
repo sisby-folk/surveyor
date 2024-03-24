@@ -1,5 +1,6 @@
-package folk.sisby.surveyor.util;
+package folk.sisby.surveyor.util.uints;
 
+import folk.sisby.surveyor.util.ArrayUtil;
 import net.minecraft.nbt.NbtByte;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;

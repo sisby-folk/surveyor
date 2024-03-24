@@ -1,6 +1,7 @@
-package folk.sisby.surveyor.util;
+package folk.sisby.surveyor.util.uints;
 
 import com.google.common.primitives.Bytes;
+import folk.sisby.surveyor.util.ArrayUtil;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.network.PacketByteBuf;

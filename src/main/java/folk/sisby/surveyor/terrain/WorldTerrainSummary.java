@@ -3,7 +3,6 @@ package folk.sisby.surveyor.terrain;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
-import folk.sisby.surveyor.SurveyorWorld;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.util.ChunkUtil;
 import net.minecraft.block.Block;
@@ -22,13 +21,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static folk.sisby.surveyor.terrain.RegionSummary.REGION_SIZE;
 
 public class WorldTerrainSummary {
     protected final RegistryKey<World> worldKey;
@@ -69,22 +66,21 @@ public class WorldTerrainSummary {
 
     public Map<ChunkPos, BitSet> bitSet(SurveyorExploration exploration) {
         Map<ChunkPos, BitSet> map = new HashMap<>();
-        if (exploration != null && !Surveyor.CONFIG.shareAllTerrain) {
-            map.putAll(exploration.surveyor$exploredTerrain().getOrDefault(worldKey, Map.of()));
-        } else {
-            regions.forEach((p, r) -> map.put(p, r.bitSet()));
+        regions.forEach((p, r) -> map.put(p, r.bitSet()));
+        if (exploration != null) {
+            exploration.limitTerrainBitset(worldKey, map);
         }
         return map;
     }
 
-    public Set<ChunkPos> keySet(SurveyorExploration exploration) {
-        Set<ChunkPos> set = new HashSet<>();
-        if (exploration != null && !Surveyor.CONFIG.shareAllTerrain) {
-            set.addAll(exploration.surveyor$exploredTerrain().getOrDefault(worldKey, Map.of()).entrySet().stream().flatMap(e -> e.getValue().stream().mapToObj(i -> new ChunkPos((e.getKey().x * REGION_SIZE) + i / REGION_SIZE, (e.getKey().z * REGION_SIZE) + i % REGION_SIZE))).toList());
-        } else {
-            regions.forEach((p, r) -> set.addAll(r.keySet(p)));
-        }
+    public static Set<ChunkPos> toKeys(Map<ChunkPos, BitSet> bitSets) {
+        Set<ChunkPos> set = new LinkedHashSet<>();
+        bitSets.forEach((rPos, bitSet) -> bitSet.stream().forEach(i -> set.add(RegionSummary.chunkForBit(rPos, i))));
         return set;
+    }
+
+    public Set<ChunkPos> keySet(SurveyorExploration exploration) {
+        return toKeys(bitSet(exploration));
     }
 
     public void put(World world, Chunk chunk) {
@@ -139,14 +135,14 @@ public class WorldTerrainSummary {
     }
 
     public static void onChunkLoad(World world, Chunk chunk) {
-        WorldSummary summary = ((SurveyorWorld) world).surveyor$getWorldSummary();
+        WorldSummary summary = WorldSummary.of(world);
         if ((!summary.terrain().contains(chunk.getPos()) || !ChunkUtil.airCount(chunk).equals(summary.terrain().get(chunk.getPos()).getAirCount()))){
             summary.terrain().put(world, chunk);
         }
     }
 
     public static void onChunkUnload(World world, WorldChunk chunk) {
-        WorldSummary summary = ((SurveyorWorld) world).surveyor$getWorldSummary();
+        WorldSummary summary = WorldSummary.of(world);
         if (chunk.needsSaving()) {
             summary.terrain().put(world, chunk);
         }

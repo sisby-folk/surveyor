@@ -2,7 +2,7 @@ package folk.sisby.surveyor.client;
 
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorExploration;
-import folk.sisby.surveyor.SurveyorWorld;
+import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
 import folk.sisby.surveyor.terrain.WorldTerrainSummary;
 import it.unimi.dsi.fastutil.longs.LongSet;
@@ -66,7 +66,7 @@ public class SurveyorClient implements ClientModInitializer {
 
     public static SurveyorExploration getExploration(ClientPlayerEntity player) {
         if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
-            return (SurveyorExploration) MinecraftClient.getInstance().getServer().getWorld(MinecraftClient.getInstance().world.getRegistryKey()).getPlayerByUuid(player.getUuid());
+            return SurveyorExploration.of((ServerPlayerEntity) MinecraftClient.getInstance().getServer().getWorld(MinecraftClient.getInstance().world.getRegistryKey()).getPlayerByUuid(player.getUuid()));
         } else {
             return ClientExploration.INSTANCE;
         }
@@ -78,25 +78,25 @@ public class SurveyorClient implements ClientModInitializer {
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(ClientExploration::onLoad));
         ClientPlayConnectionEvents.DISCONNECT.register(((handler, client) -> ClientExploration.onUnload()));
         ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
-            if (((SurveyorWorld) world).surveyor$getWorldSummary().isClient()) {
-                ClientExploration.INSTANCE.surveyor$addExploredChunk(chunk.getPos());
+            if (WorldSummary.of(world).isClient()) {
                 WorldTerrainSummary.onChunkLoad(world, chunk);
+                ClientExploration.INSTANCE.addChunk(chunk.getPos());
             }
         });
         ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
-            if (((SurveyorWorld) world).surveyor$getWorldSummary().isClient()) WorldTerrainSummary.onChunkUnload(world, chunk);
+            if (WorldSummary.of(world).isClient()) WorldTerrainSummary.onChunkUnload(world, chunk);
         });
     }
 
-    private record ClientExploration(Map<RegistryKey<World>, Map<ChunkPos, BitSet>> surveyor$exploredTerrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> surveyor$exploredStructures) implements SurveyorExploration {
+    private record ClientExploration(Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures) implements SurveyorExploration {
         public static final String KEY_SHARED = "shared";
         public static final ClientExploration INSTANCE = new ClientExploration(new HashMap<>(), new HashMap<>());
         public static final ClientExploration SHARED = new ClientExploration(new HashMap<>(), new HashMap<>());
         public static File saveFile = null;
 
         public static void onLoad() {
-            if (((SurveyorWorld) MinecraftClient.getInstance().world).surveyor$getWorldSummary().isClient()) {
-                saveFile = getSavePath(INSTANCE.surveyor$getWorld()).toPath().resolve(Uuids.getUuidFromProfile(MinecraftClient.getInstance().getSession().getProfile()).toString() + ".dat").toFile();
+            if (WorldSummary.of(MinecraftClient.getInstance().world).isClient()) {
+                saveFile = getSavePath(INSTANCE.getWorld()).toPath().resolve(Uuids.getUuidFromProfile(MinecraftClient.getInstance().getSession().getProfile()).toString() + ".dat").toFile();
                 NbtCompound explorationNbt = new NbtCompound();
                 if (saveFile.exists()) {
                     try {
@@ -105,16 +105,16 @@ public class SurveyorClient implements ClientModInitializer {
                         Surveyor.LOGGER.error("[Surveyor] Error loading client exploration file.", e);
                     }
                 }
-                ClientExploration.INSTANCE.readExplorationData(explorationNbt);
-                ClientExploration.SHARED.readExplorationData(explorationNbt.getCompound(KEY_SHARED));
+                ClientExploration.INSTANCE.read(explorationNbt);
+                ClientExploration.SHARED.read(explorationNbt.getCompound(KEY_SHARED));
             }
         }
 
         public static void onUnload() {
             if (saveFile == null) return;
             try {
-                NbtCompound nbt = ClientExploration.INSTANCE.writeExplorationData(new NbtCompound());
-                NbtCompound sharedNbt = ClientExploration.SHARED.writeExplorationData(new NbtCompound());
+                NbtCompound nbt = ClientExploration.INSTANCE.write(new NbtCompound());
+                NbtCompound sharedNbt = ClientExploration.SHARED.write(new NbtCompound());
                 nbt.put(KEY_SHARED, sharedNbt);
                 NbtIo.writeCompressed(nbt, saveFile);
             } catch (IOException e) {
@@ -124,22 +124,22 @@ public class SurveyorClient implements ClientModInitializer {
         }
 
         @Override
-        public Set<UUID> surveyor$sharedPlayers() {
+        public Set<UUID> sharedPlayers() {
             return Set.of(Uuids.getUuidFromProfile(MinecraftClient.getInstance().getSession().getProfile()));
         }
 
         @Override
-        public World surveyor$getWorld() {
+        public World getWorld() {
             return MinecraftClient.getInstance().world;
         }
 
         @Override
-        public @Nullable ServerPlayerEntity surveyor$getServerPlayer() {
+        public @Nullable ServerPlayerEntity getServerPlayer() {
             return null;
         }
 
         @Override
-        public int surveyor$getViewDistance() {
+        public int getViewDistance() {
             return MinecraftClient.getInstance().options.getViewDistance().getValue();
         }
     }

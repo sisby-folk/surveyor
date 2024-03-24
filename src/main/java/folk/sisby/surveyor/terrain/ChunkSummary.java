@@ -2,7 +2,7 @@ package folk.sisby.surveyor.terrain;
 
 import folk.sisby.surveyor.util.ArrayUtil;
 import folk.sisby.surveyor.util.ChunkUtil;
-import folk.sisby.surveyor.util.UIntArray;
+import folk.sisby.surveyor.util.uints.UIntArray;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.MapColor;

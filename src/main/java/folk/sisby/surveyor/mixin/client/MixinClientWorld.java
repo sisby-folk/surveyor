@@ -6,7 +6,6 @@ import folk.sisby.surveyor.client.SurveyorClient;
 import folk.sisby.surveyor.client.SurveyorClientEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.world.ClientWorld;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -25,7 +24,7 @@ public class MixinClientWorld implements SurveyorWorld {
     public WorldSummary surveyor$getWorldSummary() {
         if (surveyor$worldSummary == null) {
             if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
-                surveyor$worldSummary = ((SurveyorWorld) MinecraftClient.getInstance().getServer().getWorld(((ClientWorld) (Object) this).getRegistryKey())).surveyor$getWorldSummary();
+                surveyor$worldSummary = WorldSummary.of(MinecraftClient.getInstance().getServer().getWorld(((ClientWorld) (Object) this).getRegistryKey()));
             } else {
                 surveyor$worldSummary = WorldSummary.load((ClientWorld) (Object) this, SurveyorClient.getWorldSavePath((ClientWorld) (Object) this), true);
             }
@@ -39,7 +38,7 @@ public class MixinClientWorld implements SurveyorWorld {
         for (AbstractClientPlayerEntity player : self.getPlayers()) {
             if (MinecraftClient.getInstance().player == player && SurveyorClientEvents.INITIALIZING_WORLD) {
                 SurveyorClientEvents.INITIALIZING_WORLD = false;
-                SurveyorClientEvents.Invoke.clientPlayerLoad(player.clientWorld, ((SurveyorWorld) player.getWorld()).surveyor$getWorldSummary(), MinecraftClient.getInstance().player);
+                SurveyorClientEvents.Invoke.clientPlayerLoad(player.clientWorld, WorldSummary.of(player.getWorld()), MinecraftClient.getInstance().player);
             }
         }
     }

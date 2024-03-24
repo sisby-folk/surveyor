@@ -13,7 +13,6 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
@@ -42,15 +41,11 @@ public class WorldLandmarks {
         return (Landmark<T>) landmarks.get(type).get(pos);
     }
 
-    protected boolean exploredLandmark(Landmark<?> landmark, SurveyorExploration exploration) {
-        return exploration == null || Surveyor.CONFIG.shareAllLandmarks || (landmark.owner() == null ? exploration.surveyor$exploredChunk(worldKey, new ChunkPos(landmark.pos())) : exploration.surveyor$sharedPlayers().contains(landmark.owner()));
-    }
-
     @SuppressWarnings("unchecked")
     public <T extends Landmark<T>> Map<BlockPos, T> asMap(LandmarkType<T> type, SurveyorExploration exploration) {
         Map<BlockPos, T> outMap = new HashMap<>();
         if (landmarks.containsKey(type)) landmarks.get(type).forEach((pos, landmark) -> {
-            if (exploredLandmark(landmark, exploration)) outMap.put(pos, (T) landmark);
+            if (exploration == null || exploration.exploredLandmark(worldKey, landmark)) outMap.put(pos, (T) landmark);
         });
         return outMap;
     }
@@ -58,7 +53,7 @@ public class WorldLandmarks {
     public Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> asMap(SurveyorExploration exploration) {
         Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> outmap = new HashMap<>();
         landmarks.forEach((type, map) -> map.forEach((pos, landmark) -> {
-            if (exploredLandmark(landmark, exploration)) outmap.computeIfAbsent(type, t -> new HashMap<>()).put(pos, landmark);
+            if (exploration == null || exploration.exploredLandmark(worldKey, landmark)) outmap.computeIfAbsent(type, t -> new HashMap<>()).put(pos, landmark);
         }));
         return outmap;
     }
@@ -66,7 +61,7 @@ public class WorldLandmarks {
     public Multimap<LandmarkType<?>, BlockPos> keySet(SurveyorExploration exploration) {
         Multimap<LandmarkType<?>, BlockPos> outMap = HashMultimap.create();
         landmarks.forEach((type, map) -> map.forEach((pos, landmark) -> {
-            if (exploredLandmark(landmark, exploration)) outMap.put(type, pos);
+            if (exploration == null || exploration.exploredLandmark(worldKey, landmark)) outMap.put(type, pos);
         }));
         return outMap;
     }

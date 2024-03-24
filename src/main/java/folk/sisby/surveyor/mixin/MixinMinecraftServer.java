@@ -1,7 +1,7 @@
 package folk.sisby.surveyor.mixin;
 
 import folk.sisby.surveyor.Surveyor;
-import folk.sisby.surveyor.SurveyorWorld;
+import folk.sisby.surveyor.WorldSummary;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,7 +15,7 @@ public class MixinMinecraftServer {
     private void saveSummaries(boolean suppressLogs, boolean flush, boolean force, CallbackInfoReturnable<Boolean> cir) {
         MinecraftServer self = (MinecraftServer) (Object) this;
         for (ServerWorld world : self.getWorlds()) {
-            if (!world.savingDisabled || force) ((SurveyorWorld) world).surveyor$getWorldSummary().save(world, Surveyor.getSavePath(world), suppressLogs);
+            if (!world.savingDisabled || force) WorldSummary.of(world).save(world, Surveyor.getSavePath(world), suppressLogs);
         }
     }
 }

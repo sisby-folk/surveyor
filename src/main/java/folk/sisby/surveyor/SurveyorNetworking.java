@@ -90,7 +90,7 @@ public class SurveyorNetworking {
 
     private static <T extends C2SPacket> void handleServer(ServerPlayerEntity player, PacketByteBuf buf, Function<PacketByteBuf, T> reader, ServerPacketHandler<T> handler) {
         T packet = reader.apply(buf);
-        handler.handle(player, player.getServerWorld(), ((SurveyorWorld) player.getServerWorld()).surveyor$getWorldSummary(), packet);
+        handler.handle(player, player.getServerWorld(), WorldSummary.of(player.getServerWorld()), packet);
     }
 
     public interface ServerPacketHandler<T extends C2SPacket> {

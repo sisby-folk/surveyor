@@ -2,7 +2,7 @@ package folk.sisby.surveyor.terrain;
 
 import folk.sisby.surveyor.util.ArrayUtil;
 import folk.sisby.surveyor.util.PaletteUtil;
-import folk.sisby.surveyor.util.UIntArray;
+import folk.sisby.surveyor.util.uints.UIntArray;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.nbt.NbtCompound;

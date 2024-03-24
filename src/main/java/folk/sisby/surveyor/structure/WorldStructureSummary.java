@@ -6,7 +6,7 @@ import com.google.common.collect.Multimaps;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
-import folk.sisby.surveyor.SurveyorWorld;
+import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.packet.S2CStructuresAddedPacket;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 public class WorldStructureSummary {
     public static final String KEY_STRUCTURES = "structures";
@@ -83,24 +82,17 @@ public class WorldStructureSummary {
     }
 
     public Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> asMap(SurveyorExploration exploration) {
+        Map<RegistryKey<Structure>, Set<ChunkPos>> keySet = keySet(exploration);
         Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> map = new HashMap<>();
-        structures.forEach((key, starts) -> starts.forEach((pos, summary) -> map.computeIfAbsent(key, t -> new HashMap<>()).put(pos, summary)));
-        if (exploration != null && !Surveyor.CONFIG.shareAllStructures) {
-            exploration.surveyor$exploredStructures().getOrDefault(worldKey, Map.of()).forEach((key, starts) -> {
-                if (map.containsKey(key)) {
-                    starts.forEach(l -> map.get(key).remove(new ChunkPos(l)));
-                }
-            });
-        }
+        keySet.forEach((key, starts) -> starts.forEach(pos -> map.computeIfAbsent(key, k -> new HashMap<>()).put(pos, get(key, pos))));
         return map;
     }
 
     public Map<RegistryKey<Structure>, Set<ChunkPos>> keySet(SurveyorExploration exploration) {
         Map<RegistryKey<Structure>, Set<ChunkPos>> map = new HashMap<>();
-        if (exploration != null && !Surveyor.CONFIG.shareAllStructures) {
-            map.putAll(exploration.surveyor$exploredStructures().getOrDefault(worldKey, Map.of()).entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().longStream().mapToObj(ChunkPos::new).collect(Collectors.toSet()))));
-        } else {
-            structures.forEach((key, starts) -> starts.forEach((pos, summary) -> map.computeIfAbsent(key, p -> new HashSet<>()).add(pos)));
+        structures.forEach((key, starts) -> starts.forEach((pos, summary) -> map.computeIfAbsent(key, p -> new HashSet<>()).add(pos)));
+        if (exploration != null) {
+            exploration.limitStructureKeySet(worldKey, map);
         }
         return map;
     }
@@ -225,14 +217,14 @@ public class WorldStructureSummary {
     }
 
     public static void onChunkLoad(ServerWorld world, Chunk chunk) {
-        WorldStructureSummary structures = ((SurveyorWorld) world).surveyor$getWorldSummary().structures();
+        WorldStructureSummary structures = WorldSummary.of(world).structures();
         chunk.getStructureStarts().forEach((structure, start) -> {
             if (!structures.contains(world, start)) structures.put(world, start);
         });
     }
 
     public static void onStructurePlace(ServerWorld world, StructureStart start) {
-        WorldStructureSummary structures = ((SurveyorWorld) world).surveyor$getWorldSummary().structures();
+        WorldStructureSummary structures = WorldSummary.of(world).structures();
         if (!structures.contains(world, start)) structures.put(world, start);
     }
 }

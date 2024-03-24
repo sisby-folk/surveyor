@@ -1,21 +1,22 @@
-package folk.sisby.surveyor.util;
+package folk.sisby.surveyor.util.uints;
 
+import folk.sisby.surveyor.util.ArrayUtil;
+import net.minecraft.nbt.NbtByteArray;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtIntArray;
 import net.minecraft.network.PacketByteBuf;
 
 import java.util.BitSet;
 
-public record IntArrayUInts(int[] value) implements UIntArray {
-    public static final int TYPE = NbtElement.INT_ARRAY_TYPE;
+public record ByteArrayUInts(byte[] value) implements UIntArray {
+    public static final int TYPE = NbtElement.BYTE_ARRAY_TYPE;
 
     public static UIntArray fromNbt(NbtElement nbt) {
-        return new IntArrayUInts(((NbtIntArray) nbt).getIntArray());
+        return new ByteArrayUInts(((NbtByteArray) nbt).getByteArray());
     }
 
     public static UIntArray fromBuf(PacketByteBuf buf) {
-        return new IntArrayUInts(buf.readIntArray());
+        return new ByteArrayUInts(buf.readByteArray());
     }
 
     @Override
@@ -26,7 +27,9 @@ public record IntArrayUInts(int[] value) implements UIntArray {
     @Override
     public int[] getUncompressed() {
         int[] uncompressed = ArrayUtil.ofSingle(-1, 256);
-        System.arraycopy(value, 0, uncompressed, 0, value.length);
+        for (int i = 0; i < value.length; i++) {
+            uncompressed[i] = value[i] + UINT_BYTE_OFFSET;
+        }
         return uncompressed;
     }
 
@@ -36,7 +39,7 @@ public record IntArrayUInts(int[] value) implements UIntArray {
         int maskedIndex = 0;
         for (int i = 0; i < 256; i++) {
             if (mask.get(i)) {
-                unmasked[i] = value[maskedIndex];
+                unmasked[i] = value[maskedIndex] + UINT_BYTE_OFFSET;
                 maskedIndex++;
             }
         }
@@ -45,16 +48,16 @@ public record IntArrayUInts(int[] value) implements UIntArray {
 
     @Override
     public void writeNbt(NbtCompound nbt, String key) {
-        nbt.putIntArray(key, value);
+        nbt.putByteArray(key, value);
     }
 
     @Override
     public void writeBuf(PacketByteBuf buf) {
-        buf.writeIntArray(value);
+        buf.writeByteArray(value);
     }
 
     @Override
     public int get(int i) {
-        return value[i];
+        return value[i] + UINT_BYTE_OFFSET;
     }
 }

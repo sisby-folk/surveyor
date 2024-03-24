@@ -8,6 +8,10 @@ import net.minecraft.world.World;
 import java.io.File;
 
 public record WorldSummary(WorldTerrainSummary terrain, WorldStructureSummary structures, WorldLandmarks landmarks, boolean isClient) {
+    public static WorldSummary of(World world) {
+        return ((SurveyorWorld) world).surveyor$getWorldSummary();
+    }
+    
     public static WorldSummary load(World world, File folder, boolean isClient) {
         Surveyor.LOGGER.info("[Surveyor] Loading data for {}", world.getRegistryKey().getValue());
         folder.mkdirs();

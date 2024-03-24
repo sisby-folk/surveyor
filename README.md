@@ -4,7 +4,7 @@
 <center>
 <img alt="surveyor banner" src="https://github.com/sisby-folk/surveyor/assets/55819817/a591c325-e87b-48cb-8e00-bda80c9ac8a2"><br/>
 A unified save and server-integration framework for client-side map mods (and others).<br/>
-Used in <a href="https://modrinth.com/mod/antique-atlas-4">Antique Atlas 4</a>.<br/>
+Used in <a href="https://modrinth.com/mod/antique-atlas-4">Antique Atlas 4</a>. Try it with <a href="https://github.com/HestiMae/surveyor-surveyor">SurveyorSurveyor</a>!<br/>
 <!-- Requires <a href="https://modrinth.com/mod/connector">Connector</a> and <a href="https://modrinth.com/mod/forgified-fabric-api">FFAPI</a> on forge.<br/> -->
 <i>Other names considered: Polaris, Ichnite, Trackway, Lay of the Land, Worldsense, and Lithography.</i>
 </center>
@@ -48,106 +48,108 @@ repositories {
 }
 
 dependencies {
-    modImplementation 'folk.sisby:surveyor:0.1.0-beta.1+1.20'
-    include 'folk.sisby:surveyor:0.1.0-beta.1+1.20'
+    modImplementation 'folk.sisby:surveyor:0.1.0-beta.8+1.20'
+    include 'folk.sisby:surveyor:0.1.0-beta.8+1.20'
 }
 ```
 
-### Core Concept - Terrain Summaries
+### Core Concepts
 
-**Terrain Summaries** (or "Chunk" or "Region" summaries) represent blocks for rendering on maps.<br/>
-They're added and changed per-chunk, but paletted and saved per-region.<br/>
-Each chunk summary consists of **Floors**, non-clear solid blocks below two contiguous non-solid blocks.<br/>
-Floors are stored in **Layers**, which hold the topmost floors for each x,z column over specific range of y-values.<br/>
-This is best explained by example.
+The **World Summary** holds all of surveyor's data for a world. It can be accessed using `WorldSummary.of(World)`.
 
-**The Overworld** has layers at:
-- 319 - always empty unless players build there
-- 256 - most surface terrain
-- 61 - the sea floor, ravines, and caves
-- 0 - deepslate caves
+**Chunk Summaries** (or the "Terrain Summary") represent the world viewed from above. This includes the top layer of blocks, along with their biome, height, block light level, and the depth of water above them.
 
-**The Nether** has layers at:
-* 255 - empty bedrock ceiling unless players use exploits to build there
-* 126 - high caves and outcrops
-* 70 - mid-level outcrops and walkways
-* 40 - the lava sea and shores
-
-The layering dictates the **maximum number of floors surveyor can detect in an x,z column**.<br/>
-If it finds one floor in a layer, it can't find another floor until the next layer starts.<br/>
-More layers is "higher definition" - harder to miss a cave underneath another cave - but will take up more space.
-
-Layering does not dictate **how maps display floors** - surveyor can provide the top known floors between any two arbitrary y values, so cave maps can easily be overlayed, combined, displayed as transparent, etc.
-
-### Other Concepts
-
-The **World Summary** holds all of surveyor's data for a world. It can be accessed through the `SurveyorWorld` duck.
-
-**Structure Summaries** represent an in-world structure (called `StructureStart` in yarn) - they include map-critical information for identifying the structure and its pieces, but not any actual blocks or piece NBT. 
+**Structure Summaries** represent an in-world structure (called `StructureStart` in yarn) - they include map-critical information for identifying the structure and its pieces, but not any actual blocks or piece NBT.
 
 **Landmarks** are a way to represent all other positional information on-map. They have unique serialization per-type, and are uniquely keyed by their type and position to prevent overlaps.
+
+
+### Terrain Summary Layers
+
+In order to facilitate cave mapping, Surveyor records the top layer of blocks at **multiple height levels** (layer heights).
+
+**The Overworld** scans for floors in these layers:
+- 257-319 - usually empty
+- 62-256 - surface terrain
+- 0-61 - sea floors and riverbeds, ravines, and caves
+- -64-0 - deepslate caves
+
+**The Nether** scans for floors in these layers:
+* 127-255 - usually flat bedrock
+* 71-126 - high caves and outcrops
+* 41-70 - mid-level outcrops and walkways
+* 0-40 - the lava sea and shores
+
+Roughly speaking, Surveyor will accept any non-clear block within or below a 2-high walk-space as a floor.
+
+Surveyor supports any layer height configuration, but currently lacks the API/config to change this for specific dimensions.
+
+Note that the amount of layers doesn't affect how mods display the map, only how often cave floors will be occluded by floors above them.
 
 ### Map Mods
 
 <details>
 <summary>Click to show the map mod guide</summary>
 
-Quick reminder that surveyor should **replace your existing world scanning logic**<br/>
-You should never need to look at the currently loaded chunks - Otherwise, let us know and we'll try extend surveyor!
+Quick reminder that surveyor should **replace any existing world scanning logic**<br/>
+You should never need to look at the currently loaded chunks - If some information is missing, let us know!
 
 #### Initial Setup
 
-Tune into loading via `SurveyorClientEvents.Register.clientPlayerLoad` - this will trigger when the client world has access to surveyor data and the player is available (for prioritizing nearby regions).
+Tune into `SurveyorClientEvents.ClientPlayerLoad` - this will trigger when the client world has access to surveyor data and the player is available.
 
-You can call `WorldSummary.terrain().keySet()` to get all summarized chunk positions - feel free to add these to a queue or deque to render later.
+`WorldTerrainSummary.keySet()` contains all available chunks by position. You can also use `bitSet()` and `toKeys()` if you want to sort the keys by region.
 
-`keySet()` and `asMap()` methods accept `SurveyorExploration` - on the client this can be accessed from `SurveyorClient.getExploration()` - which ensures only map area the player should see is shown.
+`WorldStructureSummary.keySet()` contains all structure starts by key + ChunkPos.
+
+`WorldLandmarks.keySet()` contains all landmarks (POIs, waypoints, death markers, etc.) by type + BlockPos.
+
+To use these on the client, pass in `SurveyorClient.getExploration(ClientPlayer)`.<br/>
+This ensures surveyor will hide any areas the current player hasn't explored, or waypoints they didn't make.
+
+##### Live Updates
+
+You should also tune into the `TerrainUpdated`, `StructuresAdded`, `LandmarksAdded`, and `LandmarksRemoved` events, which will fire whenever the world summary changes.
+
+Note that these events might fire before `ClientPlayerLoad`, so skip them if you haven't initialized your map data there yet!
+
+You don't need to check exploration when listening to these methods on the client - their contents are already explored.
 
 #### Terrain Rendering
 
-To process a chunk, first get the summary using `WorldTerrainSummary.get(ChunkPos)`.<br/>
-Remember you can always get the world summary from using `SurveyorWorld` if you're processing on world tick.<br/>
-Then, crunch the result into floors using `ChunkSummary.toSingleLayer()` which outputs usable int arrays:
-* **exists[256]** - Set where a floor exists, unset otherwise - where unset, all other fields are junk.
-* **depths[256]** - The distance of the floor below your specified world height. so y = worldHeight - depth.
-* **blocks[256]** - The floor block. Indexed per-region via `WorldTerrainSummary.getBlockPalette(ChunkPos)`.
-* **biomes[256]** - The floor biome. Indexed per-region via `WorldTerrainSummary.getBiomePalette(ChunkPos)`.
-* **lightLevels[256]** - The block light level directly above the floor (i.e. the block light for its top face). 0-15.
-* **waterDepths[256]** - How deep the contiguous water above the floor is.
+First, generate a top layer (with any desired height limits) using `WorldTerrainSummary.get(ChunkPos).toSingleLayer()`.<br/>
+This will produce a raw layer summary of one-dimensional arrays:
+* **exists** - True where a floor exists, false otherwise - where false, all other fields are junk.
+* **depths** - The distance of the floor below your specified world height. so y = worldHeight - depth.
+* **blocks** - The floor block. Indexed per-region via `WorldTerrainSummary.getBlockPalette(ChunkPos)`.
+* **biomes** - The floor biome. Indexed per-region via `WorldTerrainSummary.getBiomePalette(ChunkPos)`.
+* **lightLevels** - The block light level directly above the floor (i.e. the block light for its top face). 0-15.
+* **waterDepths** - How deep the contiguous water above the floor is.
   * All other liquid surfaces are considered floors, but water is special-cased.
   * The sea floor (e.g. sand) is recorded, and this depth value indicates the water surface instead.
   * This allows maps to show water depth shading, but also hide water completely if desired.
 
-For all these arrays, the index is (x * 16 + z), where x and z are relative to the chunk.
-
-Using this data, render usable data for your map (color buffers, images, etc) and hold onto them per-world.<br/>
-You may be rendering hundreds of thousands of chunks here - this is the hot loop, that's why it's all ugly int arrays.
+All arrays can be indexed by `x * 16 + z`, where x and z are relative to the chunk.<br/>
+Use these arrays to render and store map data for that chunk (pixels, buffers, whichever).<br/>
+Remember that you'll be rendering hundreds of thousands of chunks here - optimize this process hard.
 
 #### Structure Rendering
 
-Structures can be retrieved using `WorldStructureSummary.asMap()` - these come in a `StructureSummary` format, which clearly defines all type-independent data, along with extra data for jigsaws.
+Along with the key and ChunkPos, you can get the type and any tags using `WorldStructureSummary.getType(key)` and `WorldStructureSummary.getTags(key)`.
 
-These can be used to create automatic waypoints for structures, draw abstract versions of them to the map by ID, etc.
+You can access a full summary of the structure (e.g. to draw its bounding boxes) using `WorldStructureSummary.get(key, ChunkPos)`.<br/>
+This includes piece data like boxes, direction, IDs, etc.
 
 #### Landmark Rendering & Management
 
-Landmarks can be retrieved using `WorldLandmarks.asMap()` - or one of the type or class specific getters as needed.
+Along with the type and BlockPos, you can get a full landmark using `WorldLandmarks.get(type, BlockPos)`.
 
-Landmarks can be most simply represented as a point on the map. They may include a dye color (for vanilla banner style rendering) as well as some name text for labels or tooltips.
+By default, this can include a dye color, a text name, the owner's UUID, and a texture (could be from another map mod).<br/>
+You should have a method of rendering a landmark using just this information.
 
-Landmarks can also include a texture identifier, which may or may not exist on your client, depending on how it was made.
+To improve how landmarks are displayed, you can use `instanceof` to check for additional data, e.g. `HasBlockBox`.
 
 To add a custom waypoint landmark, just construct a `SimplePointLandmark` owned by the client player, and add it using `WorldLandmarks.put(Landmark)`. This will save to disk and send a copy to the server.
-
-#### Live Updates
-
-You should also tune into the `TerrainUpdated`, `StructuresAdded`, `LandmarksAdded`, and `LandmarksRemoved` events, which will fire whenever the world summary changes.
-
-#### Examples
-
-An implementation of a surveyor map mod (with advanced terrain rendering) can be found in [Antique Atlas](https://github.com/sisby-folk/antique-atlas/blob/1.20/src/main/java/folk/sisby/antique_atlas/WorldTiles.java).
-
-A minecraftless vanilla-map-like implementation that reads surveyor's NBT save files directly is [SurveyorSurveyor](https://github.com/HestiMae/surveyor-surveyor/blob/main/src/main/java/garden/hestia/surveyor_surveyor/SurveyorSurveyor.java).
 
 </details>
 
@@ -158,24 +160,14 @@ A minecraftless vanilla-map-like implementation that reads surveyor's NBT save f
 
 Landmark types can be registered via the registry in `Landmarks`.<br/>
 This allows you to set and serialize custom data relevant to your landmark.<br/>
-Your landmark can usually be a record.
+Your landmark can usually be a record. Check the [builtins](https://github.com/sisby-folk/surveyor/tree/1.20/src/main/java/folk/sisby/surveyor/landmark) for an example.
 
-To make new data accessible to map mods, declare a new interface to access it from, so it can be applied to more than one type.
+To make extra landmark data accessible to map mods, always declare a new `Has` interface to access it from.
 
-To add a landmark (custom or builtin), just use `WorldLandmarks.put(Landmark)`. This works fine on either side - feel free to add a landmark on the server to send it to the client.
+To place a landmark, just use `WorldLandmarks.put(Landmark)`.<br/>
+This works fine on either side - adding a landmark on the server will send it to the client and vice-versa.
 
 Landmark types can't yet have fallback types - so use a simple type (or PR a new one!) if your mod is only on one side.
-
-</details>
-
-### Dimension Mods
-
-<details>
-<summary>Click to show the dimension mod integration guide</summary>
-
-Chunk summaries are currently layered based on the dimension via a few basic heuristics on world height, ceiling and sky presence, etc. - as well as a few hardcoded layer additions for the nether.
-
-In future, we'll expose an API to allow dimension mods to specify the layers to generate chunk summaries with.
 
 </details>
 

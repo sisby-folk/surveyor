@@ -22,7 +22,6 @@ import net.minecraft.world.chunk.Chunk;
 
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -30,6 +29,7 @@ import java.util.function.Function;
 public class RegionSummary {
     public static final int REGION_POWER = 5;
     public static final int REGION_SIZE = 1 << REGION_POWER;
+    public static final int BITSET_SIZE = 1 << (REGION_POWER * 2);
     public static final String KEY_BIOMES = "biomes";
     public static final String KEY_BLOCKS = "blocks";
     public static final String KEY_BIOME_WATER = "biomeWater";
@@ -54,8 +54,32 @@ public class RegionSummary {
         return list;
     }
 
+    public static int regionToChunk(int xz) {
+        return xz << REGION_POWER;
+    }
+
     public static int regionRelative(int xz) {
         return xz & (RegionSummary.REGION_SIZE - 1);
+    }
+
+    public static int bitForXZ(int x, int z) {
+        return (x << REGION_POWER) + z;
+    }
+
+    public static int bitForChunk(ChunkPos pos) {
+        return bitForXZ(regionRelative(pos.x), regionRelative(pos.z));
+    }
+
+    public static int xForBit(int i) {
+        return i >> REGION_POWER;
+    }
+
+    public static int zForBit(int i) {
+        return i & (REGION_SIZE - 1);
+    }
+
+    public static ChunkPos chunkForBit(ChunkPos rPos, int i) {
+        return new ChunkPos(regionToChunk(rPos.x) + xForBit(i), regionToChunk(rPos.z) + zForBit(i));
     }
 
     public boolean contains(ChunkPos pos) {
@@ -67,26 +91,13 @@ public class RegionSummary {
     }
 
     public BitSet bitSet() {
-        BitSet bitSet = new BitSet(REGION_SIZE * REGION_SIZE);
+        BitSet bitSet = new BitSet(BITSET_SIZE);
         for (int x = 0; x < REGION_SIZE; x++) {
             for (int z = 0; z < REGION_SIZE; z++) {
-                if (chunks[x][z] != null) bitSet.set(x * REGION_SIZE + z);
+                if (chunks[x][z] != null) bitSet.set(bitForXZ(x, z));
             }
         }
         return bitSet;
-    }
-
-    public Collection<ChunkPos> keySet(ChunkPos regionPos) {
-        Collection<ChunkPos> chunkPosCollection = new ArrayList<>();
-        for (int x = 0; x < REGION_SIZE; x++) {
-            for (int z = 0; z < REGION_SIZE; z++) {
-                if (chunks[x][z] != null) {
-                    ChunkPos pos = new ChunkPos((regionPos.x << REGION_POWER) + x, (regionPos.z << REGION_POWER) + z);
-                    chunkPosCollection.add(pos);
-                }
-            }
-        }
-        return chunkPosCollection;
     }
 
     public void putChunk(World world, Chunk chunk) {
@@ -150,7 +161,7 @@ public class RegionSummary {
         for (int i = 0; i < summaries.size(); i++) {
             ChunkSummary summary = summaries.get(i);
             summary.remap(biomeRemap, blockRemap);
-            this.chunks[indices[i] / REGION_SIZE][indices[i] % REGION_SIZE] = summary;
+            this.chunks[xForBit(indices[i])][zForBit(indices[i])] = summary;
         }
         dirty = true;
         return set;
@@ -160,7 +171,7 @@ public class RegionSummary {
         buf.writeCollection(mapPalette(rawBiomePalette, i -> i), PacketByteBuf::writeVarInt);
         buf.writeCollection(mapPalette(rawBlockPalette, i -> i), PacketByteBuf::writeVarInt);
         buf.writeBitSet(set);
-        buf.writeCollection(set.stream().mapToObj(i -> chunks[i / REGION_SIZE][i % REGION_SIZE]).toList(), (b, summary) -> summary.writeBuf(b));
+        buf.writeCollection(set.stream().mapToObj(i -> chunks[xForBit(i)][zForBit(i)]).toList(), (b, summary) -> summary.writeBuf(b));
         return buf;
     }
 

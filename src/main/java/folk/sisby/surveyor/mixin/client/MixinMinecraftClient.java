@@ -1,6 +1,5 @@
 package folk.sisby.surveyor.mixin.client;
 
-import folk.sisby.surveyor.SurveyorWorld;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.client.SurveyorClient;
 import folk.sisby.surveyor.client.SurveyorClientEvents;
@@ -20,15 +19,15 @@ public class MixinMinecraftClient {
     @Inject(method = "joinWorld", at = @At("HEAD"))
     void saveOnLeaveWorld(ClientWorld newWorld, CallbackInfo ci) {
         MinecraftClient self = (MinecraftClient) (Object) this;
-        if (self.world != null && ((SurveyorWorld) self.world).surveyor$getWorldSummary().isClient()) {
-            ((SurveyorWorld) self.world).surveyor$getWorldSummary().save(self.world, SurveyorClient.getWorldSavePath(self.world), false);
+        if (self.world != null && WorldSummary.of(self.world).isClient()) {
+            WorldSummary.of(self.world).save(self.world, SurveyorClient.getWorldSavePath(self.world), false);
         }
     }
 
     @Inject(method = "joinWorld", at = @At("HEAD"))
     void loadOnJoinWorld(ClientWorld newWorld, CallbackInfo ci) {
-        if (((SurveyorWorld) newWorld).surveyor$getWorldSummary().isClient()) {
-            WorldSummary summary = ((SurveyorWorld) newWorld).surveyor$getWorldSummary();
+        if (WorldSummary.of(newWorld).isClient()) {
+            WorldSummary summary = WorldSummary.of(newWorld);
             new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
             new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
             new C2SKnownLandmarksPacket(summary.landmarks().keySet(null).asMap()).send();
@@ -40,8 +39,8 @@ public class MixinMinecraftClient {
     @Inject(method = "disconnect(Lnet/minecraft/client/gui/screen/Screen;)V", at = @At("HEAD"))
     void saveSummaryOnDisconnect(Screen screen, CallbackInfo ci) {
         MinecraftClient self = (MinecraftClient) (Object) this;
-        if (self.world != null && ((SurveyorWorld) self.world).surveyor$getWorldSummary().isClient()) {
-            ((SurveyorWorld) self.world).surveyor$getWorldSummary().save(self.world, SurveyorClient.getWorldSavePath(self.world), false);
+        if (self.world != null && WorldSummary.of(self.world).isClient()) {
+            WorldSummary.of(self.world).save(self.world, SurveyorClient.getWorldSavePath(self.world), false);
         }
     }
 }

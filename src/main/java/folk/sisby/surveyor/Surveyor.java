@@ -40,14 +40,14 @@ public class Surveyor implements ModInitializer {
     }
 
     public static void checkStructureExploration(ServerWorld world, ServerPlayerEntity player, BlockPos pos) {
-        SurveyorExploration sp = (SurveyorExploration) player;
+        SurveyorExploration exploration = SurveyorExploration.of(player);
         if (!world.isChunkLoaded(pos.getX() >> 4, pos.getZ() >> 4)) return;
         Map<Structure, LongSet> structureReferences = world.getChunk(pos.getX() >> 4, pos.getZ() >> 4, ChunkStatus.STRUCTURE_REFERENCES).getStructureReferences();
         if (!structureReferences.isEmpty()) {
             structureReferences.forEach((structure, chunkPosSet) -> {
                 RegistryKey<Structure> structureKey = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(structure).orElseThrow();
                 LongSet unexploredSet = new LongArraySet(chunkPosSet.toLongArray());
-                if (sp.surveyor$exploredStructures().containsKey(world.getRegistryKey()) && sp.surveyor$exploredStructures().get(world.getRegistryKey()).containsKey(structureKey)) unexploredSet.removeAll(sp.surveyor$exploredStructures().get(world.getRegistryKey()).get(structureKey));
+                if (exploration.structures().containsKey(world.getRegistryKey()) && exploration.structures().get(world.getRegistryKey()).containsKey(structureKey)) unexploredSet.removeAll(exploration.structures().get(world.getRegistryKey()).get(structureKey));
                 for (Long longPos : unexploredSet) {
                     ChunkPos startPos = new ChunkPos(longPos);
                     StructureStart start = world.getChunk(startPos.x, startPos.z, ChunkStatus.STRUCTURE_STARTS).getStructureStart(structure);
@@ -55,7 +55,7 @@ public class Surveyor implements ModInitializer {
                     if (start.getBoundingBox().contains(pos)) {
                         for (StructurePiece piece : start.getChildren()) {
                             if (piece.getBoundingBox().contains(pos)) {
-                                sp.surveyor$addExploredStructure(structure, startPos);
+                                exploration.addStructure(world, structure, startPos);
                                 found = true;
                                 break;
                             }
@@ -79,7 +79,7 @@ public class Surveyor implements ModInitializer {
             if ((world.getTime() & 7) != 0) return;
             for (ServerPlayerEntity player : world.getPlayers()) {
                 checkStructureExploration(world, player, player.getBlockPos());
-                checkStructureExploration(world, player, BlockPos.ofFloored(player.raycast(((SurveyorExploration) player).surveyor$getViewDistance() << 4, 1.0F, false).getPos()));
+                checkStructureExploration(world, player, BlockPos.ofFloored(player.raycast(SurveyorExploration.of(player).getViewDistance() << 4, 1.0F, false).getPos()));
             }
         }));
     }
