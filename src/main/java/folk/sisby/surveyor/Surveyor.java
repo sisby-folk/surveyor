@@ -55,7 +55,7 @@ public class Surveyor implements ModInitializer {
                     if (start.getBoundingBox().contains(pos)) {
                         for (StructurePiece piece : start.getChildren()) {
                             if (piece.getBoundingBox().contains(pos)) {
-                                exploration.addStructure(world, structureKey, startPos);
+                                exploration.addStructure(world.getRegistryKey(), structureKey, startPos);
                                 found = true;
                                 break;
                             }
