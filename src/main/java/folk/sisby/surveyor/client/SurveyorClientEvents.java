@@ -2,8 +2,6 @@ package folk.sisby.surveyor.client;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import folk.sisby.surveyor.Surveyor;
-import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.landmark.LandmarkType;
@@ -118,13 +116,5 @@ public class SurveyorClientEvents {
     @FunctionalInterface
     public interface LandmarksRemoved {
         void onLandmarksRemoved(World world, WorldLandmarks worldLandmarks, Multimap<LandmarkType<?>, BlockPos> landmarks);
-    }
-
-    static {
-        // Events triggered both on regular update and on exploration update
-        SurveyorEvents.Register.terrainUpdated(new Identifier(Surveyor.ID, "client"), SurveyorClientEvents.Invoke::terrainUpdated);
-        SurveyorEvents.Register.structuresAdded(new Identifier(Surveyor.ID, "client"), SurveyorClientEvents.Invoke::structuresAdded);
-        SurveyorEvents.Register.landmarksAdded(new Identifier(Surveyor.ID, "client"), SurveyorClientEvents.Invoke::landmarksAdded);
-        SurveyorEvents.Register.landmarksRemoved(new Identifier(Surveyor.ID, "client"), SurveyorClientEvents.Invoke::landmarksRemoved);
     }
 }

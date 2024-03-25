@@ -15,13 +15,22 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.HashMap;
+
 @Mixin(ServerPlayerEntity.class)
 public class MixinServerPlayerEntity implements SurveyorPlayer {
-    @Unique private final ServerPlayerExploration surveyor$exploration = new ServerPlayerExploration((ServerPlayerEntity) (Object) this);
+    @Unique private final ServerPlayerExploration surveyor$exploration = new ServerPlayerExploration((ServerPlayerEntity) (Object) this, new HashMap<>(), new HashMap<>());
+    @Unique private int surveyor$viewDistance = -1;
 
     @Override
     public SurveyorExploration surveyor$getExploration() {
         return surveyor$exploration;
+    }
+
+    @Override
+    public int surveyor$getViewDistance() {
+        ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
+        return surveyor$viewDistance == -1 ? self.getServer().getPlayerManager().getViewDistance() : surveyor$viewDistance;
     }
 
     @Inject(at = @At("TAIL"), method = "writeCustomDataToNbt")
@@ -41,7 +50,7 @@ public class MixinServerPlayerEntity implements SurveyorPlayer {
 
     @Inject(method = "setClientSettings", at = @At("HEAD"))
     public void setSurveyorViewDistance(ClientSettingsC2SPacket packet, CallbackInfo ci) {
-        surveyor$exploration.surveyor$playerViewDistance = packet.viewDistance();
+        surveyor$viewDistance = packet.viewDistance();
     }
 
     @Inject(method = "onDeath", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/damage/DamageTracker;update()V"))

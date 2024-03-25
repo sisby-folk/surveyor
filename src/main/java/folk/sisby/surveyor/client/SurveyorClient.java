@@ -1,9 +1,11 @@
 package folk.sisby.surveyor.client;
 
 import folk.sisby.surveyor.Surveyor;
+import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
+import folk.sisby.surveyor.terrain.RegionSummary;
 import folk.sisby.surveyor.terrain.WorldTerrainSummary;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.fabricmc.api.ClientModInitializer;
@@ -14,16 +16,18 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ServerInfo;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.Uuids;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.Structure;
 import org.apache.commons.io.FileUtils;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -86,6 +90,14 @@ public class SurveyorClient implements ClientModInitializer {
         ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
             if (WorldSummary.of(world).isClient()) WorldTerrainSummary.onChunkUnload(world, chunk);
         });
+        SurveyorEvents.Register.landmarksAdded(new Identifier(Surveyor.ID, "client"), ((world, worldLandmarks, landmarks) -> {
+            for (PlayerEntity player : world.getPlayers()) {
+                if (player instanceof ClientPlayerEntity clientPlayer) {
+                    SurveyorClientEvents.Invoke.landmarksAdded(world, worldLandmarks, getExploration(clientPlayer).limitLandmarkMap(world.getRegistryKey(), landmarks));
+                }
+            }
+        }));
+        SurveyorEvents.Register.landmarksRemoved(new Identifier(Surveyor.ID, "client"), SurveyorClientEvents.Invoke::landmarksRemoved);
     }
 
     private record ClientExploration(Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures) implements SurveyorExploration {
@@ -96,7 +108,7 @@ public class SurveyorClient implements ClientModInitializer {
 
         public static void onLoad() {
             if (WorldSummary.of(MinecraftClient.getInstance().world).isClient()) {
-                saveFile = getSavePath(INSTANCE.getWorld()).toPath().resolve(Uuids.getUuidFromProfile(MinecraftClient.getInstance().getSession().getProfile()).toString() + ".dat").toFile();
+                saveFile = getSavePath(MinecraftClient.getInstance().world).toPath().resolve(Uuids.getUuidFromProfile(MinecraftClient.getInstance().getSession().getProfile()).toString() + ".dat").toFile();
                 NbtCompound explorationNbt = new NbtCompound();
                 if (saveFile.exists()) {
                     try {
@@ -134,34 +146,29 @@ public class SurveyorClient implements ClientModInitializer {
         }
 
         @Override
-        public World getWorld() {
-            return MinecraftClient.getInstance().world;
-        }
-
-        @Override
-        public @Nullable ServerPlayerEntity getServerPlayer() {
-            return null;
-        }
-
-        @Override
-        public int getViewDistance() {
-            return MinecraftClient.getInstance().options.getViewDistance().getValue();
-        }
-
-        @Override
         public void addStructure(RegistryKey<World> worldKey, RegistryKey<Structure> structureKey, ChunkPos pos) {
             SurveyorExploration.super.addStructure(worldKey, structureKey, pos);
-            SurveyorClientEvents.Invoke.structuresAdded(getWorld(), WorldSummary.of(getWorld()).structures(), structureKey, pos);
+            ClientWorld world = MinecraftClient.getInstance().world;
+            SurveyorClientEvents.Invoke.structuresAdded(world, WorldSummary.of(world).structures(), structureKey, pos);
+        }
+
+        @Override
+        public void mergeRegion(RegistryKey<World> worldKey, ChunkPos regionPos, BitSet bitSet) {
+            SurveyorExploration.super.mergeRegion(worldKey, regionPos, bitSet);
+            ClientWorld world = MinecraftClient.getInstance().world;
+            SurveyorClientEvents.Invoke.terrainUpdated(world, WorldSummary.of(world).terrain(), bitSet.stream().mapToObj(i -> RegionSummary.chunkForBit(regionPos, i)).toList());
+            WorldSummary.of(world).landmarks().asMap(this).forEach((type, map) -> map.forEach((lPos, landmark) -> {
+                if (exploredLandmark(worldKey, landmark)) SurveyorClientEvents.Invoke.landmarksAdded(world, WorldSummary.of(world).landmarks(), landmark);
+            }));
         }
 
         @Override
         public void addChunk(RegistryKey<World> worldKey, ChunkPos pos) {
             SurveyorExploration.super.addChunk(worldKey, pos);
-            SurveyorClientEvents.Invoke.terrainUpdated(getWorld(), WorldSummary.of(getWorld()).terrain(), pos);
-            WorldSummary.of(getWorld()).landmarks().asMap(this).forEach((type, map) -> map.forEach((lPos, landmark) -> {
-                if (new ChunkPos(lPos).equals(pos)) {
-                    if (exploredLandmark(getWorld().getRegistryKey(), landmark)) SurveyorClientEvents.Invoke.landmarksAdded(getWorld(), WorldSummary.of(getWorld()).landmarks(), landmark);
-                }
+            ClientWorld world = MinecraftClient.getInstance().world;
+            SurveyorClientEvents.Invoke.terrainUpdated(world, WorldSummary.of(world).terrain(), pos);
+            WorldSummary.of(world).landmarks().asMap(this).forEach((type, map) -> map.forEach((lPos, landmark) -> {
+                if (exploredLandmark(worldKey, landmark)) SurveyorClientEvents.Invoke.landmarksAdded(world, WorldSummary.of(world).landmarks(), landmark);
             }));
         }
     }
