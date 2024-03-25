@@ -7,7 +7,6 @@ import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.WorldSummary;
-import folk.sisby.surveyor.packet.S2CStructuresAddedPacket;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtIo;
@@ -34,7 +33,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -84,13 +82,22 @@ public class WorldStructureSummary {
     public Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> asMap(SurveyorExploration exploration) {
         Map<RegistryKey<Structure>, Set<ChunkPos>> keySet = keySet(exploration);
         Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> map = new HashMap<>();
-        keySet.forEach((key, starts) -> starts.forEach(pos -> map.computeIfAbsent(key, k -> new HashMap<>()).put(pos, get(key, pos))));
+        for (Map.Entry<RegistryKey<Structure>, Set<ChunkPos>> entry : keySet.entrySet()) {
+            RegistryKey<Structure> key = entry.getKey();
+            Set<ChunkPos> starts = entry.getValue();
+            map.put(key, new HashMap<>());
+            for (ChunkPos pos : starts) {
+                map.get(key).put(pos, get(key, pos));
+            }
+        }
         return map;
     }
 
     public Map<RegistryKey<Structure>, Set<ChunkPos>> keySet(SurveyorExploration exploration) {
         Map<RegistryKey<Structure>, Set<ChunkPos>> map = new HashMap<>();
-        structures.forEach((key, starts) -> starts.forEach((pos, summary) -> map.computeIfAbsent(key, p -> new HashSet<>()).add(pos)));
+        for (Map.Entry<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> entry : structures.entrySet()) {
+            map.put(entry.getKey(), entry.getValue().keySet());
+        }
         if (exploration != null) {
             exploration.limitStructureKeySet(worldKey, map);
         }
@@ -121,9 +128,7 @@ public class WorldStructureSummary {
             structureTypes.put(key, type);
             structureTags.putAll(key, tags);
             dirty = true;
-
             SurveyorEvents.Invoke.structuresAdded(world, this, key, pos);
-            S2CStructuresAddedPacket.of(key, pos, summary, type, tags).send(world);
         }
     }
 

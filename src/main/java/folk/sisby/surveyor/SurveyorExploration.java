@@ -77,7 +77,7 @@ public interface SurveyorExploration {
         }
         keySet.forEach((key, starts) -> {
             if (structures.containsKey(key)) {
-                structures.get(key).longStream().mapToObj(ChunkPos::new).toList().forEach(starts::remove);
+                starts.removeIf(pos -> !structures.get(key).contains(pos.toLong()));
             } else {
                 starts.clear();
             }
