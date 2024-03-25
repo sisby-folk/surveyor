@@ -14,8 +14,9 @@ Used in <a href="https://modrinth.com/mod/antique-atlas-4">Antique Atlas 4</a>. 
 > *Surveyor is a library for map mod developers! You shouldn't need to download it alone.*
 
 **Surveyor** is a map library that:
-* Records terrain, structure, and "landmark" data suitable for maps as the world is explored / changed.
-* Holds the data in a small, compressed format in-memory and on-disk to allow full dimensions to be loaded.
+* Records terrain, structure, and "landmark" data suitable for maps as the world is changed.
+* Tracks individual player exploration of the world, and avoids revealing things they couldn't know about.
+* Holds the data in a small, compressed format in-memory and on-disk.
 * Uses data formats that are map-mod-agnostic - i.e:
   * Terrain is a top-down view of blocks with height, biome, light level, and water depth.
   * Terrain contains multiple layers, allowing for usable cave and nether maps.
@@ -63,6 +64,8 @@ The **World Summary** holds all of surveyor's data for a world. It can be access
 
 **Landmarks** are a way to represent all other positional information on-map. They have unique serialization per-type, and are uniquely keyed by their type and position to prevent overlaps.
 
+**Exploration** is a record of what chunks, structures, and landmarks a player should be able to see.<br/>
+A player explores a chunk when they're sent it, explores a structure when they stand in (or look at) one of its pieces, and explores an (unowned) landmark when they've explore the chunk it's in. 
 
 ### Terrain Summary Layers
 
@@ -96,33 +99,34 @@ You should never need to look at the currently loaded chunks - If some informati
 
 #### Initial Setup
 
-Tune into `SurveyorClientEvents.ClientPlayerLoad` - this will trigger when the client world has access to surveyor data and the player is available.
+Map mods will want to use `SurveyorClientEvents` in all cases - these are hooked up to player exploration, 
 
-`WorldTerrainSummary.keySet()` contains all available chunks by position. You can also use `bitSet()` and `toKeys()` if you want to sort the keys by region.
+Tune into `WorldLoad` and queue up the provided keys for rendering.<br/>
+This event will trigger when the client world has access to surveyor data and the player is available.
 
-`WorldStructureSummary.keySet()` contains all structure starts by key + ChunkPos.
+`terrain` contains all available chunks by region. `WorldTerrainSummary.toKeys()` converts this into ChunkPos.<br/>
+`structures` contains all structure starts by key + ChunkPos.<br/>
+`landmarks` contains all landmarks (POIs, waypoints, death markers, etc.) by type + BlockPos.
 
-`WorldLandmarks.keySet()` contains all landmarks (POIs, waypoints, death markers, etc.) by type + BlockPos.
-
-To use these on the client, pass in `SurveyorClient.getExploration(ClientPlayer)`.<br/>
-This ensures surveyor will hide any areas the current player hasn't explored, or waypoints they didn't make.
+You can get these from the world summary later using `keySet()` methods - check the event implementation.<br/>
+Pass in `SurveyorClient.getExploration(ClientPlayer)` to ensure unexplored areas are hidden.
 
 ##### Live Updates
 
-You should also tune into the `TerrainUpdated`, `StructuresAdded`, `LandmarksAdded`, and `LandmarksRemoved` events, which will fire whenever the world summary changes.
+Also tune into `TerrainUpdated`, `StructuresAdded`, `LandmarksAdded` to add to your render queues.<br/>
+These fire whenever the client player should see something new (usually via exploration).<br/>
+They can also fire before `ClientPlayerLoad`, so skip these as the data will be rolled up in the load.
 
-Note that these events might fire before `ClientPlayerLoad`, so skip them if you haven't initialized your map data there yet!
-
-You don't need to check exploration when listening to these methods on the client - their contents are already explored.
+Tune into `LandmarksRemoved` as well but without a queue - just remove from your map/queue directly.
 
 #### Terrain Rendering
 
-First, generate a top layer (with any desired height limits) using `WorldTerrainSummary.get(ChunkPos).toSingleLayer()`.<br/>
+First, generate a top layer (with any desired height limits) using `get(ChunkPos).toSingleLayer()`.<br/>
 This will produce a raw layer summary of one-dimensional arrays:
 * **exists** - True where a floor exists, false otherwise - where false, all other fields are junk.
 * **depths** - The distance of the floor below your specified world height. so y = worldHeight - depth.
-* **blocks** - The floor block. Indexed per-region via `WorldTerrainSummary.getBlockPalette(ChunkPos)`.
-* **biomes** - The floor biome. Indexed per-region via `WorldTerrainSummary.getBiomePalette(ChunkPos)`.
+* **blocks** - The floor block. Indexed per-region via `getBlockPalette(ChunkPos)`.
+* **biomes** - The floor biome. Indexed per-region via `getBiomePalette(ChunkPos)`.
 * **lightLevels** - The block light level directly above the floor (i.e. the block light for its top face). 0-15.
 * **waterDepths** - How deep the contiguous water above the floor is.
   * All other liquid surfaces are considered floors, but water is special-cased.
@@ -135,21 +139,22 @@ Remember that you'll be rendering hundreds of thousands of chunks here - optimiz
 
 #### Structure Rendering
 
-Along with the key and ChunkPos, you can get the type and any tags using `WorldStructureSummary.getType(key)` and `WorldStructureSummary.getTags(key)`.
+Along with the key and ChunkPos, you can get the type and any tags using `getType(key)` and `getTags(key)`.
 
-You can access a full summary of the structure (e.g. to draw its bounding boxes) using `WorldStructureSummary.get(key, ChunkPos)`.<br/>
+You can access a full summary of the structure (e.g. to draw its bounding boxes) using `get(key, ChunkPos)`.<br/>
 This includes piece data like boxes, direction, IDs, etc.
 
 #### Landmark Rendering & Management
 
-Along with the type and BlockPos, you can get a full landmark using `WorldLandmarks.get(type, BlockPos)`.
+Along with the type and BlockPos, you can get a full landmark using `get(type, BlockPos)`.
 
 By default, this can include a dye color, a text name, the owner's UUID, and a texture (could be from another map mod).<br/>
 You should have a method of rendering a landmark using just this information.
 
 To improve how landmarks are displayed, you can use `instanceof` to check for additional data, e.g. `HasBlockBox`.
 
-To add a custom waypoint landmark, just construct a `SimplePointLandmark` owned by the client player, and add it using `WorldLandmarks.put(Landmark)`. This will save to disk and send a copy to the server.
+To add a waypoint landmark, just make a `SimplePointLandmark` owned by the player and use `put(Landmark)`.<br/>
+This will save to disk and send a copy to the server.
 
 </details>
 
@@ -164,7 +169,7 @@ Your landmark can usually be a record. Check the [builtins](https://github.com/s
 
 To make extra landmark data accessible to map mods, always declare a new `Has` interface to access it from.
 
-To place a landmark, just use `WorldLandmarks.put(Landmark)`.<br/>
+To place a landmark, just use `WorldSummary.of(world).landmarks().put(Landmark)`.<br/>
 This works fine on either side - adding a landmark on the server will send it to the client and vice-versa.
 
 Landmark types can't yet have fallback types - so use a simple type (or PR a new one!) if your mod is only on one side.

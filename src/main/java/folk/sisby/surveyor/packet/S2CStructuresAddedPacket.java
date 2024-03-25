@@ -22,7 +22,7 @@ public record S2CStructuresAddedPacket(Map<RegistryKey<Structure>, Map<ChunkPos,
     public static final Identifier ID = new Identifier(Surveyor.ID, "s2c_structures_added");
 
     public static S2CStructuresAddedPacket of(RegistryKey<Structure> key, ChunkPos pos, StructureStartSummary summary, RegistryKey<StructureType<?>> structureType, Collection<TagKey<Structure>> structureTags) {
-        return new S2CStructuresAddedPacket(Map.of(key, Map.of(pos, summary)), Map.of(key, structureType), MapUtil.hashMultiMapOf(Map.of(key, structureTags)));
+        return new S2CStructuresAddedPacket(Map.of(key, Map.of(pos, summary)), Map.of(key, structureType), MapUtil.asMultiMap(Map.of(key, structureTags)));
     }
 
     public static S2CStructuresAddedPacket read(PacketByteBuf buf) {
@@ -38,7 +38,7 @@ public record S2CStructuresAddedPacket(Map<RegistryKey<Structure>, Map<ChunkPos,
                 b -> b.readRegistryKey(RegistryKeys.STRUCTURE),
                 b -> b.readRegistryKey(RegistryKeys.STRUCTURE_TYPE)
             ),
-            MapUtil.hashMultiMapOf(buf.readMap(
+            MapUtil.asMultiMap(buf.readMap(
                 b -> b.readRegistryKey(RegistryKeys.STRUCTURE),
                 b -> b.readList(b2 -> TagKey.of(RegistryKeys.STRUCTURE, b2.readIdentifier()))
             ))

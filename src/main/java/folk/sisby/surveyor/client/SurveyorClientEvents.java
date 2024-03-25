@@ -2,6 +2,7 @@ package folk.sisby.surveyor.client;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.landmark.LandmarkType;
@@ -18,6 +19,7 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.Structure;
 
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -32,8 +34,9 @@ public class SurveyorClientEvents {
     public static boolean INITIALIZING_WORLD = false;
 
     public static class Invoke {
-        public static void worldLoad(ClientWorld world, WorldSummary worldSummary, ClientPlayerEntity player) {
-            worldLoad.forEach((id, handler) -> handler.onWorldLoad(world, worldSummary, player));
+        public static void worldLoad(ClientWorld world, WorldSummary summary, ClientPlayerEntity player) {
+            SurveyorExploration exploration = SurveyorClient.getExploration(player);
+            worldLoad.forEach((id, handler) -> handler.onWorldLoad(world, summary, player, summary.terrain().bitSet(exploration), summary.structures().keySet(exploration), summary.landmarks().keySet(exploration)));
         }
 
         public static void terrainUpdated(World world, WorldTerrainSummary worldTerrain, Collection<ChunkPos> chunks) {
@@ -49,7 +52,7 @@ public class SurveyorClientEvents {
         }
 
         public static void structuresAdded(World world, WorldStructureSummary worldStructures, RegistryKey<Structure> key, ChunkPos pos) {
-            structuresAdded(world, worldStructures, MapUtil.hashMultiMapOf(Map.of(key, List.of(pos))));
+            structuresAdded(world, worldStructures, MapUtil.asMultiMap(Map.of(key, List.of(pos))));
         }
 
         public static void landmarksAdded(World world, WorldLandmarks worldLandmarks, Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks) {
@@ -95,7 +98,7 @@ public class SurveyorClientEvents {
 
     @FunctionalInterface
     public interface WorldLoad {
-        void onWorldLoad(ClientWorld world, WorldSummary worldSummary, ClientPlayerEntity player);
+        void onWorldLoad(ClientWorld world, WorldSummary summary, ClientPlayerEntity player, Map<ChunkPos, BitSet> terrain, Multimap<RegistryKey<Structure>, ChunkPos> structures, Multimap<LandmarkType<?>, BlockPos> landmarks);
     }
 
     @FunctionalInterface

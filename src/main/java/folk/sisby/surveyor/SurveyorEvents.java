@@ -46,7 +46,7 @@ public class SurveyorEvents {
         }
 
         public static void structuresAdded(World world, WorldStructureSummary worldStructures, RegistryKey<Structure> key, ChunkPos pos) {
-            structuresAdded(world, worldStructures, MapUtil.hashMultiMapOf(Map.of(key, List.of(pos))));
+            structuresAdded(world, worldStructures, MapUtil.asMultiMap(Map.of(key, List.of(pos))));
         }
 
         public static void landmarksAdded(World world, WorldLandmarks worldLandmarks, Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks) {

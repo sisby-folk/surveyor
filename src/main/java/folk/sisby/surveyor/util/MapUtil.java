@@ -7,9 +7,15 @@ import java.util.Collection;
 import java.util.Map;
 
 public class MapUtil {
-    public static <K, V> Multimap<K, V> hashMultiMapOf(Map<K, ? extends Collection<V>> asMap) {
+    public static <K, V> Multimap<K, V> asMultiMap(Map<K, ? extends Collection<V>> asMap) {
         Multimap<K, V> map = HashMultimap.create();
         asMap.forEach(map::putAll);
+        return map;
+    }
+
+    public static <K, V> Multimap<K, V> keyMultiMap(Map<K, ? extends Map<V, ?>> asMap) {
+        Multimap<K, V> map = HashMultimap.create();
+        asMap.forEach((key, innerMap) -> map.putAll(key, innerMap.keySet()));
         return map;
     }
 }

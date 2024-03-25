@@ -48,7 +48,7 @@ public class SurveyorClientNetworking {
     }
 
     private static void handleLandmarksRemoved(ClientWorld world, WorldSummary summary, SyncLandmarksRemovedPacket packet) {
-        packet.landmarks().forEach((type, positions) -> positions.forEach(pos -> summary.landmarks().removeLocal(world, type, pos)));
+        packet.landmarks().forEach((type, pos) -> summary.landmarks().removeLocal(world, type, pos));
     }
 
     private static <T extends S2CPacket> void handleClient(PacketByteBuf buf, Function<PacketByteBuf, T> reader, ClientPacketHandler<T> handler) {

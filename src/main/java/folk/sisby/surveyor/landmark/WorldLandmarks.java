@@ -79,7 +79,7 @@ public class WorldLandmarks {
         SurveyorEvents.Invoke.landmarksAdded(world, this, landmarksAddedChanged);
         SurveyorEvents.Invoke.landmarksRemoved(world, this, landmarksRemoved);
         if (!local) {
-            new SyncLandmarksRemovedPacket(landmarksRemoved.asMap()).send(sender, world);
+            new SyncLandmarksRemovedPacket(landmarksRemoved).send(sender, world);
             new SyncLandmarksAddedPacket(landmarksAddedChanged).send(sender, world);
         }
     }

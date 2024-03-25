@@ -54,9 +54,9 @@ public class SurveyorNetworking {
 
     private static void handleKnownStructures(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownStructuresPacket packet) {
         Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> structures = summary.structures().asMap(SurveyorExploration.of(player));
-        packet.structureKeys().forEach((key, starts) -> {
+        packet.structureKeys().forEach((key, pos) -> {
             if (structures.containsKey(key)) {
-                starts.forEach(p -> structures.get(key).remove(p));
+                structures.get(key).remove(pos);
                 if (structures.get(key).isEmpty()) structures.remove(key);
             }
         });
@@ -85,7 +85,7 @@ public class SurveyorNetworking {
     }
 
     private static void handleLandmarksRemoved(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, SyncLandmarksRemovedPacket packet) {
-        packet.landmarks().forEach((type, positions) -> positions.forEach((pos -> summary.landmarks().remove(player, world, type, pos))));
+        packet.landmarks().forEach((type, pos) -> summary.landmarks().remove(player, world, type, pos));
     }
 
     private static <T extends C2SPacket> void handleServer(ServerPlayerEntity player, PacketByteBuf buf, Function<PacketByteBuf, T> reader, ServerPacketHandler<T> handler) {

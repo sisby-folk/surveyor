@@ -1,5 +1,6 @@
 package folk.sisby.surveyor;
 
+import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.terrain.RegionSummary;
@@ -68,20 +69,20 @@ public interface SurveyorExploration {
         });
     }
 
-    default void limitStructureKeySet(RegistryKey<World> worldKey, Map<RegistryKey<Structure>, Set<ChunkPos>> keySet) {
+    default void limitStructureKeySet(RegistryKey<World> worldKey, Multimap<RegistryKey<Structure>, ChunkPos> keySet) {
         if (Surveyor.CONFIG.shareAllStructures) return;
         Map<RegistryKey<Structure>, LongSet> structures = structures().get(worldKey);
         if (structures == null) {
             keySet.clear();
-            return;
+        } else {
+            keySet.asMap().forEach((key, starts) -> {
+                if (structures.containsKey(key)) {
+                    starts.removeIf(pos -> !structures.get(key).contains(pos.toLong()));
+                } else {
+                    starts.clear();
+                }
+            });
         }
-        keySet.forEach((key, starts) -> {
-            if (structures.containsKey(key)) {
-                starts.removeIf(pos -> !structures.get(key).contains(pos.toLong()));
-            } else {
-                starts.clear();
-            }
-        });
     }
 
     default Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> limitLandmarkMap(RegistryKey<World> worldKey, Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks) {

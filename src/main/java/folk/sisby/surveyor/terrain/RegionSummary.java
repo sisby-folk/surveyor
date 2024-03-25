@@ -58,6 +58,10 @@ public class RegionSummary {
         return xz << REGION_POWER;
     }
 
+    public static int chunkToRegion(int xz) {
+        return xz >> REGION_POWER;
+    }
+
     public static int regionRelative(int xz) {
         return xz & (RegionSummary.REGION_SIZE - 1);
     }

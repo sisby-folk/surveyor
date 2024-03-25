@@ -61,7 +61,7 @@ public interface SurveyorPlayer {
             SurveyorExploration.super.addStructure(worldKey, structureKey, pos);
             ServerWorld world = player.getServerWorld();
             WorldStructureSummary summary = WorldSummary.of(world).structures();
-            new S2CStructuresAddedPacket(Map.of(structureKey, Map.of(pos, summary.get(structureKey, pos))), Map.of(structureKey, summary.getType(structureKey)), MapUtil.hashMultiMapOf(Map.of(structureKey, summary.getTags(structureKey)))).send(player);
+            new S2CStructuresAddedPacket(Map.of(structureKey, Map.of(pos, summary.get(structureKey, pos))), Map.of(structureKey, summary.getType(structureKey)), MapUtil.asMultiMap(Map.of(structureKey, summary.getTags(structureKey)))).send(player);
             // Send to shared players if they don't have it
             if (player.getServer().isHost(player.getGameProfile())) { // Singleplayer Client
                 SurveyorClientEvents.Invoke.structuresAdded(world, summary, structureKey, pos);

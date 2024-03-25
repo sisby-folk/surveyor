@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -74,8 +75,17 @@ public class WorldTerrainSummary {
     }
 
     public static Set<ChunkPos> toKeys(Map<ChunkPos, BitSet> bitSets) {
+        return toKeys(bitSets, Comparator.comparingInt(pos -> pos.x + pos.z));
+    }
+
+    public static Set<ChunkPos> toKeys(Map<ChunkPos, BitSet> bitSets, ChunkPos originChunk) {
+        ChunkPos oPos = new ChunkPos(RegionSummary.chunkToRegion(originChunk.x), RegionSummary.chunkToRegion(originChunk.z));
+        return toKeys(bitSets, Comparator.comparingDouble(pos -> (oPos.x - pos.x) * (oPos.x - pos.x) + (oPos.z - pos.z) * (oPos.z - pos.z)));
+    }
+
+    public static Set<ChunkPos> toKeys(Map<ChunkPos, BitSet> bitSets, Comparator<ChunkPos> regionComparator) {
         Set<ChunkPos> set = new LinkedHashSet<>();
-        bitSets.forEach((rPos, bitSet) -> bitSet.stream().forEach(i -> set.add(RegionSummary.chunkForBit(rPos, i))));
+        bitSets.entrySet().stream().sorted(Map.Entry.comparingByKey(regionComparator)).forEach(e -> e.getValue().stream().forEach(i -> set.add(RegionSummary.chunkForBit(e.getKey(), i))));
         return set;
     }
 
