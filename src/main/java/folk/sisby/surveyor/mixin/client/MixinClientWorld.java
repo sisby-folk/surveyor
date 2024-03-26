@@ -6,6 +6,7 @@ import folk.sisby.surveyor.client.SurveyorClient;
 import folk.sisby.surveyor.client.SurveyorClientEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.world.ClientWorld;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -36,9 +37,9 @@ public class MixinClientWorld implements SurveyorWorld {
     public void onJoinWorld(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
         ClientWorld self = (ClientWorld) (Object) this;
         for (AbstractClientPlayerEntity player : self.getPlayers()) {
-            if (MinecraftClient.getInstance().player == player && SurveyorClientEvents.INITIALIZING_WORLD) {
+            if (player instanceof ClientPlayerEntity clientPlayer && SurveyorClientEvents.INITIALIZING_WORLD) {
                 SurveyorClientEvents.INITIALIZING_WORLD = false;
-                SurveyorClientEvents.Invoke.worldLoad(player.clientWorld, WorldSummary.of(player.getWorld()), MinecraftClient.getInstance().player);
+                SurveyorClientEvents.Invoke.worldLoad(clientPlayer.clientWorld, clientPlayer);
             }
         }
     }

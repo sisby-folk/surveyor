@@ -32,10 +32,10 @@ public interface Landmark<T extends Landmark<T>> {
     }
 
     default Multimap<LandmarkType<?>, BlockPos> put(Multimap<LandmarkType<?>, BlockPos> changed, World world, WorldLandmarks landmarks) {
-        return landmarks.putLocalBatched(changed, this);
+        return landmarks.putForBatch(changed, this);
     }
 
     default Multimap<LandmarkType<?>, BlockPos> remove(Multimap<LandmarkType<?>, BlockPos> changed, World world, WorldLandmarks landmarks) {
-        return landmarks.removeLocalBatched(changed, this.type(), this.pos());
+        return landmarks.removeForBatch(changed, this.type(), this.pos());
     }
 }

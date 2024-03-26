@@ -116,7 +116,7 @@ public class WorldStructureSummary {
             structureTypes.put(key, type);
             structureTags.putAll(key, tags);
             dirty = true;
-            SurveyorEvents.Invoke.structuresAdded(world, this, key, pos);
+            SurveyorEvents.Invoke.structuresAdded(world, key, pos);
         }
     }
 
@@ -125,7 +125,7 @@ public class WorldStructureSummary {
         structureTypes.put(key, type);
         structureTags.putAll(key, tagKeys);
         dirty = true;
-        SurveyorEvents.Invoke.structuresAdded(world, this, key, pos);
+        SurveyorEvents.Invoke.structuresAdded(world, key, pos);
     }
 
     protected NbtCompound writeNbt(NbtCompound nbt) {

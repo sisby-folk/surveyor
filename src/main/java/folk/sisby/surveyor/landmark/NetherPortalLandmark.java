@@ -35,8 +35,7 @@ public record NetherPortalLandmark(BlockBox box, Direction.Axis axis) implements
     @Override
     public Multimap<LandmarkType<?>, BlockPos> put(Multimap<LandmarkType<?>, BlockPos> changes, World world, WorldLandmarks landmarks) {
         Landmark.super.put(changes, world, landmarks);
-        tryMerge(changes, world, landmarks);
-        return changes;
+        return tryMerge(changes, world, landmarks);
     }
 
     @Override

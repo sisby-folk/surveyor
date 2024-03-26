@@ -71,21 +71,23 @@ public class SurveyorNetworking {
 
     private static void handleKnownLandmarks(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownLandmarksPacket packet) {
         Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks = summary.landmarks().asMap(SurveyorExploration.of(player));
-        packet.landmarks().forEach((type, positions) -> {
-            if (landmarks.containsKey(type)) {
-                positions.forEach(p -> landmarks.get(type).remove(p));
-                if (landmarks.get(type).isEmpty()) landmarks.remove(type);
-            }
+        packet.landmarks().forEach((type, pos) -> {
+            landmarks.get(type).remove(pos);
+            if (landmarks.get(type).isEmpty()) landmarks.remove(type);
         });
         new SyncLandmarksAddedPacket(landmarks).send(player);
     }
 
     private static void handleLandmarksAdded(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, SyncLandmarksAddedPacket packet) {
-        packet.landmarks().forEach((type, map) -> map.forEach(((pos, landmark) -> summary.landmarks().put(player, world, landmark))));
+        Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
+        packet.landmarks().forEach((type, map) -> map.forEach((pos, landmark) -> summary.landmarks().putForBatch(changed, landmark)));
+        summary.landmarks().handleChanged(world, changed, false, player);
     }
 
     private static void handleLandmarksRemoved(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, SyncLandmarksRemovedPacket packet) {
-        packet.landmarks().forEach((type, pos) -> summary.landmarks().remove(player, world, type, pos));
+        Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
+        packet.landmarks().forEach((type, pos) -> summary.landmarks().removeForBatch(changed, type, pos));
+        summary.landmarks().handleChanged(world, changed, false, player);
     }
 
     private static <T extends C2SPacket> void handleServer(ServerPlayerEntity player, PacketByteBuf buf, Function<PacketByteBuf, T> reader, ServerPacketHandler<T> handler) {

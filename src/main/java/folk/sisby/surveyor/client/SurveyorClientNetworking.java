@@ -1,9 +1,12 @@
 package folk.sisby.surveyor.client;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.SurveyorNetworking;
 import folk.sisby.surveyor.WorldSummary;
+import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.packet.S2CPacket;
 import folk.sisby.surveyor.packet.S2CStructuresAddedPacket;
 import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
@@ -14,6 +17,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.util.math.BlockPos;
 
 import java.util.function.Function;
 
@@ -40,15 +44,19 @@ public class SurveyorClientNetworking {
     private static void handleTerrainAdded(ClientWorld world, WorldSummary summary, PacketByteBuf buf) {
         S2CUpdateRegionPacket packet = S2CUpdateRegionPacket.handle(buf, world.getRegistryManager(), summary);
         SurveyorClient.getExploration(null).mergeRegion(world.getRegistryKey(), packet.regionPos(), packet.chunks());
-        SurveyorEvents.Invoke.terrainUpdated(world, summary.terrain(), packet.chunks().stream().mapToObj(i -> RegionSummary.chunkForBit(packet.regionPos(), i)).toList());
+        SurveyorEvents.Invoke.terrainUpdated(world, packet.chunks().stream().mapToObj(i -> RegionSummary.chunkForBit(packet.regionPos(), i)).toList());
     }
 
     private static void handleLandmarksAdded(ClientWorld world, WorldSummary summary, SyncLandmarksAddedPacket packet) {
-        packet.landmarks().forEach((type, map) -> map.forEach((pos, landmark) -> summary.landmarks().putLocal(world, landmark)));
+        Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
+        packet.landmarks().forEach((type, map) -> map.forEach((pos, landmark) -> summary.landmarks().putForBatch(changed, landmark)));
+        summary.landmarks().handleChanged(world, changed, true, null);
     }
 
     private static void handleLandmarksRemoved(ClientWorld world, WorldSummary summary, SyncLandmarksRemovedPacket packet) {
-        packet.landmarks().forEach((type, pos) -> summary.landmarks().removeLocal(world, type, pos));
+        Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
+        packet.landmarks().forEach((type, pos) -> summary.landmarks().removeForBatch(changed, type, pos));
+        summary.landmarks().handleChanged(world, changed, true, null);
     }
 
     private static <T extends S2CPacket> void handleClient(PacketByteBuf buf, Function<PacketByteBuf, T> reader, ClientPacketHandler<T> handler) {

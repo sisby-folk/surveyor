@@ -1,11 +1,11 @@
 package folk.sisby.surveyor.client;
 
+import com.google.common.collect.HashMultimap;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
-import folk.sisby.surveyor.terrain.RegionSummary;
 import folk.sisby.surveyor.terrain.WorldTerrainSummary;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.fabricmc.api.ClientModInitializer;
@@ -16,7 +16,6 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ServerInfo;
-import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
@@ -93,11 +92,11 @@ public class SurveyorClient implements ClientModInitializer {
         SurveyorEvents.Register.landmarksAdded(new Identifier(Surveyor.ID, "client"), ((world, worldLandmarks, landmarks) -> {
             for (PlayerEntity player : world.getPlayers()) {
                 if (player instanceof ClientPlayerEntity clientPlayer) {
-                    SurveyorClientEvents.Invoke.landmarksAdded(world, worldLandmarks, getExploration(clientPlayer).limitLandmarkMap(world.getRegistryKey(), landmarks));
+                    SurveyorClientEvents.Invoke.landmarksAdded(world, getExploration(clientPlayer).limitLandmarkKeySet(world.getRegistryKey(), worldLandmarks, HashMultimap.create(landmarks)));
                 }
             }
         }));
-        SurveyorEvents.Register.landmarksRemoved(new Identifier(Surveyor.ID, "client"), SurveyorClientEvents.Invoke::landmarksRemoved);
+        SurveyorEvents.Register.landmarksRemoved(new Identifier(Surveyor.ID, "client"), (world, summary, landmarks) -> SurveyorClientEvents.Invoke.landmarksRemoved(world, landmarks));
     }
 
     private record ClientExploration(Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures) implements SurveyorExploration {
@@ -148,28 +147,19 @@ public class SurveyorClient implements ClientModInitializer {
         @Override
         public void addStructure(RegistryKey<World> worldKey, RegistryKey<Structure> structureKey, ChunkPos pos) {
             SurveyorExploration.super.addStructure(worldKey, structureKey, pos);
-            ClientWorld world = MinecraftClient.getInstance().world;
-            SurveyorClientEvents.Invoke.structuresAdded(world, WorldSummary.of(world).structures(), structureKey, pos);
+            updateClientForAddStructure(MinecraftClient.getInstance().world, structureKey, pos);
         }
 
         @Override
         public void mergeRegion(RegistryKey<World> worldKey, ChunkPos regionPos, BitSet bitSet) {
             SurveyorExploration.super.mergeRegion(worldKey, regionPos, bitSet);
-            ClientWorld world = MinecraftClient.getInstance().world;
-            SurveyorClientEvents.Invoke.terrainUpdated(world, WorldSummary.of(world).terrain(), bitSet.stream().mapToObj(i -> RegionSummary.chunkForBit(regionPos, i)).toList());
-            WorldSummary.of(world).landmarks().asMap(this).forEach((type, map) -> map.forEach((lPos, landmark) -> {
-                if (exploredLandmark(worldKey, landmark)) SurveyorClientEvents.Invoke.landmarksAdded(world, WorldSummary.of(world).landmarks(), landmark);
-            }));
+            updateClientForMergeRegion(MinecraftClient.getInstance().world, regionPos, bitSet);
         }
 
         @Override
         public void addChunk(RegistryKey<World> worldKey, ChunkPos pos) {
             SurveyorExploration.super.addChunk(worldKey, pos);
-            ClientWorld world = MinecraftClient.getInstance().world;
-            SurveyorClientEvents.Invoke.terrainUpdated(world, WorldSummary.of(world).terrain(), pos);
-            WorldSummary.of(world).landmarks().asMap(this).forEach((type, map) -> map.forEach((lPos, landmark) -> {
-                if (exploredLandmark(worldKey, landmark)) SurveyorClientEvents.Invoke.landmarksAdded(world, WorldSummary.of(world).landmarks(), landmark);
-            }));
+            updateClientForAddChunk(MinecraftClient.getInstance().world, pos);
         }
     }
 }

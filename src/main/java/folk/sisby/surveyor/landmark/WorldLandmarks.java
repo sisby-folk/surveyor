@@ -7,6 +7,7 @@ import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.packet.SyncLandmarksAddedPacket;
 import folk.sisby.surveyor.packet.SyncLandmarksRemovedPacket;
+import folk.sisby.surveyor.util.MapUtil;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.registry.RegistryKey;
@@ -66,7 +67,7 @@ public class WorldLandmarks {
         return outMap;
     }
 
-    protected void handleChanged(World world, Multimap<LandmarkType<?>, BlockPos> changed, boolean local, @Nullable ServerPlayerEntity sender) {
+    public void handleChanged(World world, Multimap<LandmarkType<?>, BlockPos> changed, boolean local, @Nullable ServerPlayerEntity sender) {
         Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarksAddedChanged = new HashMap<>();
         Multimap<LandmarkType<?>, BlockPos> landmarksRemoved = HashMultimap.create();
         changed.forEach((type, pos) -> {
@@ -76,15 +77,15 @@ public class WorldLandmarks {
                 landmarksRemoved.put(type, pos);
             }
         });
-        SurveyorEvents.Invoke.landmarksAdded(world, this, landmarksAddedChanged);
-        SurveyorEvents.Invoke.landmarksRemoved(world, this, landmarksRemoved);
+        SurveyorEvents.Invoke.landmarksAdded(world, MapUtil.keyMultiMap(landmarksAddedChanged));
+        SurveyorEvents.Invoke.landmarksRemoved(world, landmarksRemoved);
         if (!local) {
             new SyncLandmarksRemovedPacket(landmarksRemoved).send(sender, world);
             new SyncLandmarksAddedPacket(landmarksAddedChanged).send(sender, world);
         }
     }
 
-    public Multimap<LandmarkType<?>, BlockPos> putLocalBatched(Multimap<LandmarkType<?>, BlockPos> changed, Landmark<?> landmark) {
+    public Multimap<LandmarkType<?>, BlockPos> putForBatch(Multimap<LandmarkType<?>, BlockPos> changed, Landmark<?> landmark) {
         landmarks.computeIfAbsent(landmark.type(), t -> new ConcurrentHashMap<>()).put(landmark.pos(), landmark);
         dirty = true;
         changed.put(landmark.type(), landmark.pos());
@@ -106,7 +107,7 @@ public class WorldLandmarks {
         handleChanged(world, changed, false, sender);
     }
 
-    public Multimap<LandmarkType<?>, BlockPos> removeLocalBatched(Multimap<LandmarkType<?>, BlockPos> changed, LandmarkType<?> type, BlockPos pos) {
+    public Multimap<LandmarkType<?>, BlockPos> removeForBatch(Multimap<LandmarkType<?>, BlockPos> changed, LandmarkType<?> type, BlockPos pos) {
         if (!landmarks.containsKey(type) || !landmarks.get(type).containsKey(pos)) return changed;
         landmarks.get(type).remove(pos);
         if (landmarks.get(type).isEmpty()) landmarks.remove(type);

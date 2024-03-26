@@ -68,10 +68,7 @@ public class WorldTerrainSummary {
     public Map<ChunkPos, BitSet> bitSet(SurveyorExploration exploration) {
         Map<ChunkPos, BitSet> map = new HashMap<>();
         regions.forEach((p, r) -> map.put(p, r.bitSet()));
-        if (exploration != null) {
-            exploration.limitTerrainBitset(worldKey, map);
-        }
-        return map;
+        return exploration == null ? map : exploration.limitTerrainBitset(worldKey, map);
     }
 
     public static Set<ChunkPos> toKeys(Map<ChunkPos, BitSet> bitSets) {
@@ -89,13 +86,9 @@ public class WorldTerrainSummary {
         return set;
     }
 
-    public Set<ChunkPos> keySet(SurveyorExploration exploration) {
-        return toKeys(bitSet(exploration));
-    }
-
     public void put(World world, Chunk chunk) {
         regions.computeIfAbsent(regionPosOf(chunk.getPos()), k -> new RegionSummary()).putChunk(world, chunk);
-        SurveyorEvents.Invoke.terrainUpdated(world, this, chunk.getPos());
+        SurveyorEvents.Invoke.terrainUpdated(world, chunk.getPos());
     }
 
     public int save(World world, File folder) {
