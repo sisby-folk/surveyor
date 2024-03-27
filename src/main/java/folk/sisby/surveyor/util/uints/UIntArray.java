@@ -8,11 +8,13 @@ import net.minecraft.network.PacketByteBuf;
 
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.function.Function;
 
 /**
- * A compressed representation of an int[256] for holding optional unsigned ints.
+ * A compressed representation of an int array for holding unsigned ints.
  * Keeps size down in memory, as well as in NBT and packets.
- * Designed mostly for paletted data, as well as data with aligned "nulls" (-1 values)
+ * Designed to be paired with a bitset as a mask, so it can represent nullable values within a static-sized array.
+ *
  * @author Sisby folk
  * @author Falkreon
  * @author Ampflower
@@ -27,8 +29,6 @@ public interface UIntArray {
 
     int getType();
 
-    int[] getUncompressed();
-
     int[] getUnmasked(BitSet mask);
 
     void writeNbt(NbtCompound nbt, String key);
@@ -36,6 +36,12 @@ public interface UIntArray {
     void writeBuf(PacketByteBuf buf);
 
     int get(int i);
+
+    UIntArray remap(Function<Integer, Integer> remapping, int defaultValue, int cardinality);
+
+    static UIntArray remap(UIntArray input, Function<Integer, Integer> remapping, int defaultValue, int cardinality) {
+        return (input == null ? new IntUints(defaultValue) : input).remap(remapping, defaultValue, cardinality);
+    }
 
     default int getMasked(BitSet mask, int i) {
         int empty = 0;
@@ -54,15 +60,15 @@ public interface UIntArray {
         array.writeBuf(buf);
     }
 
-    static UIntArray readNbt(NbtElement nbt, int defaultValue) {
+    static UIntArray readNbt(NbtElement nbt) {
         if (nbt == null) return null;
-        return fromUInts((switch (nbt.getType()) { // Recompress on read.
+        return switch (nbt.getType()) {
             case ByteUInts.TYPE -> ByteUInts.fromNbt(nbt);
             case ByteArrayUInts.TYPE -> ByteArrayUInts.fromNbt(nbt);
             case IntUints.TYPE -> IntUints.fromNbt(nbt);
             case IntArrayUInts.TYPE -> IntArrayUInts.fromNbt(nbt);
             default -> throw new IllegalStateException("UIntArray encountered unexpected NBT type: " + nbt.getType());
-        }).getUncompressed(), defaultValue);
+        };
     }
 
     static UIntArray readBuf(PacketByteBuf buf) {
@@ -89,11 +95,11 @@ public interface UIntArray {
                 return new IntUints(ints[0]);
             }
         else {
-            int lastIndex = ArrayUtil.trimIndex(ints, -1);
+            int lastIndex = ArrayUtil.trimIndex(ints, defaultValue);
             if (oneByte) {
                 return new ByteArrayUInts(Bytes.toArray(Arrays.stream(ints).mapToObj(i -> (byte) (i - UINT_BYTE_OFFSET)).toList().subList(0, lastIndex)));
             } else {
-                return new IntArrayUInts(Arrays.copyOfRange(ints,0, lastIndex));
+                return new IntArrayUInts(Arrays.copyOfRange(ints, 0, lastIndex));
             }
         }
     }

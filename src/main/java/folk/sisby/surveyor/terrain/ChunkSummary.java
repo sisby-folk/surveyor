@@ -1,6 +1,5 @@
 package folk.sisby.surveyor.terrain;
 
-import folk.sisby.surveyor.util.ArrayUtil;
 import folk.sisby.surveyor.util.ChunkUtil;
 import folk.sisby.surveyor.util.uints.UIntArray;
 import net.minecraft.block.Block;
@@ -129,21 +128,7 @@ public class ChunkSummary {
 
     public void remap(Map<Integer, Integer> biomeRemap, Map<Integer, Integer> blockRemap) {
         Map<Integer, LayerSummary> newLayers = new HashMap<>();
-        layers.forEach((y, layer) -> {
-            if (layer != null) {
-                int[] remappedBiome = ArrayUtil.ofSingle(-1, 256);
-                int[] oldBiome = layer.rawBiomes();
-                for (int i = 0; i < oldBiome.length; i++) {
-                    if (oldBiome[i] != -1) remappedBiome[i] = biomeRemap.get(oldBiome[i]);
-                }
-                int[] remappedBlock = ArrayUtil.ofSingle(-1, 256);
-                int[] oldBlock = layer.rawBlocks();
-                for (int i = 0; i < oldBlock.length; i++) {
-                    if (oldBlock[i] != -1) remappedBlock[i] = blockRemap.get(oldBlock[i]);
-                }
-                newLayers.put(y, new LayerSummary(layer.found, layer.depth, UIntArray.fromUInts(remappedBiome, LayerSummary.BIOME_DEFAULT), UIntArray.fromUInts(remappedBlock, LayerSummary.BLOCK_DEFAULT), layer.light, layer.water));
-            }
-        });
+        layers.forEach((y, layer) -> newLayers.put(y, layer == null ? null : new LayerSummary(layer.found, layer.depth, UIntArray.remap(layer.biome, biomeRemap::get, LayerSummary.BIOME_DEFAULT, layer.found.cardinality()), UIntArray.remap(layer.block, blockRemap::get, LayerSummary.BLOCK_DEFAULT, layer.found.cardinality()), layer.light, layer.water)));
         layers.clear();
         layers.putAll(newLayers);
     }

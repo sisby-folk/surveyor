@@ -4,12 +4,10 @@ import folk.sisby.surveyor.util.ArrayUtil;
 import folk.sisby.surveyor.util.PaletteUtil;
 import folk.sisby.surveyor.util.uints.UIntArray;
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
-import net.minecraft.util.collection.IndexedIterable;
 import net.minecraft.util.collection.Int2ObjectBiMap;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
@@ -77,11 +75,11 @@ public class LayerSummary {
     public static LayerSummary fromNbt(NbtCompound nbt) {
         if (!nbt.contains(KEY_FOUND)) return null;
         BitSet found = BitSet.valueOf(nbt.getLongArray(KEY_FOUND));
-        UIntArray depth = UIntArray.readNbt(nbt.get(KEY_DEPTH), DEPTH_DEFAULT);
-        UIntArray biome = UIntArray.readNbt(nbt.get(KEY_BIOME), BIOME_DEFAULT);
-        UIntArray block = UIntArray.readNbt(nbt.get(KEY_BLOCK), BLOCK_DEFAULT);
-        UIntArray light = UIntArray.readNbt(nbt.get(KEY_LIGHT), LIGHT_DEFAULT);
-        UIntArray water = UIntArray.readNbt(nbt.get(KEY_WATER), WATER_DEFAULT);
+        UIntArray depth = UIntArray.readNbt(nbt.get(KEY_DEPTH));
+        UIntArray biome = UIntArray.readNbt(nbt.get(KEY_BIOME));
+        UIntArray block = UIntArray.readNbt(nbt.get(KEY_BLOCK));
+        UIntArray light = UIntArray.readNbt(nbt.get(KEY_LIGHT));
+        UIntArray water = UIntArray.readNbt(nbt.get(KEY_WATER));
         return new LayerSummary(found, depth, biome, block, light, water);
     }
 
@@ -113,42 +111,6 @@ public class LayerSummary {
         UIntArray.writeBuf(block, buf);
         UIntArray.writeBuf(light, buf);
         UIntArray.writeBuf(water, buf);
-    }
-
-    public boolean isEmpty(int x, int z) {
-        return !found.get(x * 16 + z);
-    }
-
-    public int getDepth(int x, int z) {
-        return depth == null ? DEPTH_DEFAULT : isEmpty(x, z) ? -1 : depth.getMasked(found, x * 16 + z);
-    }
-
-    public int getBiome(int x, int z) {
-        return biome == null ? BIOME_DEFAULT : isEmpty(x, z) ? -1 : biome.getMasked(found, x * 16 + z);
-    }
-
-    public int getBlock(int x, int z) {
-        return block == null ? BLOCK_DEFAULT : isEmpty(x, z) ? -1 : block.getMasked(found, x * 16 + z);
-    }
-
-    public int getLight(int x, int z) {
-        return light == null ? LIGHT_DEFAULT : isEmpty(x, z) ? -1 : light.getMasked(found, x * 16 + z);
-    }
-
-    public int getWater(int x, int z) {
-        return water == null ? WATER_DEFAULT : isEmpty(x, z) ? -1 : water.getMasked(found, x * 16 + z);
-    }
-
-    public int getHeight(int x, int z, int layerHeight, boolean ignoreWater) {
-        return layerHeight - getDepth(x, z) + (ignoreWater ? 0 : getWater(x, z));
-    }
-
-    public Biome getBiome(int x, int z, IndexedIterable<Biome> biomePalette) {
-        return biomePalette.get(getBiome(x, z));
-    }
-
-    public Block getBlock(int x, int z, IndexedIterable<Block> blockPalette, boolean ignoreWater) {
-        return (ignoreWater || getWater(x, z) == 0) ? blockPalette.get(getBlock(x, z)) : Blocks.WATER;
     }
 
     public int[] rawDepths() {

@@ -7,6 +7,7 @@ import net.minecraft.nbt.NbtElement;
 import net.minecraft.network.PacketByteBuf;
 
 import java.util.BitSet;
+import java.util.function.Function;
 
 public record ByteArrayUInts(byte[] value) implements UIntArray {
     public static final int TYPE = NbtElement.BYTE_ARRAY_TYPE;
@@ -22,15 +23,6 @@ public record ByteArrayUInts(byte[] value) implements UIntArray {
     @Override
     public int getType() {
         return TYPE;
-    }
-
-    @Override
-    public int[] getUncompressed() {
-        int[] uncompressed = ArrayUtil.ofSingle(-1, 256);
-        for (int i = 0; i < value.length; i++) {
-            uncompressed[i] = value[i] + UINT_BYTE_OFFSET;
-        }
-        return uncompressed;
     }
 
     @Override
@@ -59,5 +51,14 @@ public record ByteArrayUInts(byte[] value) implements UIntArray {
     @Override
     public int get(int i) {
         return value[i] + UINT_BYTE_OFFSET;
+    }
+
+    @Override
+    public UIntArray remap(Function<Integer, Integer> remapping, int defaultValue, int cardinality) {
+        int[] newArray = ArrayUtil.ofSingle(cardinality, defaultValue);
+        for (int i = 0; i < value.length; i++) {
+            newArray[i] = remapping.apply(value[i] + UINT_BYTE_OFFSET);
+        }
+        return UIntArray.fromUInts(newArray, defaultValue);
     }
 }
