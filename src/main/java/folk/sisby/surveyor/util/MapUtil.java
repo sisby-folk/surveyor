@@ -4,6 +4,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 
 public class MapUtil {
@@ -15,7 +16,7 @@ public class MapUtil {
 
     public static <K, V> Multimap<K, V> keyMultiMap(Map<K, ? extends Map<V, ?>> asMap) {
         Multimap<K, V> map = HashMultimap.create();
-        asMap.forEach((key, innerMap) -> map.putAll(key, innerMap.keySet()));
+        asMap.forEach((key, innerMap) -> map.putAll(key, new HashSet<>(innerMap.keySet())));
         return map;
     }
 }
