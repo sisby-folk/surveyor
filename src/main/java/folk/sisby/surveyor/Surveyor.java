@@ -2,6 +2,7 @@ package folk.sisby.surveyor;
 
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.terrain.WorldTerrainSummary;
+import folk.sisby.surveyor.util.RaycastUtil;
 import it.unimi.dsi.fastutil.longs.LongArraySet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.fabricmc.api.ModInitializer;
@@ -54,7 +55,7 @@ public class Surveyor implements ModInitializer {
                     boolean found = false;
                     if (start.getBoundingBox().contains(pos)) {
                         for (StructurePiece piece : start.getChildren()) {
-                            if (piece.getBoundingBox().contains(pos)) {
+                            if (piece.getBoundingBox().expand(1).contains(pos)) {
                                 exploration.addStructure(world.getRegistryKey(), structureKey, startPos);
                                 found = true;
                                 break;
@@ -79,7 +80,7 @@ public class Surveyor implements ModInitializer {
             if ((world.getTime() & 7) != 0) return;
             for (ServerPlayerEntity player : world.getPlayers()) {
                 checkStructureExploration(world, player, player.getBlockPos());
-                checkStructureExploration(world, player, BlockPos.ofFloored(player.raycast(((SurveyorPlayer) player).surveyor$getViewDistance() << 4, 1.0F, false).getPos()));
+                checkStructureExploration(world, player, BlockPos.ofFloored(RaycastUtil.playerViewRaycast(player, ((SurveyorPlayer) player).surveyor$getViewDistance()).getPos()));
             }
         }));
     }

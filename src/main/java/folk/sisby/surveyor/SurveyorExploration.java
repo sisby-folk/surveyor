@@ -80,13 +80,8 @@ public interface SurveyorExploration {
         if (structures == null) {
             keySet.clear();
         } else {
-            keySet.asMap().forEach((key, starts) -> {
-                if (structures.containsKey(key)) {
-                    starts.removeIf(pos -> !structures.get(key).contains(pos.toLong()));
-                } else {
-                    starts.clear();
-                }
-            });
+            keySet.keySet().removeIf(key -> !structures.containsKey(key));
+            keySet.asMap().forEach((key, starts) -> starts.removeIf(pos -> !structures.get(key).contains(pos.toLong())));
         }
         return keySet;
     }
