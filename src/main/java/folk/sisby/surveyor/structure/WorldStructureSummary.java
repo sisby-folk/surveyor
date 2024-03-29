@@ -98,7 +98,7 @@ public class WorldStructureSummary {
             if (piece.getType().equals(StructurePieceType.JIGSAW)) {
                 pieces.addAll(JigsawPieceSummary.tryFromPiece(piece));
             } else {
-                pieces.add(StructurePieceSummary.fromPiece(context, piece));
+                pieces.add(StructurePieceSummary.fromPiece(context, piece, start.getChildren().size() <= 10));
             }
         }
         return new StructureStartSummary(pieces);

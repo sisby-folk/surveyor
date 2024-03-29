@@ -35,15 +35,17 @@ public class StructurePieceSummary extends StructurePiece {
         this.pieceNbt = nbt.getCompound("nbt");
     }
 
-    public static StructurePieceSummary fromPiece(StructureContext context, StructurePiece piece) {
+    public static StructurePieceSummary fromPiece(StructureContext context, StructurePiece piece, boolean withNbt) {
         StructurePieceSummary summary = new StructurePieceSummary(piece.getType(), piece.getChainLength(), piece.getBoundingBox(), new NbtCompound());
-        NbtCompound summaryNbt = summary.toNbt();
-        NbtCompound pieceNbt = piece.toNbt(context);
-        for (String key : summaryNbt.getKeys()) {
-            pieceNbt.remove(key);
-        }
-        for (String key : pieceNbt.getKeys()) {
-            summary.pieceNbt.put(key, pieceNbt.get(key));
+        if (withNbt) {
+            NbtCompound summaryNbt = summary.toNbt();
+            NbtCompound pieceNbt = piece.toNbt(context);
+            for (String key : summaryNbt.getKeys()) {
+                pieceNbt.remove(key);
+            }
+            for (String key : pieceNbt.getKeys()) {
+                summary.pieceNbt.put(key, pieceNbt.get(key));
+            }
         }
         return summary;
     }
