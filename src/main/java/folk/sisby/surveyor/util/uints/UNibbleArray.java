@@ -24,7 +24,7 @@ public record UNibbleArray(byte[] value) implements ArrayUInts {
 
     @Override
     public int get(int i) {
-        return (i & 1) == 0 ? value[i / 2] >>> NIBBLE_SIZE : value[i / 2] & NIBBLE_MASK;
+        return ((i & 1) == 0 ? value[i / 2] >>> NIBBLE_SIZE : value[i / 2]) & NIBBLE_MASK;
     }
 
     @Override
