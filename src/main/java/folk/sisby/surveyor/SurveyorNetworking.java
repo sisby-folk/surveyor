@@ -48,7 +48,7 @@ public class SurveyorNetworking {
         Map<ChunkPos, BitSet> clientBits = packet.regionBits();
         serverBits.forEach((rPos, set) -> {
             if (clientBits.containsKey(rPos)) set.andNot(clientBits.get(rPos));
-            new S2CUpdateRegionPacket(rPos, summary.terrain().getRegion(rPos), set).send(player);
+            if (!set.isEmpty()) new S2CUpdateRegionPacket(rPos, summary.terrain().getRegion(rPos), set).send(player);
         });
     }
 
@@ -60,6 +60,7 @@ public class SurveyorNetworking {
                 if (structures.get(key).isEmpty()) structures.remove(key);
             }
         });
+        if (structures.isEmpty()) return;
         Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> structureTypes = new HashMap<>();
         Multimap<RegistryKey<Structure>, TagKey<Structure>> structureTags = HashMultimap.create();
         for (RegistryKey<Structure> key : structures.keySet()) {
@@ -75,7 +76,7 @@ public class SurveyorNetworking {
             landmarks.get(type).remove(pos);
             if (landmarks.get(type).isEmpty()) landmarks.remove(type);
         });
-        new SyncLandmarksAddedPacket(landmarks).send(player);
+        if (!landmarks.isEmpty()) new SyncLandmarksAddedPacket(landmarks).send(player);
     }
 
     private static void handleLandmarksAdded(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, SyncLandmarksAddedPacket packet) {

@@ -28,20 +28,24 @@ public class SurveyorEvents {
 
     public static class Invoke {
         public static void worldLoad(ServerWorld world) {
+            if (worldLoad.isEmpty()) return;
             WorldSummary summary = WorldSummary.of(world);
             worldLoad.forEach((id, handler) -> handler.onWorldLoad(world, summary));
         }
 
         public static void terrainUpdated(World world, Collection<ChunkPos> chunks) {
+            if (terrainUpdated.isEmpty() || chunks.isEmpty()) return;
             WorldTerrainSummary summary = WorldSummary.of(world).terrain();
             terrainUpdated.forEach((id, handler) -> handler.onTerrainUpdated(world, summary, chunks));
         }
 
         public static void terrainUpdated(World world, ChunkPos pos) {
+
             terrainUpdated(world, List.of(pos));
         }
 
         public static void structuresAdded(World world, Multimap<RegistryKey<Structure>, ChunkPos> structures) {
+            if (structuresAdded.isEmpty() || structures.isEmpty()) return;
             WorldStructureSummary summary = WorldSummary.of(world).structures();
             structuresAdded.forEach((id, handler) -> handler.onStructuresAdded(world, summary, structures));
         }
@@ -51,11 +55,13 @@ public class SurveyorEvents {
         }
 
         public static void landmarksAdded(World world, Multimap<LandmarkType<?>, BlockPos> landmarks) {
+            if (landmarksAdded.isEmpty() || landmarks.isEmpty()) return;
             WorldLandmarks summary = WorldSummary.of(world).landmarks();
             landmarksAdded.forEach((id, handler) -> handler.onLandmarksAdded(world, summary, landmarks));
         }
 
         public static void landmarksRemoved(World world, Multimap<LandmarkType<?>, BlockPos> landmarks) {
+            if (landmarksRemoved.isEmpty() || landmarks.isEmpty()) return;
             WorldLandmarks summary = WorldSummary.of(world).landmarks();
             landmarksRemoved.forEach((id, handler) -> handler.onLandmarksRemoved(world, summary, landmarks));
         }

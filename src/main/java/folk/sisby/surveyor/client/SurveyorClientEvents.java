@@ -33,6 +33,7 @@ public class SurveyorClientEvents {
 
     public static class Invoke {
         public static void worldLoad(ClientWorld world, ClientPlayerEntity player) {
+            if (worldLoad.isEmpty()) return;
             SurveyorExploration exploration = SurveyorClient.getExploration(player);
             WorldSummary summary = WorldSummary.of(world);
             Map<ChunkPos, BitSet> terrain = summary.terrain().bitSet(exploration);
@@ -42,6 +43,7 @@ public class SurveyorClientEvents {
         }
 
         public static void terrainUpdated(World world, Collection<ChunkPos> chunks) {
+            if (terrainUpdated.isEmpty() || chunks.isEmpty()) return;
             WorldTerrainSummary summary = WorldSummary.of(world).terrain();
             terrainUpdated.forEach((id, handler) -> handler.onTerrainUpdated(world, summary, chunks));
         }
@@ -51,6 +53,7 @@ public class SurveyorClientEvents {
         }
 
         public static void structuresAdded(World world, Multimap<RegistryKey<Structure>, ChunkPos> structures) {
+            if (structuresAdded.isEmpty() || structures.isEmpty()) return;
             WorldStructureSummary summary = WorldSummary.of(world).structures();
             structuresAdded.forEach((id, handler) -> handler.onStructuresAdded(world, summary, structures));
         }
@@ -60,11 +63,13 @@ public class SurveyorClientEvents {
         }
 
         public static void landmarksAdded(World world, Multimap<LandmarkType<?>, BlockPos> landmarks) {
+            if (landmarksAdded.isEmpty() || landmarks.isEmpty()) return;
             WorldLandmarks summary = WorldSummary.of(world).landmarks();
             landmarksAdded.forEach((id, handler) -> handler.onLandmarksAdded(world, summary, landmarks));
         }
 
         public static void landmarksRemoved(World world, Multimap<LandmarkType<?>, BlockPos> landmarks) {
+            if (landmarksRemoved.isEmpty() || landmarks.isEmpty()) return;
             WorldLandmarks summary = WorldSummary.of(world).landmarks();
             landmarksRemoved.forEach((id, handler) -> handler.onLandmarksRemoved(world, summary, landmarks));
         }
