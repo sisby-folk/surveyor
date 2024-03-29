@@ -114,7 +114,7 @@ public class LayerSummary {
         for (int j = 0; j < 256; j++) {
             if (found.get(j)) {
                 int floorDepth = depth == null ? DEPTH_DEFAULT : depth.get(i);
-                if (outLayer.exists.get(j) && floorDepth >= minDepth && floorDepth <= maxDepth) {
+                if (!outLayer.exists.get(j) && floorDepth >= minDepth && floorDepth <= maxDepth) {
                     outLayer.exists.set(j);
                     outLayer.depths[j] = floorDepth + depthOffset;
                     outLayer.biomes[j] = biome == null ? BIOME_DEFAULT : biome.get(i);
