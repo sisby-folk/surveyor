@@ -81,7 +81,7 @@ public interface SurveyorExploration {
             keySet.clear();
         } else {
             keySet.keySet().removeIf(key -> !structures.containsKey(key));
-            keySet.asMap().forEach((key, starts) -> starts.removeIf(pos -> !structures.get(key).contains(pos.toLong())));
+            keySet.entries().removeIf(e -> !structures.get(e.getKey()).contains(e.getValue().toLong()));
         }
         return keySet;
     }
