@@ -2,7 +2,7 @@ package folk.sisby.surveyor.terrain;
 
 import folk.sisby.surveyor.util.ArrayUtil;
 import folk.sisby.surveyor.util.PaletteUtil;
-import folk.sisby.surveyor.util.uints.UIntArray;
+import folk.sisby.surveyor.util.uints.UInts;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
@@ -39,13 +39,13 @@ public class LayerSummary {
     public static final int[] WATER_DEFAULT_ARRAY = ArrayUtil.ofSingle(WATER_DEFAULT, 256);
 
     protected final @NotNull BitSet found;
-    protected final @Nullable UIntArray depth;
-    protected final @Nullable UIntArray biome;
-    protected final @Nullable UIntArray block;
-    protected final @Nullable UIntArray light;
-    protected final @Nullable UIntArray water;
+    protected final @Nullable UInts depth;
+    protected final @Nullable UInts biome;
+    protected final @Nullable UInts block;
+    protected final @Nullable UInts light;
+    protected final @Nullable UInts water;
 
-    protected LayerSummary(@NotNull BitSet found, @Nullable UIntArray depth, @Nullable UIntArray biome, @Nullable UIntArray block, @Nullable UIntArray light, @Nullable UIntArray water) {
+    protected LayerSummary(@NotNull BitSet found, @Nullable UInts depth, @Nullable UInts biome, @Nullable UInts block, @Nullable UInts light, @Nullable UInts water) {
         this.found = found;
         this.depth = depth;
         this.biome = biome;
@@ -64,33 +64,36 @@ public class LayerSummary {
             }
         }
         if (found.cardinality() == 0) return null;
-        UIntArray depth = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(f -> layerY - f.y()).toArray(), LIGHT_DEFAULT);
-        UIntArray biome = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::biome).mapToInt(b -> PaletteUtil.idOrAdd(biomePalette, rawBiomePalette, b, biomeRegistry)).toArray(), BIOME_DEFAULT);
-        UIntArray block = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::block).mapToInt(b -> PaletteUtil.idOrAdd(blockPalette, rawBlockPalette, b, blockRegistry)).toArray(), BLOCK_DEFAULT);
-        UIntArray light = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(FloorSummary::lightLevel).toArray(), LIGHT_DEFAULT);
-        UIntArray fluid = UIntArray.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(FloorSummary::fluidDepth).toArray(), WATER_DEFAULT);
+        UInts depth = UInts.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(f -> layerY - f.y()).toArray(), LIGHT_DEFAULT);
+        UInts biome = UInts.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::biome).mapToInt(b -> PaletteUtil.idOrAdd(biomePalette, rawBiomePalette, b, biomeRegistry)).toArray(), BIOME_DEFAULT);
+        UInts block = UInts.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::block).mapToInt(b -> PaletteUtil.idOrAdd(blockPalette, rawBlockPalette, b, blockRegistry)).toArray(), BLOCK_DEFAULT);
+        UInts light = UInts.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(FloorSummary::lightLevel).toArray(), LIGHT_DEFAULT);
+        UInts fluid = UInts.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(FloorSummary::fluidDepth).toArray(), WATER_DEFAULT);
         return new LayerSummary(found, depth, biome, block, light, fluid);
     }
 
     public static LayerSummary fromNbt(NbtCompound nbt) {
         if (!nbt.contains(KEY_FOUND)) return null;
         BitSet found = BitSet.valueOf(nbt.getLongArray(KEY_FOUND));
-        UIntArray depth = UIntArray.readNbt(nbt.get(KEY_DEPTH));
-        UIntArray biome = UIntArray.readNbt(nbt.get(KEY_BIOME));
-        UIntArray block = UIntArray.readNbt(nbt.get(KEY_BLOCK));
-        UIntArray light = UIntArray.readNbt(nbt.get(KEY_LIGHT));
-        UIntArray water = UIntArray.readNbt(nbt.get(KEY_WATER));
+        int cardinality = found.cardinality();
+        UInts depth = UInts.readNbt(nbt.get(KEY_DEPTH), cardinality);
+        UInts biome = UInts.readNbt(nbt.get(KEY_BIOME), cardinality);
+        UInts block = UInts.readNbt(nbt.get(KEY_BLOCK), cardinality);
+        UInts light = UInts.readNbt(nbt.get(KEY_LIGHT), cardinality);
+        UInts water = UInts.readNbt(nbt.get(KEY_WATER), cardinality);
         return new LayerSummary(found, depth, biome, block, light, water);
     }
 
     public static LayerSummary fromBuf(PacketByteBuf buf) {
+        BitSet found = buf.readBitSet(256);
+        int cardinality = found.cardinality();
         return new LayerSummary(
-            buf.readBitSet(256),
-            UIntArray.readBuf(buf),
-            UIntArray.readBuf(buf),
-            UIntArray.readBuf(buf),
-            UIntArray.readBuf(buf),
-            UIntArray.readBuf(buf)
+            found,
+            UInts.readBuf(buf, cardinality),
+            UInts.readBuf(buf, cardinality),
+            UInts.readBuf(buf, cardinality),
+            UInts.readBuf(buf, cardinality),
+            UInts.readBuf(buf, cardinality)
         );
     }
 
@@ -106,11 +109,11 @@ public class LayerSummary {
 
     public void writeBuf(PacketByteBuf buf) {
         buf.writeBitSet(found, 256);
-        UIntArray.writeBuf(depth, buf);
-        UIntArray.writeBuf(biome, buf);
-        UIntArray.writeBuf(block, buf);
-        UIntArray.writeBuf(light, buf);
-        UIntArray.writeBuf(water, buf);
+        UInts.writeBuf(depth, buf);
+        UInts.writeBuf(biome, buf);
+        UInts.writeBuf(block, buf);
+        UInts.writeBuf(light, buf);
+        UInts.writeBuf(water, buf);
     }
 
     public int[] rawDepths() {
