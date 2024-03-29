@@ -21,6 +21,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Uuids;
 import net.minecraft.util.math.ChunkPos;
@@ -69,7 +70,10 @@ public class SurveyorClient implements ClientModInitializer {
 
     public static SurveyorExploration getExploration(ClientPlayerEntity player) {
         if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
-            return SurveyorExploration.of((ServerPlayerEntity) MinecraftClient.getInstance().getServer().getWorld(MinecraftClient.getInstance().world.getRegistryKey()).getPlayerByUuid(player.getUuid()));
+            UUID uuid = player.getUuid();
+            ServerWorld world = MinecraftClient.getInstance().getServer().getWorld(player.getWorld().getRegistryKey());
+            ServerPlayerEntity serverPlayer = (ServerPlayerEntity) world.getPlayerByUuid(uuid);
+            return SurveyorExploration.of(serverPlayer);
         } else {
             return ClientExploration.INSTANCE;
         }

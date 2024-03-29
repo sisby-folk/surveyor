@@ -77,11 +77,11 @@ public class WorldLandmarks {
                 landmarksRemoved.put(type, pos);
             }
         });
-        SurveyorEvents.Invoke.landmarksAdded(world, MapUtil.keyMultiMap(landmarksAddedChanged));
-        SurveyorEvents.Invoke.landmarksRemoved(world, landmarksRemoved);
+        if (!landmarksRemoved.isEmpty()) SurveyorEvents.Invoke.landmarksRemoved(world, landmarksRemoved);
+        if (!landmarksAddedChanged.isEmpty()) SurveyorEvents.Invoke.landmarksAdded(world, MapUtil.keyMultiMap(landmarksAddedChanged));
         if (!local) {
-            new SyncLandmarksRemovedPacket(landmarksRemoved).send(sender, world);
-            new SyncLandmarksAddedPacket(landmarksAddedChanged).send(sender, world);
+            if (!landmarksRemoved.isEmpty()) new SyncLandmarksRemovedPacket(landmarksRemoved).send(sender, world);
+            if (!landmarksAddedChanged.isEmpty()) new SyncLandmarksAddedPacket(landmarksAddedChanged).send(sender, world);
         }
     }
 

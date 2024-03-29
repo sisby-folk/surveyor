@@ -6,6 +6,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -28,7 +29,7 @@ public interface S2CPacket extends SurveyorPacket {
     }
 
     default void send(ServerPlayerEntity sender, ServerWorld world) {
-        List<ServerPlayerEntity> players = world.getPlayers();
+        List<ServerPlayerEntity> players = new ArrayList<>(world.getPlayers());
         players.remove(sender);
         send(players);
     }
@@ -38,7 +39,7 @@ public interface S2CPacket extends SurveyorPacket {
     }
 
     default void send(ServerPlayerEntity sender, MinecraftServer server) {
-        List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
+        List<ServerPlayerEntity> players = new ArrayList<>(server.getPlayerManager().getPlayerList());
         players.remove(sender);
         send(players);
     }

@@ -114,7 +114,7 @@ public interface SurveyorExploration {
         SurveyorClientEvents.Invoke.terrainUpdated(world, terrainKeys);
         Multimap<LandmarkType<?>, BlockPos> landmarkKeys = HashMultimap.create();
         WorldSummary.of(world).landmarks().keySet(this).forEach((type, pos) -> {
-            if (terrainKeys.contains(new ChunkPos(pos))) landmarkKeys.put(type, pos);
+            if (terrainKeys.contains(new ChunkPos(pos)) && WorldSummary.of(world).landmarks().get(type, pos).owner() == null) landmarkKeys.put(type, pos);
         });
         SurveyorClientEvents.Invoke.landmarksAdded(world, landmarkKeys);
     }
@@ -127,7 +127,7 @@ public interface SurveyorExploration {
         SurveyorClientEvents.Invoke.terrainUpdated(world, chunkPos);
         Multimap<LandmarkType<?>, BlockPos> landmarkKeys = HashMultimap.create();
         WorldSummary.of(world).landmarks().keySet(this).forEach((type, pos) -> {
-            if (chunkPos.equals(new ChunkPos(pos))) landmarkKeys.put(type, pos);
+            if (chunkPos.equals(new ChunkPos(pos)) && WorldSummary.of(world).landmarks().get(type, pos).owner() == null) landmarkKeys.put(type, pos);
         });
         SurveyorClientEvents.Invoke.landmarksAdded(world, landmarkKeys);
     }
