@@ -146,22 +146,17 @@ public class ChunkSummary {
      * @return A layer summary of top floors.
      */
     public @Nullable LayerSummary.Raw toSingleLayer(Integer minY, Integer maxY, int worldHeight) {
-        BitSet found = new BitSet(256);
-        int[] depth = new int[256];
-        int[] biome = new int[256];
-        int[] block = new int[256];
-        int[] light = new int[256];
-        int[] water = new int[256];
+        LayerSummary.Raw outRaw = new LayerSummary.Raw(new BitSet(256), new int[256], new int[256], new int[256], new int[256], new int[256]);
         layers.descendingMap().forEach((y, layer) -> {
             if (layer != null) {
                 layer.fillEmptyFloors(
                     worldHeight - y,
                     maxY == null ? Integer.MIN_VALUE : y - maxY,
                     minY == null ? Integer.MAX_VALUE : y - minY,
-                    found, depth, biome, block, light, water
+                    outRaw
                 );
             }
         });
-        return found.cardinality() == 0 ? null : new LayerSummary.Raw(found, depth, biome, block, light, water);
+        return outRaw.exists().cardinality() == 0 ? null : outRaw;
     }
 }
