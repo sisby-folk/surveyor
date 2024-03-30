@@ -6,15 +6,14 @@ import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.dimension.DimensionTypes;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class DimensionSupport {
-    public static Map<RegistryKey<World>, List<Integer>> cache = new HashMap<>();
+    public static Map<RegistryKey<World>, int[]> cache = new HashMap<>();
 
-    private static List<Integer> getSummaryLayersInternal(World world) {
+    private static int[] getSummaryLayersInternal(World world) {
         List<Integer> layers = new ArrayList<>();
         DimensionType dimension = world.getDimension();
         layers.add(dimension.minY() + dimension.height() - 1); // Layer at Max Y
@@ -27,10 +26,10 @@ public class DimensionSupport {
             layers.add(40); // Lava Shores
         }
         layers.add(dimension.minY()); // End Layers at Min Y
-        return Collections.unmodifiableList(layers);
+        return layers.stream().mapToInt(i -> i).toArray();
     }
 
-    public static List<Integer> getSummaryLayers(World world) {
+    public static int[] getSummaryLayers(World world) {
         return cache.computeIfAbsent(world.getRegistryKey(), k -> getSummaryLayersInternal(world));
     }
 }

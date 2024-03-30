@@ -16,12 +16,11 @@ import net.minecraft.world.LightType;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.ChunkSection;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -33,19 +32,23 @@ public class ChunkSummary {
     protected final Integer airCount;
     protected final TreeMap<Integer, @Nullable LayerSummary> layers = new TreeMap<>();
 
-    public ChunkSummary(World world, Chunk chunk, List<Integer> layerHeights, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Integer> rawBiomePalette, Int2ObjectBiMap<Block> blockPalette, Int2ObjectBiMap<Integer> rawBlockPalette, boolean countAir) {
+    public ChunkSummary(World world, Chunk chunk, int[] layerHeights, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Integer> rawBiomePalette, Int2ObjectBiMap<Block> blockPalette, Int2ObjectBiMap<Integer> rawBlockPalette, boolean countAir) {
         this.airCount = countAir ? ChunkUtil.airCount(chunk) : null;
-        LayerSummary.FloorSummary[][] layerFloors = new LayerSummary.FloorSummary[layerHeights.size() - 1][256];
-        List<SectionSummary> sections = Arrays.stream(chunk.getSectionArray()).map(SectionSummary::ofSection).toList();
+        LayerSummary.FloorSummary[][] layerFloors = new LayerSummary.FloorSummary[layerHeights.length - 1][256];
+        ChunkSection[] rawSections = chunk.getSectionArray();
+        SectionSummary[] sections = new SectionSummary[rawSections.length];
+        for (int i = 0; i < rawSections.length; i++) {
+            sections[i] = SectionSummary.ofSection(rawSections[i]);
+        }
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 int walkspaceHeight = 0;
                 int waterDepth = 0;
-                for (int layerIndex = 0; layerIndex < layerHeights.size() - 1; layerIndex++) {
+                for (int layerIndex = 0; layerIndex < layerHeights.length - 1; layerIndex++) {
                     LayerSummary.FloorSummary foundFloor = null;
-                    for (int y = layerHeights.get(layerIndex); y > layerHeights.get(layerIndex + 1); y--) {
+                    for (int y = layerHeights[layerIndex]; y > layerHeights[layerIndex + 1]; y--) {
                         int sectionIndex = chunk.getSectionIndex(y);
-                        SectionSummary section = sections.get(sectionIndex);
+                        SectionSummary section = sections[sectionIndex];
                         if (section == null) {
                             int sectionBottom = ChunkSectionPos.getBlockCoord(chunk.sectionIndexToCoord(sectionIndex));
                             walkspaceHeight += (y - sectionBottom + 1);
@@ -76,7 +79,7 @@ public class ChunkSummary {
             }
         }
         for (int i = 0; i < layerFloors.length; i++) {
-            this.layers.put(layerHeights.get(i), LayerSummary.fromSummaries(world, layerFloors[i], layerHeights.get(i), biomePalette, rawBiomePalette, blockPalette, rawBlockPalette));
+            this.layers.put(layerHeights[i], LayerSummary.fromSummaries(world, layerFloors[i], layerHeights[i], biomePalette, rawBiomePalette, blockPalette, rawBlockPalette));
         }
     }
 
