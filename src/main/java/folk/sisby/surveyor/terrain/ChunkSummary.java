@@ -46,6 +46,7 @@ public class ChunkSummary {
                 int waterDepth = 0;
                 for (int layerIndex = 0; layerIndex < layerHeights.length - 1; layerIndex++) {
                     LayerSummary.FloorSummary foundFloor = null;
+                    int carpetHeight = Integer.MAX_VALUE;
                     for (int y = layerHeights[layerIndex]; y > layerHeights[layerIndex + 1]; y--) {
                         int sectionIndex = chunk.getSectionIndex(y);
                         SectionSummary section = sections[sectionIndex];
@@ -61,17 +62,25 @@ public class ChunkSummary {
                         Fluid fluid = state.getFluidState().getFluid();
                         if (fluid.matchesType(Fluids.EMPTY) && !state.blocksMovement()) { // The current block's air counts for space - a 2 block high walkway with a torch or grass is valid - the floor is the torch/grass.
                             walkspaceHeight++;
+                            carpetHeight = Integer.MAX_VALUE;
                         } else if (fluid.matchesType(Fluids.WATER) || fluid.matchesType(Fluids.FLOWING_WATER)) {
                             waterDepth++;
-                        }
-
-                        if (state.blocksMovement()) {
-                            if (foundFloor == null && walkspaceHeight > MINIMUM_AIR_DEPTH && state.getMapColor(world, new BlockPos(x, y, z)) != MapColor.CLEAR) {
-                                Biome biome = section.getBiomeEntry(x, y, z, world.getBottomY(), world.getTopY()).value();
-                                foundFloor = new LayerSummary.FloorSummary(y, biome, state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y - 1, z)), waterDepth);
+                            carpetHeight = Integer.MAX_VALUE;
+                        } else if (state.blocksMovement()) {
+                            if (foundFloor == null && walkspaceHeight > MINIMUM_AIR_DEPTH) {
+                                if (carpetHeight != Integer.MAX_VALUE) {
+                                    Biome biome = section.getBiomeEntry(x, carpetHeight, z, world.getBottomY(), world.getTopY()).value();
+                                    foundFloor = new LayerSummary.FloorSummary(carpetHeight, biome, section.getBlockState(x, carpetHeight, z).getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, carpetHeight - 1, z)), waterDepth);
+                                } else if (state.getMapColor(world, new BlockPos(x, y, z)) != MapColor.CLEAR) {
+                                    Biome biome = section.getBiomeEntry(x, y, z, world.getBottomY(), world.getTopY()).value();
+                                    foundFloor = new LayerSummary.FloorSummary(y, biome, state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y - 1, z)), waterDepth);
+                                }
                             }
                             walkspaceHeight = 0;
                             waterDepth = 0;
+                            carpetHeight = Integer.MAX_VALUE;
+                        } else if (state.getMapColor(world, new BlockPos(x, y, z)) != MapColor.CLEAR) {
+                            carpetHeight = y;
                         }
                     }
                     layerFloors[layerIndex][x * 16 + z] = foundFloor;
