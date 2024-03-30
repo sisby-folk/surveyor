@@ -201,7 +201,7 @@ public interface SurveyorExploration {
             Map<RegistryKey<Structure>, LongSet> structureMap = new HashMap<>();
             NbtCompound worldStructuresCompound = structuresCompound.getCompound(worldKeyString);
             for (String key : worldStructuresCompound.getKeys()) {
-                structureMap.put(RegistryKey.of(RegistryKeys.STRUCTURE, new Identifier(key)), new LongOpenHashSet(LongSet.of(worldStructuresCompound.getLongArray(key))));
+                structureMap.put(RegistryKey.of(RegistryKeys.STRUCTURE, new Identifier(key)), new LongOpenHashSet(worldStructuresCompound.getLongArray(key)));
             }
             structures().put(RegistryKey.of(RegistryKeys.WORLD, new Identifier(worldKeyString)), structureMap);
         }
