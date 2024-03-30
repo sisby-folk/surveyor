@@ -34,7 +34,7 @@ public class SurveyorClientEvents {
     public static class Invoke {
         public static void worldLoad(ClientWorld world, ClientPlayerEntity player) {
             if (worldLoad.isEmpty()) return;
-            SurveyorExploration exploration = SurveyorClient.getExploration(player);
+            SurveyorExploration exploration = SurveyorClient.getExploration();
             WorldSummary summary = WorldSummary.of(world);
             Map<ChunkPos, BitSet> terrain = summary.terrain().bitSet(exploration);
             Multimap<RegistryKey<Structure>, ChunkPos> structures = summary.structures().keySet(exploration);

@@ -10,16 +10,16 @@ import folk.sisby.surveyor.terrain.WorldTerrainSummary;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ServerInfo;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
@@ -28,6 +28,7 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.Structure;
 import org.apache.commons.io.FileUtils;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -68,15 +69,30 @@ public class SurveyorClient implements ClientModInitializer {
         return ClientPlayNetworking.canSend(C2SKnownTerrainPacket.ID);
     }
 
-    public static SurveyorExploration getExploration(ClientPlayerEntity player) {
+    @Nullable
+    public static SurveyorExploration getExploration() {
         if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
-            UUID uuid = player.getUuid();
-            ServerWorld world = MinecraftClient.getInstance().getServer().getWorld(player.getWorld().getRegistryKey());
-            ServerPlayerEntity serverPlayer = (ServerPlayerEntity) world.getPlayerByUuid(uuid);
-            return SurveyorExploration.of(serverPlayer);
+            ServerPlayerEntity serverPlayer = stealServerPlayer(getClientUuid());
+            return serverPlayer == null ? null : SurveyorExploration.of(stealServerPlayer(getClientUuid()));
         } else {
             return ClientExploration.INSTANCE;
         }
+    }
+
+    public static UUID getClientUuid() {
+        return Uuids.getUuidFromProfile(MinecraftClient.getInstance().getSession().getProfile());
+    }
+
+    public static ServerWorld stealServerWorld(RegistryKey<World> worldKey) {
+        MinecraftServer integratedServer = MinecraftClient.getInstance().getServer();
+        if (integratedServer == null) return null;
+        return integratedServer.getWorld(worldKey);
+    }
+
+    public static ServerPlayerEntity stealServerPlayer(UUID uuid) {
+        MinecraftServer integratedServer = MinecraftClient.getInstance().getServer();
+        if (integratedServer == null) return null;
+        return integratedServer.getPlayerManager().getPlayer(uuid);
     }
 
     @Override
@@ -93,12 +109,16 @@ public class SurveyorClient implements ClientModInitializer {
         ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
             if (WorldSummary.of(world).isClient()) WorldTerrainSummary.onChunkUnload(world, chunk);
         });
-        SurveyorEvents.Register.landmarksAdded(new Identifier(Surveyor.ID, "client"), ((world, worldLandmarks, landmarks) -> {
-            for (PlayerEntity player : world.getPlayers()) {
-                if (player instanceof ClientPlayerEntity clientPlayer) {
-                    SurveyorClientEvents.Invoke.landmarksAdded(world, getExploration(clientPlayer).limitLandmarkKeySet(world.getRegistryKey(), worldLandmarks, HashMultimap.create(landmarks)));
-                }
+        ClientTickEvents.END_WORLD_TICK.register((world -> {
+            if (!SurveyorClientEvents.INITIALIZING_WORLD) return;
+            if (getExploration() != null && MinecraftClient.getInstance().player != null) {
+                SurveyorClientEvents.INITIALIZING_WORLD = false;
+                SurveyorClientEvents.Invoke.worldLoad(MinecraftClient.getInstance().player.clientWorld, MinecraftClient.getInstance().player);
             }
+        }));
+        SurveyorEvents.Register.landmarksAdded(new Identifier(Surveyor.ID, "client"), ((world, worldLandmarks, landmarks) -> {
+            SurveyorExploration exploration = getExploration();
+            if (exploration != null) SurveyorClientEvents.Invoke.landmarksAdded(world, exploration.limitLandmarkKeySet(world.getRegistryKey(), worldLandmarks, HashMultimap.create(landmarks)));
         }));
         SurveyorEvents.Register.landmarksRemoved(new Identifier(Surveyor.ID, "client"), (world, summary, landmarks) -> SurveyorClientEvents.Invoke.landmarksRemoved(world, landmarks));
     }
@@ -111,7 +131,7 @@ public class SurveyorClient implements ClientModInitializer {
 
         public static void onLoad() {
             if (WorldSummary.of(MinecraftClient.getInstance().world).isClient()) {
-                saveFile = getSavePath(MinecraftClient.getInstance().world).toPath().resolve(Uuids.getUuidFromProfile(MinecraftClient.getInstance().getSession().getProfile()).toString() + ".dat").toFile();
+                saveFile = getSavePath(MinecraftClient.getInstance().world).toPath().resolve(getClientUuid().toString() + ".dat").toFile();
                 NbtCompound explorationNbt = new NbtCompound();
                 if (saveFile.exists()) {
                     try {

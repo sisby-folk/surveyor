@@ -109,7 +109,7 @@ This event will trigger when the client world has access to surveyor data and th
 `landmarks` contains all landmarks (POIs, waypoints, death markers, etc.) by type + BlockPos.
 
 You can get these from the world summary later using `keySet()` methods - check the event implementation.<br/>
-Pass in `SurveyorClient.getExploration(ClientPlayer)` to ensure unexplored areas are hidden.
+Pass in `SurveyorClient.getExploration()` to ensure unexplored areas are hidden.
 
 ##### Live Updates
 

@@ -36,14 +36,14 @@ public class SurveyorClientNetworking {
     private static void handleStructuresAdded(ClientWorld world, WorldSummary summary, S2CStructuresAddedPacket packet) {
         packet.structures().forEach((key, map) -> map.forEach((pos, start) -> summary.structures().put(world, key, pos, start, packet.structureTypes().get(key), packet.structureTags().get(key))));
         if (MinecraftClient.getInstance().player != null) {
-            SurveyorExploration exploration = SurveyorClient.getExploration(null);
+            SurveyorExploration exploration = SurveyorClient.getExploration();
             packet.structures().forEach((key, starts) -> starts.forEach((pos, structure) -> exploration.addStructure(world.getRegistryKey(), key, pos)));
         }
     }
 
     private static void handleTerrainAdded(ClientWorld world, WorldSummary summary, PacketByteBuf buf) {
         S2CUpdateRegionPacket packet = S2CUpdateRegionPacket.handle(buf, world.getRegistryManager(), summary);
-        SurveyorClient.getExploration(null).mergeRegion(world.getRegistryKey(), packet.regionPos(), packet.chunks());
+        SurveyorClient.getExploration().mergeRegion(world.getRegistryKey(), packet.regionPos(), packet.chunks());
         SurveyorEvents.Invoke.terrainUpdated(world, packet.chunks().stream().mapToObj(i -> RegionSummary.chunkForBit(packet.regionPos(), i)).toList());
     }
 
