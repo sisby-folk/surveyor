@@ -1,8 +1,5 @@
 package folk.sisby.surveyor.util;
 
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
-
 import java.util.Arrays;
 
 public class ArrayUtil {
@@ -12,21 +9,13 @@ public class ArrayUtil {
         return array;
     }
 
-    public static int distinctCount(int[] ints) {
-        int count = 0;
-        IntSet counted = new IntOpenHashSet();
+    public static boolean isSingle(int[] ints) {
+        int min = Integer.MIN_VALUE;
+        int max = Integer.MAX_VALUE;
         for(int i : ints) {
-            if (counted.contains(i)) continue;
-            counted.add(i);
-            count++;
+            if (i > min) min = i;
+            if (i < max) max = i;
         }
-        return count;
-    }
-
-    public static int trimIndex(int[] ints, int value) {
-        for (int i = ints.length - 1; i >= 0; i--) {
-            if (ints[i] != value) return i + 1;
-        }
-        return 0;
+        return max == min;
     }
 }

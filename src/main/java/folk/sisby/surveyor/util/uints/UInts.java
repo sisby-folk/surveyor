@@ -81,7 +81,7 @@ public interface UInts {
     }
 
     static UInts fromUInts(int[] uints, int defaultValue) {
-        return ArrayUtil.distinctCount(uints) > 1 ? ofMany(uints) : ofSingle(uints[0], defaultValue);
+        return ArrayUtil.isSingle(uints) ? ofSingle(uints[0], defaultValue) : ofMany(uints);
     }
 
     static UInts ofMany(int[] uints) {
