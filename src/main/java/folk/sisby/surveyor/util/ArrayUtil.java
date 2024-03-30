@@ -10,12 +10,10 @@ public class ArrayUtil {
     }
 
     public static boolean isSingle(int[] ints) {
-        int min = Integer.MIN_VALUE;
-        int max = Integer.MAX_VALUE;
-        for(int i : ints) {
-            if (i > min) min = i;
-            if (i < max) max = i;
+        int head = ints[0];
+        for (int i : ints) {
+            if (i != head) return false;
         }
-        return max == min;
+        return true;
     }
 }
