@@ -13,9 +13,7 @@ import net.minecraft.world.biome.Biome;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Objects;
 
 public class LayerSummary {
     public static final String KEY_FOUND = "found";
@@ -47,22 +45,40 @@ public class LayerSummary {
         this.water = water;
     }
 
-    public static LayerSummary fromSummaries(World world, FloorSummary[][] floorSummaries, int layerY, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Integer> rawBiomePalette, Int2ObjectBiMap<Block> blockPalette, Int2ObjectBiMap<Integer> rawBlockPalette) {
+    public static LayerSummary fromSummaries(World world, FloorSummary[] floorSummaries, int layerY, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Integer> rawBiomePalette, Int2ObjectBiMap<Block> blockPalette, Int2ObjectBiMap<Integer> rawBlockPalette) {
         Registry<Biome> biomeRegistry = world.getRegistryManager().get(RegistryKeys.BIOME);
         Registry<Block> blockRegistry = world.getRegistryManager().get(RegistryKeys.BLOCK);
         BitSet found = new BitSet(256);
-        for (int x = 0; x < 16; x++) {
-            for (int z = 0; z < 16; z++) {
-                found.set(x * 16 + z, floorSummaries[x][z] != null);
+        for (int i = 0; i < floorSummaries.length; i++) {
+            found.set(i, floorSummaries[i] != null);
+        }
+        int cardinality = found.cardinality();
+        if (cardinality == 0) return null;
+        int[] depth = new int[cardinality];
+        int[] biome = new int[cardinality];
+        int[] block = new int[cardinality];
+        int[] light = new int[cardinality];
+        int[] water = new int[cardinality];
+        int c = 0;
+        for (int i = 0; i < floorSummaries.length; i++) {
+            if (found.get(i)) {
+                FloorSummary summary = floorSummaries[i];
+                depth[c] = layerY - summary.y;
+                biome[c] = PaletteUtil.idOrAdd(biomePalette, rawBiomePalette, summary.biome, biomeRegistry);
+                block[c] = PaletteUtil.idOrAdd(blockPalette, rawBlockPalette, summary.block, blockRegistry);
+                light[c] = summary.lightLevel;
+                water[c] = summary.fluidDepth;
+                c++;
             }
         }
-        if (found.cardinality() == 0) return null;
-        UInts depth = UInts.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(f -> layerY - f.y()).toArray(), LIGHT_DEFAULT);
-        UInts biome = UInts.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::biome).mapToInt(b -> PaletteUtil.idOrAdd(biomePalette, rawBiomePalette, b, biomeRegistry)).toArray(), BIOME_DEFAULT);
-        UInts block = UInts.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).map(FloorSummary::block).mapToInt(b -> PaletteUtil.idOrAdd(blockPalette, rawBlockPalette, b, blockRegistry)).toArray(), BLOCK_DEFAULT);
-        UInts light = UInts.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(FloorSummary::lightLevel).toArray(), LIGHT_DEFAULT);
-        UInts fluid = UInts.fromUInts(Arrays.stream(floorSummaries).flatMap(Arrays::stream).filter(Objects::nonNull).mapToInt(FloorSummary::fluidDepth).toArray(), WATER_DEFAULT);
-        return new LayerSummary(found, depth, biome, block, light, fluid);
+        return new LayerSummary(
+            found,
+            UInts.fromUInts(depth, DEPTH_DEFAULT),
+            UInts.fromUInts(biome, BIOME_DEFAULT),
+            UInts.fromUInts(block, BLOCK_DEFAULT),
+            UInts.fromUInts(light, LIGHT_DEFAULT),
+            UInts.fromUInts(water, WATER_DEFAULT)
+        );
     }
 
     public static LayerSummary fromNbt(NbtCompound nbt) {

@@ -1,4 +1,4 @@
-accessWidener v1 named
+accessWidener v2 named
 accessible field net/minecraft/world/ChunkRegion world Lnet/minecraft/server/world/ServerWorld;
 accessible field net/minecraft/structure/pool/SinglePoolElement location Lcom/mojang/datafixers/util/Either;
 accessible field net/minecraft/structure/pool/FeaturePoolElement feature Lnet/minecraft/registry/entry/RegistryEntry;
@@ -10,3 +10,6 @@ accessible field net/minecraft/structure/pool/ListPoolElement elements Ljava/uti
 accessible field net/minecraft/structure/PoolStructurePiece structureTemplateManager Lnet/minecraft/structure/StructureTemplateManager;
 accessible field net/minecraft/client/gui/screen/ConnectScreen connection Lnet/minecraft/network/ClientConnection;
 accessible field net/minecraft/client/network/ClientLoginNetworkHandler serverInfo Lnet/minecraft/client/network/ServerInfo;
+accessible field net/minecraft/world/chunk/PalettedContainer data Lnet/minecraft/world/chunk/PalettedContainer$Data;
+accessible field net/minecraft/world/chunk/PalettedContainer$Data storage Lnet/minecraft/util/collection/PaletteStorage;
+accessible field net/minecraft/world/chunk/PalettedContainer$Data palette Lnet/minecraft/world/chunk/Palette;

@@ -1,21 +1,22 @@
 package folk.sisby.surveyor.util;
 
 import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.fluid.FluidState;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.RaycastContext;
+import net.minecraft.world.chunk.WorldChunk;
 
 public class RaycastUtil {
-    public static HitResult playerViewRaycast(PlayerEntity player, int renderDistance) {
+    public static HitResult playerViewRaycast(ServerPlayerEntity player, int renderDistance) {
         // Calculate View Distance to Rendering Cylinder
         Vec3d cameraPos = player.getCameraPosVec(1.0F);
         double pitch = player.getPitch(1.0F);
@@ -41,13 +42,13 @@ public class RaycastUtil {
                 cameraPos, endPos, RaycastContext.ShapeType.OUTLINE, RaycastContext.FluidHandling.NONE, player
             ),
             (innerContext, pos) -> {
-                ChunkPos chunkPos = new ChunkPos(pos);
-                if (!player.getWorld().getChunkManager().isChunkLoaded(chunkPos.x, chunkPos.z)) {
+                WorldChunk chunk = player.getServerWorld().getChunkManager().getWorldChunk(ChunkSectionPos.getSectionCoord(pos.getX()), ChunkSectionPos.getSectionCoord(pos.getZ()));
+                if (chunk == null) {
                     Vec3d vec3d = innerContext.getStart().subtract(innerContext.getEnd());
                     return BlockHitResult.createMissed(pos.toCenterPos(), Direction.getFacing(vec3d.x, vec3d.y, vec3d.z), pos);
                 }
-                BlockState blockState = player.getWorld().getBlockState(pos);
-                FluidState fluidState = player.getWorld().getFluidState(pos);
+                BlockState blockState = chunk.getBlockState(pos);
+                FluidState fluidState = blockState.getFluidState();
                 Vec3d vec3d = innerContext.getStart();
                 Vec3d vec3d2 = innerContext.getEnd();
                 VoxelShape voxelShape = innerContext.getBlockShape(blockState, player.getWorld(), pos);

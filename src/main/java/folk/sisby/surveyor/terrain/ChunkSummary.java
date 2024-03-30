@@ -5,27 +5,24 @@ import folk.sisby.surveyor.util.uints.UInts;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.MapColor;
+import net.minecraft.fluid.Fluid;
+import net.minecraft.fluid.Fluids;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
-import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.util.collection.Int2ObjectBiMap;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkSectionPos;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.LightType;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.source.BiomeCoords;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkSection;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.NavigableSet;
-import java.util.Objects;
 import java.util.TreeMap;
 
 public class ChunkSummary {
@@ -36,51 +33,51 @@ public class ChunkSummary {
     protected final Integer airCount;
     protected final TreeMap<Integer, @Nullable LayerSummary> layers = new TreeMap<>();
 
-    public ChunkSummary(World world, Chunk chunk, NavigableSet<Integer> layerYs, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Integer> rawBiomePalette, Int2ObjectBiMap<Block> blockPalette, Int2ObjectBiMap<Integer> rawBlockPalette, boolean countAir) {
+    public ChunkSummary(World world, Chunk chunk, List<Integer> layerHeights, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Integer> rawBiomePalette, Int2ObjectBiMap<Block> blockPalette, Int2ObjectBiMap<Integer> rawBlockPalette, boolean countAir) {
         this.airCount = countAir ? ChunkUtil.airCount(chunk) : null;
-        TreeMap<Integer, LayerSummary.FloorSummary[][]> uncompressedLayers = new TreeMap<>();
+        LayerSummary.FloorSummary[][] layerFloors = new LayerSummary.FloorSummary[layerHeights.size() - 1][256];
+        List<SectionSummary> sections = Arrays.stream(chunk.getSectionArray()).map(SectionSummary::ofSection).toList();
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
-                int airDepth = 0;
+                int walkspaceHeight = 0;
                 int waterDepth = 0;
-                for (int i : layerYs.descendingSet()) {
-                    if (!layerYs.first().equals(i)) {
-                        int bottomY = layerYs.lower(i);
-                        ChunkSection[] chunkSections = chunk.getSectionArray();
-                        LayerSummary.FloorSummary foundFloor = null;
-                        for (int y = i; y > bottomY; y--) {
-                            int sectionIndex = chunk.getSectionIndex(y);
-                            if (chunkSections[sectionIndex].isEmpty()) {
-                                int chunkBottom = ChunkSectionPos.getBlockCoord(chunk.sectionIndexToCoord(sectionIndex));
-                                airDepth += (y - chunkBottom + 1);
-                                waterDepth = 0;
-                                y = chunkBottom;
-                                continue;
-                            }
-
-                            BlockState state = chunkSections[sectionIndex].getBlockState(x & 15, y & 15, z & 15);
-                            if (!state.blocksMovement()) { // The current block's air counts for space - a 2 block high walkway with a torch or grass is valid - the floor is the torch/grass.
-                                airDepth++;
-                            }
-
-                            if (state.getFluidState().isIn(FluidTags.WATER)) { // Floors can't be waterlogged, otherwise it ruins depth measurement.
-                                waterDepth++;
-                            } else if (state.getMapColor(world, new BlockPos(x, y, z)) != MapColor.CLEAR) {
-                                if (foundFloor == null && airDepth > MINIMUM_AIR_DEPTH) {
-                                    foundFloor = new LayerSummary.FloorSummary(y, chunkSections[sectionIndex].getBiome(BiomeCoords.fromBlock(x) & 3, MathHelper.clamp(BiomeCoords.fromBlock(y), BiomeCoords.fromBlock(world.getBottomY()), BiomeCoords.fromBlock(world.getTopY()) - 1) & 3, BiomeCoords.fromBlock(z) & 3).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y - 1, z)), waterDepth);
-                                }
-                                airDepth = 0;
-                                waterDepth = 0;
-                            } else {
-                                waterDepth = 0;
-                            }
+                for (int layerIndex = 0; layerIndex < layerHeights.size() - 1; layerIndex++) {
+                    LayerSummary.FloorSummary foundFloor = null;
+                    for (int y = layerHeights.get(layerIndex); y > layerHeights.get(layerIndex + 1); y--) {
+                        int sectionIndex = chunk.getSectionIndex(y);
+                        SectionSummary section = sections.get(sectionIndex);
+                        if (section == null) {
+                            int sectionBottom = ChunkSectionPos.getBlockCoord(chunk.sectionIndexToCoord(sectionIndex));
+                            walkspaceHeight += (y - sectionBottom + 1);
+                            waterDepth = 0;
+                            y = sectionBottom;
+                            continue;
                         }
-                        uncompressedLayers.computeIfAbsent(i, k -> new LayerSummary.FloorSummary[16][16])[x][z] = foundFloor;
+
+                        BlockState state = section.getBlockState(x, y, z);
+                        Fluid fluid = state.getFluidState().getFluid();
+                        if (fluid.matchesType(Fluids.EMPTY) && !state.blocksMovement()) { // The current block's air counts for space - a 2 block high walkway with a torch or grass is valid - the floor is the torch/grass.
+                            walkspaceHeight++;
+                        } else if (fluid.matchesType(Fluids.WATER) || fluid.matchesType(Fluids.FLOWING_WATER)) {
+                            waterDepth++;
+                        }
+
+                        if (state.blocksMovement()) {
+                            if (foundFloor == null && walkspaceHeight > MINIMUM_AIR_DEPTH && state.getMapColor(world, new BlockPos(x, y, z)) != MapColor.CLEAR) {
+                                Biome biome = section.getBiomeEntry(x, y, z, world.getBottomY(), world.getTopY()).value();
+                                foundFloor = new LayerSummary.FloorSummary(y, biome, state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y - 1, z)), waterDepth);
+                            }
+                            walkspaceHeight = 0;
+                            waterDepth = 0;
+                        }
                     }
+                    layerFloors[layerIndex][x * 16 + z] = foundFloor;
                 }
             }
         }
-        uncompressedLayers.forEach((layerY, floors) -> this.layers.put(layerY, Arrays.stream(floors).allMatch(Objects::isNull) ? null : LayerSummary.fromSummaries(world, floors, layerY, biomePalette, rawBiomePalette, blockPalette, rawBlockPalette)));
+        for (int i = 0; i < layerFloors.length; i++) {
+            this.layers.put(layerHeights.get(i), LayerSummary.fromSummaries(world, layerFloors[i], layerHeights.get(i), biomePalette, rawBiomePalette, blockPalette, rawBlockPalette));
+        }
     }
 
     public ChunkSummary(NbtCompound nbt) {
