@@ -2,7 +2,7 @@
 
 
 <center>
-<img alt="surveyor banner" src="https://github.com/sisby-folk/surveyor/assets/55819817/a591c325-e87b-48cb-8e00-bda80c9ac8a2"><br/>
+<img alt="surveyor banner" src="https://cdn.modrinth.com/data/4KjqhPc9/images/f84b10d3e0257c66e4f60066f3f570bc26ca34b2.png"><br/>
 A unified save and server-integration framework for client-side map mods (and others).<br/>
 Used in <a href="https://modrinth.com/mod/antique-atlas-4">Antique Atlas 4</a>. Try it with <a href="https://github.com/HestiMae/surveyor-surveyor">SurveyorSurveyor</a>!<br/>
 <!-- Requires <a href="https://modrinth.com/mod/connector">Connector</a> and <a href="https://modrinth.com/mod/forgified-fabric-api">FFAPI</a> on forge.<br/> -->
