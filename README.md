@@ -49,8 +49,8 @@ repositories {
 }
 
 dependencies {
-    modImplementation 'folk.sisby:surveyor:0.1.0-beta.8+1.20'
-    include 'folk.sisby:surveyor:0.1.0-beta.8+1.20'
+    modImplementation 'folk.sisby:surveyor:0.1.0+1.20'
+    include 'folk.sisby:surveyor:0.1.0+1.20'
 }
 ```
 
@@ -115,7 +115,7 @@ Pass in `SurveyorClient.getExploration()` to ensure unexplored areas are hidden.
 
 Also tune into `TerrainUpdated`, `StructuresAdded`, `LandmarksAdded` to add to your render queues.<br/>
 These fire whenever the client player should see something new (usually via exploration).<br/>
-They can also fire before `ClientPlayerLoad`, so skip these as the data will be rolled up in the load.
+They can also fire before `ClientPlayerLoad`, so let any of them create your map data.
 
 Tune into `LandmarksRemoved` as well but without a queue - just remove from your map/queue directly.
 

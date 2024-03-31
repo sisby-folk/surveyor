@@ -1,14 +1,16 @@
 package folk.sisby.surveyor;
 
+import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.terrain.WorldTerrainSummary;
+import folk.sisby.surveyor.util.MapUtil;
 import folk.sisby.surveyor.util.RaycastUtil;
-import it.unimi.dsi.fastutil.longs.LongArraySet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -29,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class Surveyor implements ModInitializer {
     public static final String ID = "surveyor";
@@ -41,30 +44,32 @@ public class Surveyor implements ModInitializer {
     }
 
     public static void checkStructureExploration(ServerWorld world, ServerPlayerEntity player, BlockPos pos) {
-        SurveyorExploration exploration = SurveyorExploration.of(player);
         if (!world.isChunkLoaded(pos.getX() >> 4, pos.getZ() >> 4)) return;
+        WorldStructureSummary worldStructures = WorldSummary.of(world).structures();
+        Registry<Structure> structureRegistry = world.getRegistryManager().get(RegistryKeys.STRUCTURE);
+        SurveyorExploration exploration = SurveyorExploration.of(player);
         Map<Structure, LongSet> structureReferences = world.getChunk(pos.getX() >> 4, pos.getZ() >> 4, ChunkStatus.STRUCTURE_REFERENCES).getStructureReferences();
         if (!structureReferences.isEmpty()) {
-            structureReferences.forEach((structure, chunkPosSet) -> {
-                RegistryKey<Structure> structureKey = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(structure).orElseThrow();
-                LongSet unexploredSet = new LongArraySet(chunkPosSet.toLongArray());
-                if (exploration.structures().containsKey(world.getRegistryKey()) && exploration.structures().get(world.getRegistryKey()).containsKey(structureKey)) unexploredSet.removeAll(exploration.structures().get(world.getRegistryKey()).get(structureKey));
-                for (Long longPos : unexploredSet) {
-                    ChunkPos startPos = new ChunkPos(longPos);
-                    StructureStart start = world.getChunk(startPos.x, startPos.z, ChunkStatus.STRUCTURE_STARTS).getStructureStart(structure);
-                    boolean found = false;
-                    if (start.getBoundingBox().contains(pos)) {
-                        for (StructurePiece piece : start.getChildren()) {
-                            if (piece.getBoundingBox().expand(1).contains(pos)) {
-                                exploration.addStructure(world.getRegistryKey(), structureKey, start.getPos());
-                                found = true;
-                                break;
-                            }
+            Multimap<RegistryKey<Structure>, ChunkPos> unexploredStructures = exploration.limitStructureKeySet(world.getRegistryKey(), MapUtil.asMultiMap(structureReferences.entrySet().stream().collect(Collectors.toMap(
+                e -> structureRegistry.getKey(e.getKey()).orElseThrow(),
+                e -> e.getValue().longStream().mapToObj(ChunkPos::new).toList()
+            ))));
+            unexploredStructures.entries().removeIf(e -> !worldStructures.contains(e.getKey(), e.getValue()));
+            unexploredStructures.forEach((structureKey, startPos) -> {
+                Structure structure = structureRegistry.get(structureKey);
+                StructureStart start = world.getChunk(startPos.x, startPos.z, ChunkStatus.STRUCTURE_STARTS).getStructureStart(structure);
+                boolean found = false;
+                if (start.getBoundingBox().contains(pos)) {
+                    for (StructurePiece piece : start.getChildren()) {
+                        if (piece.getBoundingBox().expand(1).contains(pos)) {
+                            exploration.addStructure(world.getRegistryKey(), structureKey, start.getPos());
+                            found = true;
+                            break;
                         }
                     }
-                    if (found && CONFIG.debugMode) {
-                        player.sendMessageToClient(Text.literal("Discovered ").append(Text.literal(StringUtils.capitalize(world.getRegistryManager().get(RegistryKeys.STRUCTURE).getId(structure).getPath().replace("_", " "))).formatted(Formatting.GREEN)).append(Text.literal(" at ")).append(Text.literal("[%s,%s]".formatted(startPos.x << 4, startPos.z << 4)).formatted(Formatting.GOLD)).formatted(Formatting.GRAY), true);
-                    }
+                }
+                if (found && CONFIG.debugMode) {
+                    player.sendMessageToClient(Text.literal("Discovered ").append(Text.literal(StringUtils.capitalize(structureKey.getValue().getPath().replace("_", " "))).formatted(Formatting.GREEN)).append(Text.literal(" at ")).append(Text.literal("[%s,%s]".formatted(startPos.x << 4, startPos.z << 4)).formatted(Formatting.GOLD)).formatted(Formatting.GRAY), true);
                 }
             });
         }
