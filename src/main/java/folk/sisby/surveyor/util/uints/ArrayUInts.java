@@ -21,7 +21,7 @@ public interface ArrayUInts extends UInts {
 
     @Override
     default UInts remap(Function<Integer, Integer> remapping, int defaultValue, int cardinality) {
-        int[] newArray = ArrayUtil.ofSingle(cardinality, defaultValue);
+        int[] newArray = ArrayUtil.ofSingle(defaultValue, cardinality);
         for (int i = 0; i < newArray.length; i++) {
             newArray[i] = remapping.apply(get(i));
         }
