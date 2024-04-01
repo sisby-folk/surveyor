@@ -82,7 +82,7 @@ public class WorldStructureSummary {
     public Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> asMap(SurveyorExploration exploration) {
         Multimap<RegistryKey<Structure>, ChunkPos> keySet = keySet(exploration);
         Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> map = new HashMap<>();
-        keySet.forEach((key, pos) -> map.get(key).put(pos, get(key, pos)));
+        keySet.forEach((key, pos) -> map.computeIfAbsent(key, k -> new HashMap<>()).put(pos, get(key, pos)));
         return map;
     }
 
