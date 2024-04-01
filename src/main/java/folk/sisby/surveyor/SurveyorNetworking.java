@@ -73,8 +73,10 @@ public class SurveyorNetworking {
     private static void handleKnownLandmarks(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownLandmarksPacket packet) {
         Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks = summary.landmarks().asMap(SurveyorExploration.of(player));
         packet.landmarks().forEach((type, pos) -> {
-            landmarks.get(type).remove(pos);
-            if (landmarks.get(type).isEmpty()) landmarks.remove(type);
+            if (landmarks.containsKey(type)) {
+                landmarks.get(type).remove(pos);
+                if (landmarks.get(type).isEmpty()) landmarks.remove(type);
+            }
         });
         if (!landmarks.isEmpty()) new SyncLandmarksAddedPacket(landmarks).send(player);
     }
