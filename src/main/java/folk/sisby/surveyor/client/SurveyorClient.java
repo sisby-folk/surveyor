@@ -5,6 +5,8 @@ import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.WorldSummary;
+import folk.sisby.surveyor.packet.C2SKnownLandmarksPacket;
+import folk.sisby.surveyor.packet.C2SKnownStructuresPacket;
 import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
 import folk.sisby.surveyor.terrain.WorldTerrainSummary;
 import it.unimi.dsi.fastutil.longs.LongSet;
@@ -113,6 +115,12 @@ public class SurveyorClient implements ClientModInitializer {
             if (!SurveyorClientEvents.INITIALIZING_WORLD) return;
             if (getExploration() != null && MinecraftClient.getInstance().player != null) {
                 SurveyorClientEvents.INITIALIZING_WORLD = false;
+                if (WorldSummary.of(world).isClient()) {
+                    WorldSummary summary = WorldSummary.of(world);
+                    new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
+                    new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
+                    new C2SKnownLandmarksPacket(summary.landmarks().keySet(null)).send();
+                }
                 SurveyorClientEvents.Invoke.worldLoad(MinecraftClient.getInstance().player.clientWorld, MinecraftClient.getInstance().player);
             }
         }));

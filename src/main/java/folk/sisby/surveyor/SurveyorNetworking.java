@@ -82,7 +82,7 @@ public class SurveyorNetworking {
     private static void handleLandmarksAdded(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, SyncLandmarksAddedPacket packet) {
         Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
         packet.landmarks().forEach((type, map) -> map.forEach((pos, landmark) -> {
-            if (landmark.owner() == player.getUuid()) summary.landmarks().putForBatch(changed, landmark);
+            if (player.getUuid().equals(landmark.owner())) summary.landmarks().putForBatch(changed, landmark);
         }));
         summary.landmarks().handleChanged(world, changed, false, player);
     }
@@ -90,7 +90,7 @@ public class SurveyorNetworking {
     private static void handleLandmarksRemoved(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, SyncLandmarksRemovedPacket packet) {
         Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
         packet.landmarks().forEach((type, pos) -> {
-            if (summary.landmarks().contains(type, pos) && summary.landmarks().get(type, pos).owner() == player.getUuid()) summary.landmarks().removeForBatch(changed, type, pos);
+            if (summary.landmarks().contains(type, pos) && player.getUuid().equals(summary.landmarks().get(type, pos).owner())) summary.landmarks().removeForBatch(changed, type, pos);
         });
         summary.landmarks().handleChanged(world, changed, false, player);
     }

@@ -3,9 +3,6 @@ package folk.sisby.surveyor.mixin.client;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.client.SurveyorClient;
 import folk.sisby.surveyor.client.SurveyorClientEvents;
-import folk.sisby.surveyor.packet.C2SKnownLandmarksPacket;
-import folk.sisby.surveyor.packet.C2SKnownStructuresPacket;
-import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.world.ClientWorld;
@@ -24,14 +21,8 @@ public class MixinMinecraftClient {
         }
     }
 
-    @Inject(method = "joinWorld", at = @At("HEAD"))
+    @Inject(method = "joinWorld", at = @At("TAIL"))
     void loadOnJoinWorld(ClientWorld newWorld, CallbackInfo ci) {
-        if (WorldSummary.of(newWorld).isClient()) {
-            WorldSummary summary = WorldSummary.of(newWorld);
-            new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
-            new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
-            new C2SKnownLandmarksPacket(summary.landmarks().keySet(null)).send();
-        }
         SurveyorClientEvents.INITIALIZING_WORLD = true;
     }
 
