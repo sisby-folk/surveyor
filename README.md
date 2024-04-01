@@ -3,7 +3,7 @@
 
 <center>
 <img alt="surveyor banner" src="https://cdn.modrinth.com/data/4KjqhPc9/images/f84b10d3e0257c66e4f60066f3f570bc26ca34b2.png"><br/>
-A unified save and server-integration framework for client-side map mods (and others).<br/>
+Unified API, networking, and save data for map mods.<br/>
 Used in <a href="https://modrinth.com/mod/antique-atlas-4">Antique Atlas 4</a>. Try it with <a href="https://github.com/HestiMae/surveyor-surveyor">SurveyorSurveyor</a>!<br/>
 <!-- Requires <a href="https://modrinth.com/mod/connector">Connector</a> and <a href="https://modrinth.com/mod/forgified-fabric-api">FFAPI</a> on forge.<br/> -->
 <i>Other names considered: Polaris, Ichnite, Trackway, Lay of the Land, Worldsense, and Lithography.</i>
@@ -99,7 +99,7 @@ You should never need to look at the currently loaded chunks - If some informati
 
 #### Initial Setup
 
-Map mods will want to use `SurveyorClientEvents` in all cases - these are hooked up to player exploration, 
+Client map mods should always use `SurveyorClientEvents` - this ensures only explored areas will be provided in singleplayer.
 
 Tune into `WorldLoad` and queue up the provided keys for rendering.<br/>
 This event will trigger when the client world has access to surveyor data and the player is available.

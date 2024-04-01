@@ -74,7 +74,7 @@ public class ChunkSummary {
                         } else { // Blocks Movement or Has Non-Water Fluid.
                             if (foundFloor == null) {
                                 if (carpetY == y + 1) {
-                                    foundFloor = new LayerSummary.FloorSummary(carpetY, section.getBiomeEntry(x, carpetY, z, world.getBottomY(), world.getTopY()).value(), carpetBlock, world.getLightLevel(LightType.BLOCK, new BlockPos(x, carpetY - 1, z)), waterDepth);
+                                    foundFloor = new LayerSummary.FloorSummary(carpetY, section.getBiomeEntry(x, carpetY, z, world.getBottomY(), world.getTopY()).value(), carpetBlock, world.getLightLevel(LightType.BLOCK, new BlockPos(x, carpetY, z)), waterDepth);
                                 } else if (walkspaceHeight >= MINIMUM_AIR_DEPTH && state.getMapColor(world, new BlockPos(x, y, z)) != MapColor.CLEAR && y > layerHeights[layerIndex + 1]) {
                                     foundFloor = new LayerSummary.FloorSummary(y, section.getBiomeEntry(x, y, z, world.getBottomY(), world.getTopY()).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, new BlockPos(x, y - 1, z)), waterDepth);
                                 }
