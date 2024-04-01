@@ -50,10 +50,11 @@ public class Surveyor implements ModInitializer {
         SurveyorExploration exploration = SurveyorExploration.of(player);
         Map<Structure, LongSet> structureReferences = world.getChunk(pos.getX() >> 4, pos.getZ() >> 4, ChunkStatus.STRUCTURE_REFERENCES).getStructureReferences();
         if (!structureReferences.isEmpty()) {
-            Multimap<RegistryKey<Structure>, ChunkPos> unexploredStructures = exploration.limitStructureKeySet(world.getRegistryKey(), MapUtil.asMultiMap(structureReferences.entrySet().stream().collect(Collectors.toMap(
+            Multimap<RegistryKey<Structure>, ChunkPos> unexploredStructures = MapUtil.asMultiMap(structureReferences.entrySet().stream().collect(Collectors.toMap(
                 e -> structureRegistry.getKey(e.getKey()).orElseThrow(),
                 e -> e.getValue().longStream().mapToObj(ChunkPos::new).toList()
-            ))));
+            )));
+            unexploredStructures.entries().removeIf(e -> exploration.exploredStructure(world.getRegistryKey(), e.getKey(), e.getValue()));
             unexploredStructures.entries().removeIf(e -> !worldStructures.contains(e.getKey(), e.getValue()));
             unexploredStructures.forEach((structureKey, startPos) -> {
                 Structure structure = structureRegistry.get(structureKey);
