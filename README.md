@@ -33,7 +33,7 @@ To force surveyor to show and share map data globally, you can set the `shareAll
 
 ---
 
-**Notice: Surveyor is still early in development.**
+**Notice: Surveyor is still in early releases.**
 - The API might break several times during 0.x
 - The networking format will break several times during 0.x.
 - The save format will likely break on the change to 1.x
