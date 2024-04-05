@@ -25,7 +25,7 @@ import net.minecraft.structure.StructureStart;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.WorldChunk;
 import net.minecraft.world.gen.structure.Structure;
 import net.minecraft.world.gen.structure.StructureType;
 
@@ -209,7 +209,7 @@ public class WorldStructureSummary {
         return WorldStructureSummary.readNbt(world.getRegistryKey(), structureNbt);
     }
 
-    public static void onChunkLoad(ServerWorld world, Chunk chunk) {
+    public static void onChunkLoad(ServerWorld world, WorldChunk chunk) {
         WorldStructureSummary structures = WorldSummary.of(world).structures();
         chunk.getStructureStarts().forEach((structure, start) -> {
             if (!structures.contains(world, start)) structures.put(world, start);

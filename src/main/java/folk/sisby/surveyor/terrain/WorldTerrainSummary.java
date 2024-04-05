@@ -13,7 +13,6 @@ import net.minecraft.util.collection.IndexedIterable;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.WorldChunk;
 
 import java.io.File;
@@ -86,7 +85,7 @@ public class WorldTerrainSummary {
         return set;
     }
 
-    public void put(World world, Chunk chunk) {
+    public void put(World world, WorldChunk chunk) {
         regions.computeIfAbsent(regionPosOf(chunk.getPos()), k -> new RegionSummary()).putChunk(world, chunk);
         SurveyorEvents.Invoke.terrainUpdated(world, chunk.getPos());
     }
@@ -137,7 +136,7 @@ public class WorldTerrainSummary {
         return new WorldTerrainSummary(world.getRegistryKey(), regions);
     }
 
-    public static void onChunkLoad(World world, Chunk chunk) {
+    public static void onChunkLoad(World world, WorldChunk chunk) {
         WorldSummary summary = WorldSummary.of(world);
         if ((!summary.terrain().contains(chunk.getPos()) || !ChunkUtil.airCount(chunk).equals(summary.terrain().get(chunk.getPos()).getAirCount()))){
             summary.terrain().put(world, chunk);

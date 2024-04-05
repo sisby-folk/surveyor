@@ -18,7 +18,7 @@ import net.minecraft.util.collection.Int2ObjectBiMap;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.WorldChunk;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -104,7 +104,7 @@ public class RegionSummary {
         return bitSet;
     }
 
-    public void putChunk(World world, Chunk chunk) {
+    public void putChunk(World world, WorldChunk chunk) {
         chunks[regionRelative(chunk.getPos().x)][regionRelative(chunk.getPos().z)] = new ChunkSummary(world, chunk, DimensionSupport.getSummaryLayers(world), biomePalette, rawBiomePalette, blockPalette, rawBlockPalette, !(world instanceof ServerWorld));
         dirty = true;
     }
