@@ -6,6 +6,7 @@ import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.dimension.DimensionTypes;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +27,12 @@ public class DimensionSupport {
             layers.add(40); // Lava Shores
         }
         layers.add(dimension.minY()); // End Layers at Min Y
-        return layers.stream().mapToInt(i -> i).toArray();
+        layers.sort(Comparator.<Integer>comparingInt(i -> i).reversed());
+        int[] outLayers = new int[layers.size()];
+        for (int i = 0; i < outLayers.length; i++) {
+            outLayers[i] = layers.get(i);
+        }
+        return outLayers;
     }
 
     public static int[] getSummaryLayers(World world) {
