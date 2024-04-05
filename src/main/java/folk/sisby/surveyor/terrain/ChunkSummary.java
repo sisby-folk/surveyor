@@ -46,11 +46,11 @@ public class ChunkSummary {
             for (int z = 0; z < 16; z++) {
                 int walkspaceHeight = 0;
                 int waterDepth = 0;
+                Block carpetBlock = null;
+                BlockPos carpetPos = new BlockPos(chunkX + x, Integer.MAX_VALUE, chunkZ + z);
                 for (int layerIndex = 0; layerIndex < layerHeights.length - 1; layerIndex++) {
-                    Block carpetBlock = null;
-                    BlockPos carpetPos = new BlockPos(chunkX + x, Integer.MAX_VALUE, chunkZ + z);
                     LayerSummary.FloorSummary foundFloor = null;
-                    for (int y = layerHeights[layerIndex]; y >= layerHeights[layerIndex + 1]; y--) {
+                    for (int y = layerHeights[layerIndex]; y > layerHeights[layerIndex + 1]; y--) {
                         int sectionIndex = chunk.getSectionIndex(y);
                         SectionSummary section = sections[sectionIndex];
                         if (section == null) {
@@ -78,7 +78,11 @@ public class ChunkSummary {
                             if (foundFloor == null) {
                                 if (carpetPos.getY() == y + 1) {
                                     foundFloor = new LayerSummary.FloorSummary(carpetPos.getY(), section.getBiomeEntry(x, carpetPos.getY(), z, world.getBottomY(), world.getTopY()).value(), carpetBlock, world.getLightLevel(LightType.BLOCK, carpetPos), waterDepth);
-                                } else if (walkspaceHeight >= MINIMUM_AIR_DEPTH && state.getMapColor(world, pos) != MapColor.CLEAR && y > layerHeights[layerIndex + 1]) {
+                                    if (carpetPos.getY() > layerHeights[layerIndex]) { // Actually a floor for the layer above
+                                        if (layerFloors[layerIndex - 1][x * 16 + z] == null) layerFloors[layerIndex - 1][x * 16 + z] = foundFloor;
+                                        foundFloor = null;
+                                    }
+                                } else if (walkspaceHeight >= MINIMUM_AIR_DEPTH && state.getMapColor(world, pos) != MapColor.CLEAR) {
                                     foundFloor = new LayerSummary.FloorSummary(y, section.getBiomeEntry(x, y, z, world.getBottomY(), world.getTopY()).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, pos.up()), waterDepth);
                                 }
                             }
