@@ -48,7 +48,7 @@ public class ChunkSummary {
                 int waterDepth = 0;
                 for (int layerIndex = 0; layerIndex < layerHeights.length - 1; layerIndex++) {
                     Block carpetBlock = null;
-                    BlockPos carpetPos = new BlockPos(x, Integer.MAX_VALUE, z);
+                    BlockPos carpetPos = new BlockPos(chunkX + x, Integer.MAX_VALUE, chunkZ + z);
                     LayerSummary.FloorSummary foundFloor = null;
                     for (int y = layerHeights[layerIndex]; y >= layerHeights[layerIndex + 1]; y--) {
                         int sectionIndex = chunk.getSectionIndex(y);
