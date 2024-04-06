@@ -44,7 +44,7 @@ public class ChunkSummary {
         int chunkZ = chunk.getPos().getStartZ();
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
-                int walkspaceHeight = 0;
+                int walkspaceHeight = 2; // Start at 2 to allow finding floors at the height limit.
                 int waterDepth = 0;
                 Block carpetBlock = null;
                 BlockPos carpetPos = new BlockPos(chunkX + x, Integer.MAX_VALUE, chunkZ + z);
@@ -65,7 +65,6 @@ public class ChunkSummary {
                         Fluid fluid = state.getFluidState().getFluid();
 
                         if (!state.blocksMovement() && fluid.matchesType(Fluids.EMPTY)) {
-                            if (waterDepth > 0) walkspaceHeight = 0; // Erase walkspace when air below water (weird, but possible)
                             walkspaceHeight++;
                             waterDepth = 0;
                             if (walkspaceHeight >= MINIMUM_AIR_DEPTH && state.getMapColor(world, pos) != MapColor.CLEAR) {
@@ -82,12 +81,17 @@ public class ChunkSummary {
                                         if (layerFloors[layerIndex - 1][x * 16 + z] == null) layerFloors[layerIndex - 1][x * 16 + z] = foundFloor;
                                         foundFloor = null;
                                     }
+                                    // Carpeted glass needs to reset walkspaces
+                                    walkspaceHeight = 0;
+                                    waterDepth = 0;
                                 } else if (walkspaceHeight >= MINIMUM_AIR_DEPTH && state.getMapColor(world, pos) != MapColor.CLEAR) {
                                     foundFloor = new LayerSummary.FloorSummary(y, section.getBiomeEntry(x, y, z, world.getBottomY(), world.getTopY()).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, pos.up()), waterDepth);
                                 }
                             }
-                            walkspaceHeight = 0;
-                            waterDepth = 0;
+                            if (state.getMapColor(world, pos) != MapColor.CLEAR) { // Don't reset walkspace for glass/barriers/etc.
+                                walkspaceHeight = 0;
+                                waterDepth = 0; // Prevents a glass block on the ocean floor from hiding all the water
+                            }
                         }
                     }
                     layerFloors[layerIndex][x * 16 + z] = foundFloor;
