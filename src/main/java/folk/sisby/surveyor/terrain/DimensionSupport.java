@@ -19,9 +19,15 @@ public class DimensionSupport {
         DimensionType dimension = world.getDimension();
         layers.add(dimension.minY() + dimension.height() - 1); // Layer at Max Y
         if (dimension.logicalHeight() != dimension.height()) layers.add(dimension.minY() + dimension.logicalHeight() - 2); // Layer below Playable Limit
-        if (dimension.hasSkyLight()) layers.add(world.getSeaLevel() - 2); // Layer below sea level (assume caves underneath)
         if (dimension.minY() + dimension.height() > 256) layers.add(256); // Layer At Y=256 (assume special layer change)
-        if (dimension.minY() < 0) layers.add(0); // Layer At Y=0 (assume special layer change)
+        if (dimension.hasSkyLight()) {  // Layer below sea level (assume caves underneath)
+            int newLayer = world.getSeaLevel() - 2;
+            if (newLayer > dimension.minY() && newLayer < dimension.minY() + dimension.height()) layers.add(newLayer);
+        }
+        if (dimension.minY() < 0) { // Layer At Y=0 (assume special layer change)
+            int newLayer = 0;
+            if (newLayer > dimension.minY() && newLayer < dimension.minY() + dimension.height()) layers.add(newLayer);
+        }
         if (world.getDimensionKey() == DimensionTypes.THE_NETHER) {
             layers.add(70); // Mid outcrops
             layers.add(40); // Lava Shores
