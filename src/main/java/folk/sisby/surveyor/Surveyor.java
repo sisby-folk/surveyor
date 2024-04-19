@@ -7,6 +7,7 @@ import folk.sisby.surveyor.util.MapUtil;
 import folk.sisby.surveyor.util.RaycastUtil;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
@@ -79,6 +80,7 @@ public class Surveyor implements ModInitializer {
     @Override
     public void onInitialize() {
         SurveyorNetworking.init();
+        CommandRegistrationCallback.EVENT.register(SurveyorCommands::registerCommands);
         ServerChunkEvents.CHUNK_LOAD.register(WorldTerrainSummary::onChunkLoad);
         ServerChunkEvents.CHUNK_LOAD.register(WorldStructureSummary::onChunkLoad);
         ServerChunkEvents.CHUNK_UNLOAD.register(WorldTerrainSummary::onChunkUnload);

@@ -57,6 +57,14 @@ public interface SurveyorExploration {
         return Surveyor.CONFIG.shareAllLandmarks || (landmark.owner() == null ? exploredChunk(worldKey, new ChunkPos(landmark.pos())) : sharedPlayers().contains(landmark.owner()));
     }
 
+    default int chunkCount() {
+        return terrain().values().stream().flatMap(m -> m.values().stream()).mapToInt(BitSet::cardinality).sum();
+    }
+
+    default int structureCount() {
+        return structures().values().stream().flatMap(m -> m.values().stream()).mapToInt(LongSet::size).sum();
+    }
+
     default Map<ChunkPos, BitSet> limitTerrainBitset(RegistryKey<World> worldKey, Map<ChunkPos, BitSet> bitSet) {
         if (Surveyor.CONFIG.shareAllTerrain) return bitSet;
         Map<ChunkPos, BitSet> regions = terrain().get(worldKey);
