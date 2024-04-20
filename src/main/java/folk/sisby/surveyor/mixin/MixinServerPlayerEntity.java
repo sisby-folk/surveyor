@@ -1,6 +1,8 @@
 package folk.sisby.surveyor.mixin;
 
-import folk.sisby.surveyor.SurveyorExploration;
+import com.mojang.authlib.GameProfile;
+import folk.sisby.surveyor.PlayerSummary;
+import folk.sisby.surveyor.ServerSummary;
 import folk.sisby.surveyor.SurveyorPlayer;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.landmark.PlayerDeathLandmark;
@@ -8,49 +10,42 @@ import folk.sisby.surveyor.util.TextUtil;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.c2s.play.ClientSettingsC2SPacket;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.HashMap;
-
 @Mixin(ServerPlayerEntity.class)
 public class MixinServerPlayerEntity implements SurveyorPlayer {
-    @Unique private final ServerPlayerExploration surveyor$exploration = new ServerPlayerExploration((ServerPlayerEntity) (Object) this, new HashMap<>(), new HashMap<>());
-    @Unique private int surveyor$viewDistance = -1;
+    @Unique PlayerSummary.OnlinePlayerSummary surveyor$playerSummary = null;
 
-    @Override
-    public SurveyorExploration surveyor$getExploration() {
-        return surveyor$exploration;
-    }
-
-    @Override
-    public int surveyor$getViewDistance() {
+    @Inject(method = "<init>", at = @At("TAIL"))
+    public void init(MinecraftServer server, ServerWorld world, GameProfile profile, CallbackInfo ci) {
         ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
-        return surveyor$viewDistance == -1 ? self.getServer().getPlayerManager().getViewDistance() : surveyor$viewDistance;
+        surveyor$playerSummary = new PlayerSummary.OnlinePlayerSummary(self);
     }
 
-    @Inject(at = @At("TAIL"), method = "writeCustomDataToNbt")
+    @Inject(method = "writeCustomDataToNbt", at = @At("TAIL"))
     public void writeSurveyorData(NbtCompound nbt, CallbackInfo ci) {
-        nbt.put(ServerPlayerExploration.KEY_DATA, surveyor$exploration.write(new NbtCompound()));
+        ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
+        surveyor$playerSummary.writeNbt(nbt);
+        ServerSummary.of(self.getServer()).updatePlayer(self.getUuid(), nbt);
     }
 
-    @Inject(at = @At("TAIL"), method = "readCustomDataFromNbt")
+    @Inject(method = "readCustomDataFromNbt", at = @At("TAIL"))
     public void readSurveyorData(NbtCompound nbt, CallbackInfo ci) {
-        surveyor$exploration.read(nbt.getCompound(ServerPlayerExploration.KEY_DATA));
-    }
-
-    @Inject(at = @At("TAIL"), method = "copyFrom")
-    public void copySurveyorData(ServerPlayerEntity oldPlayer, boolean alive, CallbackInfo ci) {
-        surveyor$exploration.copyFrom(SurveyorExploration.of(oldPlayer));
+        ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
+        surveyor$playerSummary.read(nbt);
+        ServerSummary.of(self.getServer()).updatePlayer(self.getUuid(), nbt);
     }
 
     @Inject(method = "setClientSettings", at = @At("HEAD"))
     public void setSurveyorViewDistance(ClientSettingsC2SPacket packet, CallbackInfo ci) {
-        surveyor$viewDistance = packet.viewDistance();
+        surveyor$playerSummary.setViewDistance(packet.viewDistance());
     }
 
     @Inject(method = "onDeath", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/damage/DamageTracker;update()V"))
@@ -60,5 +55,10 @@ public class MixinServerPlayerEntity implements SurveyorPlayer {
             self.getServerWorld(),
             new PlayerDeathLandmark(self.getBlockPos(), self.getUuid(), TextUtil.stripInteraction(self.getDamageTracker().getDeathMessage()), self.getServerWorld().getTimeOfDay(), self.getRandom().nextInt())
         );
+    }
+
+    @Override
+    public PlayerSummary surveyor$getPlayerSummary() {
+        return surveyor$playerSummary;
     }
 }

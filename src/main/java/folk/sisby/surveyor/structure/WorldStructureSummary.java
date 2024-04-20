@@ -156,7 +156,7 @@ public class WorldStructureSummary {
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error writing structure summary file for {}.", world.getRegistryKey().getValue(), e);
             }
-            return structures.size();
+            return structures.values().stream().mapToInt(Map::size).sum();
         }
         return 0;
     }

@@ -155,7 +155,7 @@ public class WorldLandmarks {
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error writing landmarks file for {}.", world.getRegistryKey().getValue(), e);
             }
-            return landmarks.size();
+            return landmarks.values().stream().mapToInt(Map::size).sum();
         }
         return 0;
     }

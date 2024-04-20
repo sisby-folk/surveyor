@@ -14,6 +14,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.structure.StructurePiece;
@@ -23,6 +24,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.WorldSavePath;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.World;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.gen.structure.Structure;
@@ -40,8 +42,8 @@ public class Surveyor implements ModInitializer {
     public static final String DATA_SUBFOLDER = "data";
     public static final SurveyorConfig CONFIG = SurveyorConfig.createToml(FabricLoader.getInstance().getConfigDir(), "", "surveyor", SurveyorConfig.class);
 
-    public static File getSavePath(ServerWorld world) {
-        return DimensionType.getSaveDirectory(world.getRegistryKey(), world.getServer().getSavePath(WorldSavePath.ROOT)).resolve(DATA_SUBFOLDER).resolve(Surveyor.ID).toFile();
+    public static File getSavePath(RegistryKey<World> worldKey, MinecraftServer server) {
+        return DimensionType.getSaveDirectory(worldKey, server.getSavePath(WorldSavePath.ROOT)).resolve(DATA_SUBFOLDER).resolve(Surveyor.ID).toFile();
     }
 
     public static void checkStructureExploration(ServerWorld world, ServerPlayerEntity player, BlockPos pos) {
@@ -88,7 +90,7 @@ public class Surveyor implements ModInitializer {
             if ((world.getTime() & 7) != 0) return;
             for (ServerPlayerEntity player : world.getPlayers()) {
                 checkStructureExploration(world, player, player.getBlockPos());
-                checkStructureExploration(world, player, BlockPos.ofFloored(RaycastUtil.playerViewRaycast(player, ((SurveyorPlayer) player).surveyor$getViewDistance()).getPos()));
+                checkStructureExploration(world, player, BlockPos.ofFloored(RaycastUtil.playerViewRaycast(player, PlayerSummary.of(player).viewDistance()).getPos()));
             }
         }));
     }

@@ -29,21 +29,22 @@ public class MixinServerWorld implements SurveyorWorld {
 
     @Inject(method = "<init>", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/dimension/DimensionOptions;chunkGenerator()Lnet/minecraft/world/gen/chunk/ChunkGenerator;"))
     public void loadSummary(CallbackInfo ci) {
-        surveyor$worldSummary = WorldSummary.load((ServerWorld) (Object) this, Surveyor.getSavePath((ServerWorld) (Object) this), false);
-        SurveyorEvents.Invoke.worldLoad((ServerWorld) (Object) this);
+        ServerWorld self = (ServerWorld) (Object) this;
+        surveyor$worldSummary = WorldSummary.load(self, Surveyor.getSavePath(self.getRegistryKey(), self.getServer()), false);
+        SurveyorEvents.Invoke.worldLoad(self);
     }
 
     @Inject(method = "method_19499", at = @At("HEAD"))
     public void onPointOfInterestAdded(BlockPos blockPos, RegistryEntry<PointOfInterestType> poiType, CallbackInfo ci) {
         ServerWorld self = (ServerWorld) (Object) this;
         if (poiType.getKey().orElse(null) == PointOfInterestTypes.NETHER_PORTAL && self.getBlockState(blockPos).contains(NetherPortalBlock.AXIS)) {
-            WorldSummary.of(self).landmarks().put((ServerWorld) (Object) this, new NetherPortalLandmark(blockPos, self.getBlockState(blockPos).get(NetherPortalBlock.AXIS)));
+            WorldSummary.of(self).landmarks().put(self, new NetherPortalLandmark(blockPos, self.getBlockState(blockPos).get(NetherPortalBlock.AXIS)));
         }
     }
 
     @Inject(method = "method_39222", at = @At("HEAD"))
     public void onPointOfInterestRemoved(BlockPos blockPos, CallbackInfo ci) {
         ServerWorld self = (ServerWorld) (Object) this;
-        WorldSummary.of(self).landmarks().removeAll((ServerWorld) (Object) this, HasPoiType.class, blockPos);
+        WorldSummary.of(self).landmarks().removeAll(self, HasPoiType.class, blockPos);
     }
 }

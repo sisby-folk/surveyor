@@ -14,6 +14,7 @@ import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
@@ -30,7 +31,11 @@ import java.util.stream.Collectors;
 
 public interface SurveyorExploration {
     static SurveyorExploration of(ServerPlayerEntity player) {
-        return ((SurveyorPlayer) player).surveyor$getExploration();
+        return PlayerSummary.of(player).exploration();
+    }
+
+    static SurveyorExploration of(UUID uuid, MinecraftServer server) {
+        return PlayerSummary.of(uuid, server).exploration();
     }
 
     String KEY_EXPLORED_TERRAIN = "exploredTerrain";
@@ -213,12 +218,5 @@ public interface SurveyorExploration {
             }
             structures().put(RegistryKey.of(RegistryKeys.WORLD, new Identifier(worldKeyString)), structureMap);
         }
-    }
-
-    default void copyFrom(SurveyorExploration them) {
-        terrain().clear();
-        terrain().putAll(them.terrain());
-        structures().clear();
-        structures().putAll(them.structures());
     }
 }
