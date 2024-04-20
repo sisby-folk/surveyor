@@ -74,6 +74,17 @@ public interface PlayerSummary {
         }
 
         record OfflinePlayerExploration(Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures) implements SurveyorExploration {
+            static OfflinePlayerExploration ofMerged(Set<SurveyorExploration> explorations) {
+                Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain = new HashMap<>();
+                Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures = new HashMap<>();
+                OfflinePlayerExploration outExploration = new OfflinePlayerExploration(terrain, structures);
+                for (SurveyorExploration exploration : explorations) {
+                    exploration.terrain().forEach((wKey, map) -> map.forEach((rPos, bits) -> outExploration.mergeRegion(wKey, rPos, bits)));
+                    exploration.structures().forEach((wKey, map) -> map.forEach((sKey, longs) -> outExploration.mergeStructures(wKey, sKey, longs)));
+                }
+                return outExploration;
+            }
+
             public static SurveyorExploration from(NbtCompound nbt) {
                 OfflinePlayerExploration mutable = new OfflinePlayerExploration(new HashMap<>(), new HashMap<>());
                 mutable.read(nbt);

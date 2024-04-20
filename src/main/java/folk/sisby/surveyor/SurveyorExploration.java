@@ -157,6 +157,10 @@ public interface SurveyorExploration {
         structures().computeIfAbsent(worldKey, k -> new HashMap<>()).computeIfAbsent(structureKey, s -> new LongOpenHashSet()).add(pos.toLong());
     }
 
+    default void mergeStructures(RegistryKey<World> worldKey, RegistryKey<Structure> structureKey, LongSet starts) {
+        structures().computeIfAbsent(worldKey, k -> new HashMap<>()).computeIfAbsent(structureKey, s -> new LongOpenHashSet()).addAll(starts);
+    }
+
     default NbtCompound write(NbtCompound nbt) {
         NbtCompound terrainCompound = new NbtCompound();
         terrain().forEach((worldKey, map) -> {

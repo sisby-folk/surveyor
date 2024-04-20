@@ -139,4 +139,8 @@ public final class ServerSummary {
     public Set<PlayerSummary> groupPlayers(UUID player, MinecraftServer server) {
         return getGroup(player).stream().map(u -> getPlayer(u, server)).collect(Collectors.toSet());
     }
+
+    public SurveyorExploration groupExploration(UUID player, MinecraftServer server) {
+        return PlayerSummary.OfflinePlayerSummary.OfflinePlayerExploration.ofMerged(getGroup(player).stream().map(u -> getPlayer(u, server).exploration()).collect(Collectors.toSet()));
+    }
 }

@@ -23,19 +23,20 @@ public class SurveyorCommands {
 
     public static int info(ServerSummary serverSummary, ServerPlayerEntity player, SurveyorExploration exploration, String ignored, Consumer<Text> feedback) {
         Set<PlayerSummary> group = serverSummary.groupPlayers(player.getUuid(), player.getServer());
+        SurveyorExploration groupExploration = serverSummary.groupExploration(player.getUuid(), player.getServer());
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("---Map Exploration Summary---").formatted(Formatting.GRAY)));
         feedback.accept(
             Text.literal("You've explored ").formatted(Formatting.AQUA)
                 .append(Text.literal("%d".formatted(exploration.chunkCount())).formatted(Formatting.WHITE))
                 .append(Text.literal(" total chunks! (").formatted(Formatting.AQUA))
-                .append(Text.literal("%d".formatted(group.stream().mapToInt(p -> p.exploration().chunkCount()).sum() /* Wrong, obvs - merged explore impl class later. */)).formatted(Formatting.WHITE))
+                .append(Text.literal("%d".formatted(groupExploration.chunkCount())).formatted(Formatting.WHITE))
                 .append(Text.literal(" with friends)").formatted(Formatting.AQUA))
         );
         feedback.accept(
             Text.literal("You've explored ").formatted(Formatting.LIGHT_PURPLE)
                 .append(Text.literal("%d".formatted(exploration.structureCount())).formatted(Formatting.WHITE))
                 .append(Text.literal(" structures! (").formatted(Formatting.LIGHT_PURPLE))
-                .append(Text.literal("%d".formatted(group.stream().mapToInt(p -> p.exploration().structureCount()).sum() /* Wrong, obvs - merged explore impl class later. */)).formatted(Formatting.WHITE))
+                .append(Text.literal("%d".formatted(groupExploration.structureCount())).formatted(Formatting.WHITE))
                 .append(Text.literal(" with friends)").formatted(Formatting.LIGHT_PURPLE))
         );
         feedback.accept(
@@ -61,7 +62,7 @@ public class SurveyorCommands {
             return 0;
         }
         if (requests.containsEntry(player.getUuid(), sharePlayer.getUuid())) { // Accept Request
-            if (serverSummary.groupSize(player.getUuid()) > 1 /* and other player is also in a group */) {
+            if (serverSummary.groupSize(player.getUuid()) > 1  && serverSummary.groupSize(sharePlayer.getUuid()) > 1) {
                 feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You're in a group! leave your group first with:").formatted(Formatting.YELLOW)));
                 feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("/surveyor unshare").formatted(Formatting.GOLD)));
                 return 0;
