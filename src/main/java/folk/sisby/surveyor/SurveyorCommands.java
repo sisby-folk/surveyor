@@ -28,25 +28,35 @@ public class SurveyorCommands {
         feedback.accept(
             Text.literal("You've explored ").formatted(Formatting.AQUA)
                 .append(Text.literal("%d".formatted(exploration.chunkCount())).formatted(Formatting.WHITE))
-                .append(Text.literal(" total chunks! (").formatted(Formatting.AQUA))
-                .append(Text.literal("%d".formatted(groupExploration.chunkCount())).formatted(Formatting.WHITE))
-                .append(Text.literal(" with friends)").formatted(Formatting.AQUA))
+                .append(Text.literal(" total chunks!").formatted(Formatting.AQUA))
+                .append(
+                    group.size() <= 1 ? Text.empty() :
+                        Text.literal(" (").formatted(Formatting.AQUA)
+                            .append(Text.literal("%d".formatted(groupExploration.chunkCount())).formatted(Formatting.WHITE))
+                            .append(Text.literal(" with friends)").formatted(Formatting.AQUA))
+                )
         );
         feedback.accept(
             Text.literal("You've explored ").formatted(Formatting.LIGHT_PURPLE)
                 .append(Text.literal("%d".formatted(exploration.structureCount())).formatted(Formatting.WHITE))
-                .append(Text.literal(" structures! (").formatted(Formatting.LIGHT_PURPLE))
-                .append(Text.literal("%d".formatted(groupExploration.structureCount())).formatted(Formatting.WHITE))
-                .append(Text.literal(" with friends)").formatted(Formatting.LIGHT_PURPLE))
+                .append(Text.literal(" structures!").formatted(Formatting.LIGHT_PURPLE))
+                .append(
+                    group.size() <= 1 ? Text.empty() :
+                        Text.literal(" (").formatted(Formatting.LIGHT_PURPLE)
+                            .append(Text.literal("%d".formatted(groupExploration.structureCount())).formatted(Formatting.WHITE))
+                            .append(Text.literal(" with friends)").formatted(Formatting.LIGHT_PURPLE))
+                )
         );
-        feedback.accept(
-            Text.literal("You're sharing your map with ").formatted(Formatting.GOLD)
-                .append(Text.literal("%d".formatted(group.size() - 1)).formatted(Formatting.WHITE))
-                .append(Text.literal(" other players:").formatted(Formatting.GOLD))
-        );
-        feedback.accept(
-            TextUtil.highlightStrings(group.stream().map(PlayerSummary::username).toList(), s -> Formatting.WHITE).formatted(Formatting.GOLD)
-        );
+        if (group.size() > 1) {
+            feedback.accept(
+                Text.literal("You're sharing your map with ").formatted(Formatting.GOLD)
+                    .append(Text.literal("%d".formatted(group.size() - 1)).formatted(Formatting.WHITE))
+                    .append(Text.literal(" other players:").formatted(Formatting.GOLD))
+            );
+            feedback.accept(
+                TextUtil.highlightStrings(group.stream().map(PlayerSummary::username).filter(u -> !u.equals(player.getGameProfile().getName())).toList(), s -> Formatting.WHITE).formatted(Formatting.GOLD)
+            );
+        }
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("-------End Summary-------").formatted(Formatting.GRAY)));
         return 1;
     }
@@ -62,7 +72,7 @@ public class SurveyorCommands {
             return 0;
         }
         if (requests.containsEntry(player.getUuid(), sharePlayer.getUuid())) { // Accept Request
-            if (serverSummary.groupSize(player.getUuid()) > 1  && serverSummary.groupSize(sharePlayer.getUuid()) > 1) {
+            if (serverSummary.groupSize(player.getUuid()) > 1 && serverSummary.groupSize(sharePlayer.getUuid()) > 1) {
                 feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You're in a group! leave your group first with:").formatted(Formatting.YELLOW)));
                 feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("/surveyor unshare").formatted(Formatting.GOLD)));
                 return 0;
@@ -70,10 +80,10 @@ public class SurveyorCommands {
             requests.removeAll(player.getUuid()); // clear all other requests
             ServerSummary.of(player.getServer()).joinGroup(player.getUuid(), sharePlayer.getUuid());
             feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You're now sharing map exploration with ").formatted(Formatting.GREEN)).append(Text.literal("%d".formatted(serverSummary.groupSize(player.getUuid()))).formatted(Formatting.WHITE)).append(Text.literal(" players:").formatted(Formatting.GREEN)));
-            feedback.accept(TextUtil.highlightStrings(serverSummary.groupPlayers(player.getUuid(), player.getServer()).stream().map(PlayerSummary::username).toList(), s -> Formatting.WHITE).formatted(Formatting.GREEN));
+            feedback.accept(TextUtil.highlightStrings(serverSummary.groupPlayers(player.getUuid(), player.getServer()).stream().map(PlayerSummary::username).filter(u -> !u.equals(player.getGameProfile().getName())).toList(), s -> Formatting.WHITE).formatted(Formatting.GREEN));
             sharePlayer.sendMessage(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(player.getDisplayName().copy().formatted(Formatting.WHITE)).append(Text.literal(" is now sharing their map with you.").formatted(Formatting.AQUA)), false);
             sharePlayer.sendMessage(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You're now sharing map exploration with ").formatted(Formatting.AQUA)).append(Text.literal("%d".formatted(serverSummary.groupSize(player.getUuid()))).formatted(Formatting.WHITE)).append(Text.literal(" players:").formatted(Formatting.AQUA)), false);
-            sharePlayer.sendMessage(TextUtil.highlightStrings(serverSummary.groupPlayers(player.getUuid(), player.getServer()).stream().map(PlayerSummary::username).toList(), s -> Formatting.WHITE).formatted(Formatting.AQUA));
+            sharePlayer.sendMessage(TextUtil.highlightStrings(serverSummary.groupPlayers(player.getUuid(), player.getServer()).stream().map(PlayerSummary::username).filter(u -> !u.equals(player.getGameProfile().getName())).toList(), s -> Formatting.WHITE).formatted(Formatting.AQUA));
             return 1;
         } else { // Make Request
             requests.put(sharePlayer.getUuid(), player.getUuid());
