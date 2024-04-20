@@ -40,7 +40,7 @@ public final class ServerSummary {
         // Load Share Groups
         File folder = Surveyor.getSavePath(World.OVERWORLD, server);
         NbtCompound sharingNbt = new NbtCompound();
-        File sharingFile = new File(folder, "landmarks.dat");
+        File sharingFile = new File(folder, "sharing.dat");
         if (sharingFile.exists()) {
             try {
                 sharingNbt = NbtIo.readCompressed(sharingFile);
@@ -107,10 +107,6 @@ public final class ServerSummary {
 
     public void updatePlayer(UUID uuid, NbtCompound nbt) {
         offlineSummaries.put(uuid, new PlayerSummary.OfflinePlayerSummary(nbt));
-    }
-
-    public SurveyorExploration getExploration(UUID uuid) {
-        return offlineSummaries.get(uuid).exploration();
     }
 
     private Set<UUID> getGroup(UUID player) {
