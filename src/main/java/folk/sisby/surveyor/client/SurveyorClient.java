@@ -1,11 +1,13 @@
 package folk.sisby.surveyor.client;
 
 import com.google.common.collect.HashMultimap;
+import com.mojang.authlib.GameProfile;
 import folk.sisby.surveyor.PlayerSummary;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.WorldSummary;
+import folk.sisby.surveyor.mixin.client.AccessorClientPlayNetworkHandler;
 import folk.sisby.surveyor.packet.C2SKnownLandmarksPacket;
 import folk.sisby.surveyor.packet.C2SKnownStructuresPacket;
 import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
@@ -100,8 +102,9 @@ public class SurveyorClient implements ClientModInitializer {
         }
     }
 
-    public static UUID getClientUuid() {
-        return Uuids.getUuidFromProfile(MinecraftClient.getInstance().getSession().getProfile());
+    public static UUID getClientUuid() { // UUID needs to always match what the server is using.
+        GameProfile profile = ((AccessorClientPlayNetworkHandler) MinecraftClient.getInstance().getNetworkHandler()).getProfile();
+        return Uuids.getUuidFromProfile(profile);
     }
 
     public static ServerWorld stealServerWorld(RegistryKey<World> worldKey) {
@@ -192,7 +195,7 @@ public class SurveyorClient implements ClientModInitializer {
 
         @Override
         public Set<UUID> sharedPlayers() {
-            return Set.of(Uuids.getUuidFromProfile(MinecraftClient.getInstance().getSession().getProfile()));
+            return Set.of(getClientUuid());
         }
 
         @Override
