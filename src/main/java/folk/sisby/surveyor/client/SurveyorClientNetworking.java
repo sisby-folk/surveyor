@@ -75,8 +75,8 @@ public class SurveyorClientNetworking {
 
     private static void handleClientUnparsed(PacketByteBuf buf, ClientPacketHandler<PacketByteBuf> handler) {
         ClientWorld world = MinecraftClient.getInstance().world;
-        WorldSummary summary = WorldSummary.of(MinecraftClient.getInstance().world);
-        if (!summary.isClient()) return;
+        WorldSummary summary = MinecraftClient.getInstance().world == null ? null : WorldSummary.of(MinecraftClient.getInstance().world);
+        if (summary != null && !summary.isClient()) return;
         handler.handle(world, summary, buf);
     }
 
