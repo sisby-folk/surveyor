@@ -28,6 +28,6 @@ public record WorldSummary(WorldTerrainSummary terrain, WorldStructureSummary st
         int chunks = terrain.save(world, folder);
         int keys = structures.save(world, folder);
         int marks = landmarks.save(world, folder);
-        if (!suppressLogs) Surveyor.LOGGER.info("[Surveyor] Finished saving data for {} | {} chunks, {} structures, {} landmarks", world.getRegistryKey().getValue(), chunks, keys, marks);
+        if (!suppressLogs) Surveyor.LOGGER.info("[Surveyor] Finished saving data for {} | {} regions, {} structures, {} landmarks", world.getRegistryKey().getValue(), chunks, keys, marks);
     }
 }
