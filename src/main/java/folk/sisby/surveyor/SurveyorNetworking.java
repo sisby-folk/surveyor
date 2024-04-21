@@ -81,7 +81,7 @@ public class SurveyorNetworking {
         packet.landmarks().forEach((type, map) -> map.forEach((pos, landmark) -> {
             if (player.getUuid().equals(landmark.owner())) summary.landmarks().putForBatch(changed, landmark);
         }));
-        summary.landmarks().handleChanged(world, changed, false, player);
+        if (!changed.isEmpty()) summary.landmarks().handleChanged(world, changed, false, player);
     }
 
     private static void handleLandmarksRemoved(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, SyncLandmarksRemovedPacket packet) {
@@ -89,7 +89,7 @@ public class SurveyorNetworking {
         packet.landmarks().forEach((type, pos) -> {
             if (summary.landmarks().contains(type, pos) && player.getUuid().equals(summary.landmarks().get(type, pos).owner())) summary.landmarks().removeForBatch(changed, type, pos);
         });
-        summary.landmarks().handleChanged(world, changed, false, player);
+        if (!changed.isEmpty()) summary.landmarks().handleChanged(world, changed, false, player);
     }
 
     private static <T extends C2SPacket> void handleServer(ServerPlayerEntity player, PacketByteBuf buf, Function<PacketByteBuf, T> reader, ServerPacketHandler<T> handler) {
