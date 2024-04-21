@@ -15,14 +15,16 @@ import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
 
-public record S2CUpdateRegionPacket(ChunkPos regionPos, RegionSummary summary, BitSet chunks) implements S2CPacket {
+public record S2CUpdateRegionPacket(boolean shared, ChunkPos regionPos, RegionSummary summary, BitSet chunks) implements S2CPacket {
     public static final Identifier ID = new Identifier(Surveyor.ID, "s2c_update_region");
 
     public static S2CUpdateRegionPacket handle(PacketByteBuf buf, DynamicRegistryManager manager, WorldSummary summary) {
+        boolean shared = buf.readBoolean();
         ChunkPos regionPos = buf.readChunkPos();
         RegionSummary region = summary.terrain().getRegion(regionPos);
         BitSet chunks = region.readBuf(manager, buf);
         return new S2CUpdateRegionPacket(
+            shared,
             regionPos,
             region,
             chunks
@@ -31,6 +33,7 @@ public record S2CUpdateRegionPacket(ChunkPos regionPos, RegionSummary summary, B
 
     @Override
     public void writeBuf(PacketByteBuf buf) {
+        buf.writeBoolean(shared);
         buf.writeChunkPos(regionPos);
         summary.writeBuf(buf, chunks);
     }
@@ -45,7 +48,7 @@ public record S2CUpdateRegionPacket(ChunkPos regionPos, RegionSummary summary, B
         } else {
             if (chunks.cardinality() == 1) throw new RuntimeException("Couldn't create a terrain update packet - an individual chunk would be too large to send!");
             for (BitSet splitChunks : BitSetUtil.half(chunks)) {
-                bufs.addAll(new S2CUpdateRegionPacket(regionPos, summary, splitChunks).toBufs());
+                bufs.addAll(new S2CUpdateRegionPacket(shared, regionPos, summary, splitChunks).toBufs());
             }
         }
         return bufs;

@@ -13,6 +13,7 @@ import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
@@ -36,6 +37,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class WorldStructureSummary {
@@ -219,5 +221,51 @@ public class WorldStructureSummary {
     public static void onStructurePlace(ServerWorld world, StructureStart start) {
         WorldStructureSummary structures = WorldSummary.of(world).structures();
         if (!structures.contains(world, start)) structures.put(world, start);
+    }
+
+    public Multimap<RegistryKey<Structure>, ChunkPos> readBuf(World world, PacketByteBuf buf) {
+        Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> packetStructures = buf.readMap(
+            b -> b.readRegistryKey(RegistryKeys.STRUCTURE),
+            b -> b.readMap(
+                PacketByteBuf::readChunkPos,
+                b2 -> new StructureStartSummary(b2.readList(b3 -> WorldStructureSummary.readStructurePieceNbt(Objects.requireNonNull(b3.readNbt()))))
+            )
+        );
+        Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> packetTypes = buf.readMap(
+            b -> b.readRegistryKey(RegistryKeys.STRUCTURE),
+            b -> b.readRegistryKey(RegistryKeys.STRUCTURE_TYPE)
+        );
+        Multimap<RegistryKey<Structure>, TagKey<Structure>> packetTags = MapUtil.asMultiMap(buf.readMap(
+            b -> b.readRegistryKey(RegistryKeys.STRUCTURE),
+            b -> b.readList(b2 -> TagKey.of(RegistryKeys.STRUCTURE, b2.readIdentifier()))
+        ));
+        packetStructures.forEach((key, map) -> map.forEach((pos, start) -> put(world, key, pos, start, packetTypes.get(key), packetTags.get(key))));
+        return MapUtil.keyMultiMap(packetStructures);
+    }
+
+    public void writeBuf(PacketByteBuf buf, Multimap<RegistryKey<Structure>, ChunkPos> keySet) {
+        Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> packetStructures = new HashMap<>();
+        Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> packetTypes = new HashMap<>();
+        Multimap<RegistryKey<Structure>, TagKey<Structure>> packetTags = HashMultimap.create();
+        keySet.forEach((key, pos) -> packetStructures.computeIfAbsent(key, k -> new HashMap<>()).put(pos, get(key, pos)));
+        for (RegistryKey<Structure> key : keySet.keySet()) {
+            packetTypes.put(key, getType(key));
+            packetTags.putAll(key, getTags(key));
+        }
+        buf.writeMap(packetStructures,
+            PacketByteBuf::writeRegistryKey,
+            (b, posMap) -> b.writeMap(posMap,
+                PacketByteBuf::writeChunkPos,
+                (b2, summary) -> b2.writeCollection(summary.getChildren(), (b3, piece) -> b3.writeNbt(piece.toNbt()))
+            )
+        );
+        buf.writeMap(packetTypes,
+            PacketByteBuf::writeRegistryKey,
+            PacketByteBuf::writeRegistryKey
+        );
+        buf.writeMap(packetTags.asMap(),
+            PacketByteBuf::writeRegistryKey,
+            (b, c) -> b.writeCollection(c, (b2, t) -> b2.writeIdentifier(t.id()))
+        );
     }
 }

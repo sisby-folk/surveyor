@@ -23,7 +23,7 @@ public class SurveyorCommands {
 
     public static int info(ServerSummary serverSummary, ServerPlayerEntity player, SurveyorExploration exploration, String ignored, Consumer<Text> feedback) {
         Set<PlayerSummary> group = serverSummary.groupPlayers(player.getUuid(), player.getServer());
-        SurveyorExploration groupExploration = serverSummary.groupExploration(player.getUuid(), player.getServer());
+        SurveyorExploration groupExploration = SurveyorExploration.ofShared(player);
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("---Map Exploration Summary---").formatted(Formatting.GRAY)));
         feedback.accept(
             Text.literal("You've explored ").formatted(Formatting.AQUA)

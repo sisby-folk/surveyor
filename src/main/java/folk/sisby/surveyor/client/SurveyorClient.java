@@ -1,6 +1,7 @@
 package folk.sisby.surveyor.client;
 
 import com.google.common.collect.HashMultimap;
+import folk.sisby.surveyor.PlayerSummary;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
@@ -75,9 +76,27 @@ public class SurveyorClient implements ClientModInitializer {
     public static SurveyorExploration getExploration() {
         if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
             ServerPlayerEntity serverPlayer = stealServerPlayer(getClientUuid());
+            return serverPlayer == null ? null : SurveyorExploration.ofShared(serverPlayer);
+        } else {
+            return PlayerSummary.OfflinePlayerSummary.OfflinePlayerExploration.ofMerged(Set.of(ClientExploration.INSTANCE, ClientExploration.SHARED));
+        }
+    }
+
+    @Nullable
+    public static SurveyorExploration getPersonalExploration() {
+        if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
+            ServerPlayerEntity serverPlayer = stealServerPlayer(getClientUuid());
             return serverPlayer == null ? null : SurveyorExploration.of(stealServerPlayer(getClientUuid()));
         } else {
             return ClientExploration.INSTANCE;
+        }
+    }
+
+    public static SurveyorExploration getSharedExploration() {
+        if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
+            throw new IllegalStateException("You can't edit shared exploration in singleplayer!");
+        } else {
+            return ClientExploration.SHARED;
         }
     }
 

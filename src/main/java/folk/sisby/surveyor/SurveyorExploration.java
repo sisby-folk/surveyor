@@ -14,7 +14,6 @@ import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
@@ -34,8 +33,8 @@ public interface SurveyorExploration {
         return PlayerSummary.of(player).exploration();
     }
 
-    static SurveyorExploration of(UUID uuid, MinecraftServer server) {
-        return PlayerSummary.of(uuid, server).exploration();
+    static SurveyorExploration ofShared(ServerPlayerEntity player) {
+        return ServerSummary.of(player.getServer()).groupExploration(player.getUuid(), player.getServer());
     }
 
     String KEY_EXPLORED_TERRAIN = "exploredTerrain";
@@ -70,19 +69,23 @@ public interface SurveyorExploration {
         return structures().values().stream().flatMap(m -> m.values().stream()).mapToInt(LongSet::size).sum();
     }
 
+    default BitSet limitTerrainBitset(RegistryKey<World> worldKey, ChunkPos rPos, BitSet bitSet) {
+        if (Surveyor.CONFIG.shareAllTerrain) return bitSet;
+        if (terrain().get(worldKey) == null || !terrain().get(worldKey).containsKey(rPos)) {
+            bitSet.clear();
+        } else {
+            bitSet.and(terrain().get(worldKey).get(rPos));
+        }
+        return bitSet;
+    }
+
     default Map<ChunkPos, BitSet> limitTerrainBitset(RegistryKey<World> worldKey, Map<ChunkPos, BitSet> bitSet) {
         if (Surveyor.CONFIG.shareAllTerrain) return bitSet;
         Map<ChunkPos, BitSet> regions = terrain().get(worldKey);
         if (regions == null) {
             bitSet.clear();
         } else {
-            bitSet.forEach((rPos, set) -> {
-                if (regions.containsKey(rPos)) {
-                    set.and(regions.get(rPos));
-                } else {
-                    set.clear();
-                }
-            });
+            bitSet.forEach((rPos, set) -> limitTerrainBitset(worldKey, rPos, set));
         }
         return bitSet;
     }

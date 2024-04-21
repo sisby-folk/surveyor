@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -142,5 +143,9 @@ public final class ServerSummary {
 
     public SurveyorExploration groupExploration(UUID player, MinecraftServer server) {
         return PlayerSummary.OfflinePlayerSummary.OfflinePlayerExploration.ofMerged(getGroup(player).stream().map(u -> getPlayer(u, server).exploration()).collect(Collectors.toSet()));
+    }
+
+    public Set<ServerPlayerEntity> groupOtherServerPlayers(UUID player, MinecraftServer server) {
+        return getGroup(player).stream().filter(u -> !u.equals(player)).map(server.getPlayerManager()::getPlayer).filter(Objects::nonNull).collect(Collectors.toSet());
     }
 }
