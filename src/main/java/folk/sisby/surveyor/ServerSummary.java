@@ -1,11 +1,14 @@
 package folk.sisby.surveyor;
 
+import folk.sisby.surveyor.packet.S2CGroupChangedPacket;
+import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.WorldSavePath;
@@ -114,7 +117,7 @@ public final class ServerSummary {
         return shareGroups.computeIfAbsent(player, p -> new HashSet<>(Set.of(p)));
     }
 
-    public void joinGroup(UUID player1, UUID player2) {
+    public void joinGroup(UUID player1, UUID player2, MinecraftServer server) {
         if (getGroup(player1).size() > 1 && getGroup(player2).size() > 1) throw new IllegalStateException("Can't merge two groups!");
         if (getGroup(player1).size() > 1) {
             getGroup(player1).add(player2);
@@ -123,13 +126,21 @@ public final class ServerSummary {
             getGroup(player2).add(player1);
             shareGroups.put(player1, getGroup(player2));
         }
+        for (ServerPlayerEntity friend : groupServerPlayers(player1, server)) {
+            new S2CGroupChangedPacket(getGroup(player1)).send(friend);
+        }
         dirty = true;
     }
 
-    public void leaveGroup(UUID player) {
+    public void leaveGroup(UUID player, MinecraftServer server) {
         getGroup(player).remove(player); // Shares set instance with group members.
+        for (ServerPlayerEntity friend : groupOtherServerPlayers(player, server)) {
+            new S2CGroupChangedPacket(getGroup(player)).send(friend);
+        }
         shareGroups.put(player, new HashSet<>());
         getGroup(player).add(player);
+        ServerPlayerEntity serverPlayer = server.getPlayerManager().getPlayer(player);
+        if (serverPlayer != null) new S2CGroupChangedPacket(getGroup(player)).send(serverPlayer);
         dirty = true;
     }
 
@@ -145,7 +156,15 @@ public final class ServerSummary {
         return PlayerSummary.OfflinePlayerSummary.OfflinePlayerExploration.ofMerged(getGroup(player).stream().map(u -> getPlayer(u, server).exploration()).collect(Collectors.toSet()));
     }
 
+    public Set<ServerPlayerEntity> groupServerPlayers(UUID player, MinecraftServer server) {
+        return getGroup(player).stream().map(server.getPlayerManager()::getPlayer).filter(Objects::nonNull).collect(Collectors.toSet());
+    }
+
     public Set<ServerPlayerEntity> groupOtherServerPlayers(UUID player, MinecraftServer server) {
         return getGroup(player).stream().filter(u -> !u.equals(player)).map(server.getPlayerManager()::getPlayer).filter(Objects::nonNull).collect(Collectors.toSet());
+    }
+
+    public static void onPlayerJoin(ServerPlayNetworkHandler handler, PacketSender sender, MinecraftServer server) {
+        new S2CGroupChangedPacket(ServerSummary.of(server).getGroup(handler.player.getUuid())).send(handler.getPlayer());
     }
 }

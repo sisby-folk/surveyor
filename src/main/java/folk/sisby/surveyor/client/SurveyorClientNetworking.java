@@ -7,6 +7,7 @@ import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.SurveyorNetworking;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.landmark.LandmarkType;
+import folk.sisby.surveyor.packet.S2CGroupChangedPacket;
 import folk.sisby.surveyor.packet.S2CPacket;
 import folk.sisby.surveyor.packet.S2CStructuresAddedPacket;
 import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
@@ -29,6 +30,7 @@ public class SurveyorClientNetworking {
         };
         ClientPlayNetworking.registerGlobalReceiver(S2CStructuresAddedPacket.ID, (c, h, b, s) -> handleClientUnparsed(b, SurveyorClientNetworking::handleStructuresAdded));
         ClientPlayNetworking.registerGlobalReceiver(S2CUpdateRegionPacket.ID, (c, h, b, s) -> handleClientUnparsed(b, SurveyorClientNetworking::handleTerrainAdded));
+        ClientPlayNetworking.registerGlobalReceiver(S2CGroupChangedPacket.ID, (c, h, b, s) -> handleClient(b, S2CGroupChangedPacket::read, SurveyorClientNetworking::handleGroupChanged));
         ClientPlayNetworking.registerGlobalReceiver(SyncLandmarksAddedPacket.ID, (c, h, b, s) -> handleClient(b, SyncLandmarksAddedPacket::read, SurveyorClientNetworking::handleLandmarksAdded));
         ClientPlayNetworking.registerGlobalReceiver(SyncLandmarksRemovedPacket.ID, (c, h, b, s) -> handleClient(b, SyncLandmarksRemovedPacket::read, SurveyorClientNetworking::handleLandmarksRemoved));
     }
@@ -45,6 +47,11 @@ public class SurveyorClientNetworking {
         S2CUpdateRegionPacket packet = S2CUpdateRegionPacket.handle(buf, world.getRegistryManager(), summary);
         (packet.shared() ? SurveyorClient.getSharedExploration() : SurveyorClient.getPersonalExploration()).mergeRegion(world.getRegistryKey(), packet.regionPos(), packet.chunks());
         SurveyorEvents.Invoke.terrainUpdated(world, packet.chunks().stream().mapToObj(i -> RegionSummary.chunkForBit(packet.regionPos(), i)).toList());
+    }
+
+    private static void handleGroupChanged(ClientWorld world, WorldSummary summary, S2CGroupChangedPacket packet) {
+        SurveyorClient.getSharedExploration().groupPlayers().clear();
+        SurveyorClient.getSharedExploration().groupPlayers().addAll(packet.players());
     }
 
     private static void handleLandmarksAdded(ClientWorld world, WorldSummary summary, SyncLandmarksAddedPacket packet) {

@@ -10,6 +10,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
@@ -83,6 +84,7 @@ public class Surveyor implements ModInitializer {
     public void onInitialize() {
         SurveyorNetworking.init();
         CommandRegistrationCallback.EVENT.register(SurveyorCommands::registerCommands);
+        ServerPlayConnectionEvents.JOIN.register(ServerSummary::onPlayerJoin);
         ServerChunkEvents.CHUNK_LOAD.register(WorldTerrainSummary::onChunkLoad);
         ServerChunkEvents.CHUNK_LOAD.register(WorldStructureSummary::onChunkLoad);
         ServerChunkEvents.CHUNK_UNLOAD.register(WorldTerrainSummary::onChunkUnload);

@@ -41,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -94,7 +95,7 @@ public class SurveyorClient implements ClientModInitializer {
         }
     }
 
-    public static SurveyorExploration getSharedExploration() {
+    public static ClientExploration getSharedExploration() {
         if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
             throw new IllegalStateException("You can't edit shared exploration in singleplayer!");
         } else {
@@ -153,10 +154,10 @@ public class SurveyorClient implements ClientModInitializer {
         SurveyorEvents.Register.landmarksRemoved(new Identifier(Surveyor.ID, "client"), (world, summary, landmarks) -> SurveyorClientEvents.Invoke.landmarksRemoved(world, landmarks));
     }
 
-    private record ClientExploration(Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures) implements SurveyorExploration {
+    public record ClientExploration(Set<UUID> groupPlayers, Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures) implements SurveyorExploration {
         public static final String KEY_SHARED = "shared";
-        public static final ClientExploration INSTANCE = new ClientExploration(new HashMap<>(), new HashMap<>());
-        public static final ClientExploration SHARED = new ClientExploration(new HashMap<>(), new HashMap<>());
+        public static final ClientExploration INSTANCE = new ClientExploration(new HashSet<>(), new HashMap<>(), new HashMap<>());
+        public static final ClientExploration SHARED = new ClientExploration(new HashSet<>(), new HashMap<>(), new HashMap<>());
         public static File saveFile = null;
 
         public static void onLoad() {
@@ -195,7 +196,10 @@ public class SurveyorClient implements ClientModInitializer {
 
         @Override
         public Set<UUID> sharedPlayers() {
-            return Set.of(getClientUuid());
+            Set<UUID> sharedPlayers = new HashSet<>();
+            sharedPlayers.add(getClientUuid());
+            sharedPlayers.addAll(groupPlayers);
+            return sharedPlayers;
         }
 
         @Override
