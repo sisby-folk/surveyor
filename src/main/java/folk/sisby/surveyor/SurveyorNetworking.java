@@ -12,7 +12,6 @@ import folk.sisby.surveyor.packet.SyncLandmarksAddedPacket;
 import folk.sisby.surveyor.packet.SyncLandmarksRemovedPacket;
 import folk.sisby.surveyor.packet.S2CStructuresAddedPacket;
 import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
-import folk.sisby.surveyor.util.MapUtil;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.RegistryKey;
@@ -60,7 +59,7 @@ public class SurveyorNetworking {
         packet.structureKeys().forEach(structures::remove);
         if (structures.isEmpty()) return;
         SurveyorExploration personalExploration = SurveyorExploration.of(player);
-        Multimap<RegistryKey<Structure>, ChunkPos> personalStructures = personalExploration.limitStructureKeySet(world.getRegistryKey(), MapUtil.asMultiMap(structures.asMap()));
+        Multimap<RegistryKey<Structure>, ChunkPos> personalStructures = personalExploration.limitStructureKeySet(world.getRegistryKey(), HashMultimap.create(structures));
         if (!personalStructures.isEmpty()) new S2CStructuresAddedPacket(false, personalStructures, summary.structures()).send(player);
         personalStructures.forEach(structures::remove);
         if (!structures.isEmpty()) new S2CStructuresAddedPacket(true, structures, summary.structures()).send(player);

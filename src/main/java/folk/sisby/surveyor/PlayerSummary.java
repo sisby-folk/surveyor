@@ -5,7 +5,6 @@ import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.terrain.RegionSummary;
 import folk.sisby.surveyor.util.ArrayUtil;
-import folk.sisby.surveyor.util.MapUtil;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtDouble;
@@ -23,6 +22,7 @@ import net.minecraft.world.gen.structure.Structure;
 
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -55,9 +55,9 @@ public interface PlayerSummary {
     boolean online();
 
     record OfflinePlayerSummary(SurveyorExploration exploration, String username, RegistryKey<World> dimension, Vec3d pos, float yaw) implements PlayerSummary {
-        public OfflinePlayerSummary(NbtCompound nbt) {
+        public OfflinePlayerSummary(UUID uuid, NbtCompound nbt) {
             this(
-                OfflinePlayerExploration.from(nbt.getCompound(KEY_DATA)),
+                OfflinePlayerExploration.from(uuid, nbt.getCompound(KEY_DATA)),
                 nbt.getCompound(KEY_DATA).getString(KEY_USERNAME),
                 RegistryKey.of(RegistryKeys.WORLD, new Identifier(nbt.getString("dimension"))),
                 ArrayUtil.toVec3d(nbt.getList("Pos", NbtElement.DOUBLE_TYPE).stream().mapToDouble(e -> ((NbtDouble) e).doubleValue()).toArray()),
@@ -75,27 +75,24 @@ public interface PlayerSummary {
             return false;
         }
 
-        public record OfflinePlayerExploration(Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures) implements SurveyorExploration {
+        public record OfflinePlayerExploration(Set<UUID> sharedPlayers, Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures) implements SurveyorExploration {
             public static OfflinePlayerExploration ofMerged(Set<SurveyorExploration> explorations) {
+                Set<UUID> sharedPlayers = new HashSet<>();
                 Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain = new HashMap<>();
                 Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures = new HashMap<>();
-                OfflinePlayerExploration outExploration = new OfflinePlayerExploration(terrain, structures);
+                OfflinePlayerExploration outExploration = new OfflinePlayerExploration(sharedPlayers, terrain, structures);
                 for (SurveyorExploration exploration : explorations) {
+                    sharedPlayers.addAll(exploration.sharedPlayers());
                     exploration.terrain().forEach((wKey, map) -> map.forEach((rPos, bits) -> outExploration.mergeRegion(wKey, rPos, bits)));
                     exploration.structures().forEach((wKey, map) -> map.forEach((sKey, longs) -> outExploration.mergeStructures(wKey, sKey, longs)));
                 }
                 return outExploration;
             }
 
-            public static SurveyorExploration from(NbtCompound nbt) {
-                OfflinePlayerExploration mutable = new OfflinePlayerExploration(new HashMap<>(), new HashMap<>());
+            public static SurveyorExploration from(UUID uuid, NbtCompound nbt) {
+                OfflinePlayerExploration mutable = new OfflinePlayerExploration(new HashSet<>(Set.of(uuid)), new HashMap<>(), new HashMap<>());
                 mutable.read(nbt);
                 return mutable;
-            }
-
-            @Override
-            public Set<UUID> sharedPlayers() {
-                return Set.of();
             }
         }
     }

@@ -63,7 +63,7 @@ public final class ServerSummary {
             File playerFile = playerFolder.toPath().resolve(uuid.toString() + ".dat").toFile();
             try {
                 NbtCompound playerNbt = NbtIo.readCompressed(playerFile);
-                offlineSummaries.put(uuid, new PlayerSummary.OfflinePlayerSummary(playerNbt));
+                offlineSummaries.put(uuid, new PlayerSummary.OfflinePlayerSummary(uuid, playerNbt));
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error loading offline player data for {}, removing from share groups...", uuid, e);
                 shareGroups.get(uuid).remove(uuid);
@@ -107,7 +107,7 @@ public final class ServerSummary {
     }
 
     public void updatePlayer(UUID uuid, NbtCompound nbt) {
-        offlineSummaries.put(uuid, new PlayerSummary.OfflinePlayerSummary(nbt));
+        offlineSummaries.put(uuid, new PlayerSummary.OfflinePlayerSummary(uuid, nbt));
     }
 
     private Set<UUID> getGroup(UUID player) {
