@@ -68,8 +68,8 @@ public class SurveyorClientNetworking {
 
     private static <T extends S2CPacket> void handleClient(PacketByteBuf buf, Function<PacketByteBuf, T> reader, ClientPacketHandler<T> handler) {
         T packet = reader.apply(buf);
-        WorldSummary summary = WorldSummary.of(MinecraftClient.getInstance().world);
-        if (!summary.isClient()) return;
+        WorldSummary summary = MinecraftClient.getInstance().world == null ? null : WorldSummary.of(MinecraftClient.getInstance().world);
+        if (summary != null && !summary.isClient()) return;
         MinecraftClient.getInstance().execute(() -> handler.handle(MinecraftClient.getInstance().world, summary, packet));
     }
 

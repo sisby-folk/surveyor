@@ -188,10 +188,12 @@ public class SurveyorClient implements ClientModInitializer {
                 }
                 saveFile = null;
             }
-            ClientExploration.INSTANCE.terrain().clear();
+            ClientExploration.INSTANCE.terrain.clear();
             ClientExploration.INSTANCE.structures.clear();
             ClientExploration.SHARED.terrain.clear();
             ClientExploration.SHARED.structures.clear();
+            ClientExploration.INSTANCE.groupPlayers.clear();
+            ClientExploration.SHARED.groupPlayers.clear();
         }
 
         @Override
