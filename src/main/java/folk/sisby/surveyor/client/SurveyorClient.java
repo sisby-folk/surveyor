@@ -86,7 +86,7 @@ public class SurveyorClient implements ClientModInitializer {
             ClientPlayNetworkHandler handler = MinecraftClient.getInstance().getNetworkHandler();
             if (handler == null) return new HashMap<>();
             NetworkHandlerSummary handlerSummary = NetworkHandlerSummary.of(handler);
-            return ClientExploration.SHARED.groupPlayers.stream().collect(Collectors.toMap(u -> u, handlerSummary::getPlayer));
+            return ClientExploration.SHARED.sharedPlayers().stream().collect(Collectors.toMap(u -> u, handlerSummary::getPlayer));
         }
     }
 
