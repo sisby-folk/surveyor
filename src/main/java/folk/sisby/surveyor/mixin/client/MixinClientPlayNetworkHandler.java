@@ -20,6 +20,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class MixinClientPlayNetworkHandler implements SurveyorNetworkHandler {
     @Unique NetworkHandlerSummary surveyor$summary = null;
 
+    @Override
+    public NetworkHandlerSummary surveyor$getSummary() {
+        return surveyor$summary;
+    }
+
     @Accessor public abstract GameProfile getProfile();
 
     @Inject(method = "<init>", at = @At("TAIL"))
