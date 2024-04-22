@@ -1,6 +1,7 @@
 package folk.sisby.surveyor;
 
 import folk.sisby.surveyor.packet.S2CGroupChangedPacket;
+import folk.sisby.surveyor.packet.S2CGroupUpdatedPacket;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -26,7 +27,7 @@ import java.util.stream.Collectors;
 
 public final class ServerSummary {
     public static ServerSummary of(MinecraftServer server) {
-        return ((SurveyorServer) server).surveyor$getServerSummary();
+        return ((SurveyorServer) server).surveyor$getSummary();
     }
 
     public static final String KEY_GROUPS = "groups";
@@ -95,8 +96,7 @@ public final class ServerSummary {
     }
 
     private NbtCompound writeNbt(NbtCompound nbt) {
-        Set<Set<UUID>> groups = new HashSet<>(shareGroups.values());
-        nbt.put(KEY_GROUPS, new NbtList(groups.stream().filter(s -> s.size() > 1).map(s -> (NbtElement) new NbtList(s.stream().map(u -> (NbtElement) NbtString.of(u.toString())).toList(), NbtElement.STRING_TYPE)).toList(), NbtElement.LIST_TYPE));
+        nbt.put(KEY_GROUPS, new NbtList(getGroups().stream().filter(s -> s.size() > 1).map(s -> (NbtElement) new NbtList(s.stream().map(u -> (NbtElement) NbtString.of(u.toString())).toList(), NbtElement.STRING_TYPE)).toList(), NbtElement.LIST_TYPE));
         return nbt;
     }
 
@@ -113,8 +113,20 @@ public final class ServerSummary {
         offlineSummaries.put(uuid, new PlayerSummary.OfflinePlayerSummary(uuid, nbt));
     }
 
-    private Set<UUID> getGroup(UUID player) {
+    public Set<Set<UUID>> getGroups() {
+        return new HashSet<>(shareGroups.values());
+    }
+
+    public Set<Map<UUID, PlayerSummary>> getGroupSummaries(MinecraftServer server) {
+        return new HashSet<>(shareGroups.values()).stream().map(s -> s.stream().collect(Collectors.toMap(u -> u, u -> getPlayer(u, server)))).collect(Collectors.toSet());
+    }
+
+    public Set<UUID> getGroup(UUID player) {
         return shareGroups.computeIfAbsent(player, p -> new HashSet<>(Set.of(p)));
+    }
+
+    public Map<UUID, PlayerSummary> getGroupSummaries(UUID player, MinecraftServer server) {
+        return getGroup(player).stream().filter(u -> getPlayer(player, server) != null).collect(Collectors.toMap(u -> u, u -> getPlayer(player, server)));
     }
 
     public void joinGroup(UUID player1, UUID player2, MinecraftServer server) {
@@ -127,7 +139,7 @@ public final class ServerSummary {
             shareGroups.put(player1, getGroup(player2));
         }
         for (ServerPlayerEntity friend : groupServerPlayers(player1, server)) {
-            new S2CGroupChangedPacket(getGroup(player1)).send(friend);
+            new S2CGroupChangedPacket(getGroupSummaries(player1, server)).send(friend);
         }
         dirty = true;
     }
@@ -135,12 +147,12 @@ public final class ServerSummary {
     public void leaveGroup(UUID player, MinecraftServer server) {
         getGroup(player).remove(player); // Shares set instance with group members.
         for (ServerPlayerEntity friend : groupOtherServerPlayers(player, server)) {
-            new S2CGroupChangedPacket(getGroup(player)).send(friend);
+            new S2CGroupChangedPacket(getGroupSummaries(player, server)).send(friend);
         }
         shareGroups.put(player, new HashSet<>());
         getGroup(player).add(player);
         ServerPlayerEntity serverPlayer = server.getPlayerManager().getPlayer(player);
-        if (serverPlayer != null) new S2CGroupChangedPacket(getGroup(player)).send(serverPlayer);
+        if (serverPlayer != null) new S2CGroupChangedPacket(getGroupSummaries(player, server)).send(serverPlayer);
         dirty = true;
     }
 
@@ -165,6 +177,24 @@ public final class ServerSummary {
     }
 
     public static void onPlayerJoin(ServerPlayNetworkHandler handler, PacketSender sender, MinecraftServer server) {
-        new S2CGroupChangedPacket(ServerSummary.of(server).getGroup(handler.player.getUuid())).send(handler.getPlayer());
+        ServerSummary serverSummary = ServerSummary.of(server);
+        if (serverSummary.groupSize(handler.player.getUuid()) > 1) new S2CGroupChangedPacket(serverSummary.getGroupSummaries(handler.player.getUuid(), server)).send(handler.getPlayer());
+    }
+
+    public static void onTick(MinecraftServer server) {
+        if ((server.getTicks() & 15) != 0) return;
+        ServerSummary serverSummary = ServerSummary.of(server);
+        Set<Map<UUID, PlayerSummary>> groups = serverSummary.getGroupSummaries(server);
+        for (Map<UUID, PlayerSummary> group : groups) {
+            if (group.size() > 1) {
+                group.forEach((uuid, summary) -> {
+                    ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
+                    if (player != null) {
+                        Map<UUID, PlayerSummary> others = group.entrySet().stream().filter(e -> e.getKey() != uuid).filter(u -> server.getPlayerManager().getPlayer(uuid) != null).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                        if (!others.isEmpty()) new S2CGroupUpdatedPacket(others).send(player);
+                    }
+                });
+            }
+        }
     }
 }

@@ -6,9 +6,11 @@ import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.terrain.RegionSummary;
 import folk.sisby.surveyor.util.ArrayUtil;
 import it.unimi.dsi.fastutil.longs.LongSet;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtDouble;
 import net.minecraft.nbt.NbtElement;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
@@ -33,7 +35,7 @@ public interface PlayerSummary {
     String KEY_USERNAME = "username";
 
     static PlayerSummary of(ServerPlayerEntity player) {
-        return ((SurveyorPlayer) player).surveyor$getPlayerSummary();
+        return ((SurveyorPlayer) player).surveyor$getSummary();
     }
 
     static PlayerSummary of(UUID uuid, MinecraftServer server) {
@@ -54,14 +56,15 @@ public interface PlayerSummary {
 
     boolean online();
 
-    record OfflinePlayerSummary(SurveyorExploration exploration, String username, RegistryKey<World> dimension, Vec3d pos, float yaw) implements PlayerSummary {
+    record OfflinePlayerSummary(SurveyorExploration exploration, String username, RegistryKey<World> dimension, Vec3d pos, float yaw, boolean online) implements PlayerSummary {
         public OfflinePlayerSummary(UUID uuid, NbtCompound nbt) {
             this(
                 OfflinePlayerExploration.from(uuid, nbt.getCompound(KEY_DATA)),
                 nbt.getCompound(KEY_DATA).getString(KEY_USERNAME),
                 RegistryKey.of(RegistryKeys.WORLD, new Identifier(nbt.getString("dimension"))),
                 ArrayUtil.toVec3d(nbt.getList("Pos", NbtElement.DOUBLE_TYPE).stream().mapToDouble(e -> ((NbtDouble) e).doubleValue()).toArray()),
-                nbt.getList("Rotation", NbtElement.FLOAT_TYPE).getFloat(0)
+                nbt.getList("Rotation", NbtElement.FLOAT_TYPE).getFloat(0),
+                false
             );
         }
 
@@ -70,9 +73,29 @@ public interface PlayerSummary {
             return 0;
         }
 
-        @Override
-        public boolean online() {
-            return false;
+        public static void writeBuf(PacketByteBuf buf, PlayerSummary summary) {
+            buf.writeString(summary.username());
+            buf.writeRegistryKey(summary.dimension());
+            buf.writeDouble(summary.pos().x);
+            buf.writeDouble(summary.pos().y);
+            buf.writeDouble(summary.pos().z);
+            buf.writeFloat(summary.yaw());
+            buf.writeBoolean(summary.online());
+        }
+
+        public static PlayerSummary readBuf(PacketByteBuf buf) {
+            return new OfflinePlayerSummary(
+                null,
+                buf.readString(),
+                buf.readRegistryKey(RegistryKeys.WORLD),
+                new Vec3d(
+                    buf.readDouble(),
+                    buf.readDouble(),
+                    buf.readDouble()
+                ),
+                buf.readFloat(),
+                buf.readBoolean()
+            );
         }
 
         public record OfflinePlayerExploration(Set<UUID> sharedPlayers, Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures) implements SurveyorExploration {
@@ -97,19 +120,16 @@ public interface PlayerSummary {
         }
     }
 
-    class OnlinePlayerSummary implements PlayerSummary {
-        private final ServerPlayerEntity player;
-        private int viewDistance;
-        private final ServerPlayerExploration exploration;
+    class PlayerEntitySummary implements PlayerSummary {
+        private final PlayerEntity player;
 
-        public OnlinePlayerSummary(ServerPlayerEntity player) {
+        public PlayerEntitySummary(PlayerEntity player) {
             this.player = player;
-            this.exploration = new ServerPlayerExploration(player, new ConcurrentHashMap<>(), new ConcurrentHashMap<>());
         }
 
         @Override
         public SurveyorExploration exploration() {
-            return exploration;
+            return null;
         }
 
         @Override
@@ -134,16 +154,36 @@ public interface PlayerSummary {
 
         @Override
         public int viewDistance() {
-            return viewDistance;
-        }
-
-        public void setViewDistance(int viewDistance) {
-            this.viewDistance = viewDistance;
+            return 0;
         }
 
         @Override
         public boolean online() {
             return true;
+        }
+    }
+
+    class ServerPlayerEntitySummary extends PlayerEntitySummary implements PlayerSummary {
+        private int viewDistance;
+        private final ServerPlayerExploration exploration;
+
+        public ServerPlayerEntitySummary(ServerPlayerEntity player) {
+            super(player);
+            this.exploration = new ServerPlayerExploration(player, new ConcurrentHashMap<>(), new ConcurrentHashMap<>());
+        }
+
+        @Override
+        public SurveyorExploration exploration() {
+            return exploration;
+        }
+
+        @Override
+        public int viewDistance() {
+            return viewDistance;
+        }
+
+        public void setViewDistance(int viewDistance) {
+            this.viewDistance = viewDistance;
         }
 
         public void read(NbtCompound nbt) {
@@ -156,7 +196,6 @@ public interface PlayerSummary {
             surveyorNbt.putString(PlayerSummary.KEY_USERNAME, username());
             nbt.put(PlayerSummary.KEY_DATA, surveyorNbt);
         }
-
 
         public record ServerPlayerExploration(ServerPlayerEntity player, Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures) implements SurveyorExploration {
             @Override

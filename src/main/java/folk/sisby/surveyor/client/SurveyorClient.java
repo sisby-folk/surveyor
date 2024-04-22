@@ -3,11 +3,11 @@ package folk.sisby.surveyor.client;
 import com.google.common.collect.HashMultimap;
 import com.mojang.authlib.GameProfile;
 import folk.sisby.surveyor.PlayerSummary;
+import folk.sisby.surveyor.ServerSummary;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.WorldSummary;
-import folk.sisby.surveyor.mixin.client.AccessorClientPlayNetworkHandler;
 import folk.sisby.surveyor.packet.C2SKnownLandmarksPacket;
 import folk.sisby.surveyor.packet.C2SKnownStructuresPacket;
 import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
@@ -20,6 +20,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.ServerInfo;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
@@ -45,6 +46,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class SurveyorClient implements ClientModInitializer {
     public static final String SERVERS_FILE_NAME = "servers.txt";
@@ -73,6 +75,19 @@ public class SurveyorClient implements ClientModInitializer {
 
     public static boolean serverSupported() {
         return ClientPlayNetworking.canSend(C2SKnownTerrainPacket.ID);
+    }
+
+    public static Map<UUID, PlayerSummary> getFriends() {
+        if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
+            MinecraftServer integratedServer = MinecraftClient.getInstance().getServer();
+            if (integratedServer == null) return new HashMap<>();
+            return ServerSummary.of(integratedServer).getGroupSummaries(getClientUuid(), integratedServer);
+        } else {
+            ClientPlayNetworkHandler handler = MinecraftClient.getInstance().getNetworkHandler();
+            if (handler == null) return new HashMap<>();
+            NetworkHandlerSummary handlerSummary = NetworkHandlerSummary.of(handler);
+            return ClientExploration.SHARED.groupPlayers.stream().collect(Collectors.toMap(u -> u, handlerSummary::getPlayer));
+        }
     }
 
     @Nullable
@@ -104,7 +119,7 @@ public class SurveyorClient implements ClientModInitializer {
     }
 
     public static UUID getClientUuid() { // UUID needs to always match what the server is using.
-        GameProfile profile = ((AccessorClientPlayNetworkHandler) MinecraftClient.getInstance().getNetworkHandler()).getProfile();
+        GameProfile profile = ((SurveyorNetworkHandler) MinecraftClient.getInstance().getNetworkHandler()).getProfile();
         return Uuids.getUuidFromProfile(profile);
     }
 

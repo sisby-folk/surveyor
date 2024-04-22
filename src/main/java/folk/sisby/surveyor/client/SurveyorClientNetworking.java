@@ -8,6 +8,7 @@ import folk.sisby.surveyor.SurveyorNetworking;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.packet.S2CGroupChangedPacket;
+import folk.sisby.surveyor.packet.S2CGroupUpdatedPacket;
 import folk.sisby.surveyor.packet.S2CPacket;
 import folk.sisby.surveyor.packet.S2CStructuresAddedPacket;
 import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
@@ -31,6 +32,7 @@ public class SurveyorClientNetworking {
         ClientPlayNetworking.registerGlobalReceiver(S2CStructuresAddedPacket.ID, (c, h, b, s) -> handleClientUnparsed(b, SurveyorClientNetworking::handleStructuresAdded));
         ClientPlayNetworking.registerGlobalReceiver(S2CUpdateRegionPacket.ID, (c, h, b, s) -> handleClientUnparsed(b, SurveyorClientNetworking::handleTerrainAdded));
         ClientPlayNetworking.registerGlobalReceiver(S2CGroupChangedPacket.ID, (c, h, b, s) -> handleClient(b, S2CGroupChangedPacket::read, SurveyorClientNetworking::handleGroupChanged));
+        ClientPlayNetworking.registerGlobalReceiver(S2CGroupUpdatedPacket.ID, (c, h, b, s) -> handleClient(b, S2CGroupUpdatedPacket::read, SurveyorClientNetworking::handleGroupUpdated));
         ClientPlayNetworking.registerGlobalReceiver(SyncLandmarksAddedPacket.ID, (c, h, b, s) -> handleClient(b, SyncLandmarksAddedPacket::read, SurveyorClientNetworking::handleLandmarksAdded));
         ClientPlayNetworking.registerGlobalReceiver(SyncLandmarksRemovedPacket.ID, (c, h, b, s) -> handleClient(b, SyncLandmarksRemovedPacket::read, SurveyorClientNetworking::handleLandmarksRemoved));
     }
@@ -50,8 +52,15 @@ public class SurveyorClientNetworking {
     }
 
     private static void handleGroupChanged(ClientWorld world, WorldSummary summary, S2CGroupChangedPacket packet) {
-        SurveyorClient.getSharedExploration().groupPlayers().clear();
-        SurveyorClient.getSharedExploration().groupPlayers().addAll(packet.players());
+        if (!SurveyorClient.getSharedExploration().groupPlayers().equals(packet.players().keySet())) {
+            SurveyorClient.getSharedExploration().groupPlayers().clear();
+            SurveyorClient.getSharedExploration().groupPlayers().addAll(packet.players().keySet());
+        }
+        NetworkHandlerSummary.of(MinecraftClient.getInstance().getNetworkHandler()).mergeSummaries(packet.players());
+    }
+
+    private static void handleGroupUpdated(ClientWorld world, WorldSummary summary, S2CGroupUpdatedPacket packet) {
+        NetworkHandlerSummary.of(MinecraftClient.getInstance().getNetworkHandler()).mergeSummaries(packet.players());
     }
 
     private static void handleLandmarksAdded(ClientWorld world, WorldSummary summary, SyncLandmarksAddedPacket packet) {

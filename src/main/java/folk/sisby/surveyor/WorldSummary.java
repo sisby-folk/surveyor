@@ -9,7 +9,7 @@ import java.io.File;
 
 public record WorldSummary(WorldTerrainSummary terrain, WorldStructureSummary structures, WorldLandmarks landmarks, boolean isClient) {
     public static WorldSummary of(World world) {
-        return ((SurveyorWorld) world).surveyor$getWorldSummary();
+        return ((SurveyorWorld) world).surveyor$getSummary();
     }
     
     public static WorldSummary load(World world, File folder, boolean isClient) {

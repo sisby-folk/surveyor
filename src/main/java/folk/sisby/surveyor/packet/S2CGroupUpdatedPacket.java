@@ -8,11 +8,11 @@ import net.minecraft.util.Identifier;
 import java.util.Map;
 import java.util.UUID;
 
-public record S2CGroupChangedPacket(Map<UUID, PlayerSummary> players) implements S2CPacket {
-    public static final Identifier ID = new Identifier(Surveyor.ID, "s2c_group_changed");
+public record S2CGroupUpdatedPacket(Map<UUID, PlayerSummary> players) implements S2CPacket {
+    public static final Identifier ID = new Identifier(Surveyor.ID, "s2c_group_updated");
 
-    public static S2CGroupChangedPacket read(PacketByteBuf buf) {
-        return new S2CGroupChangedPacket(buf.readMap(PacketByteBuf::readUuid, PlayerSummary.OfflinePlayerSummary::readBuf));
+    public static S2CGroupUpdatedPacket read(PacketByteBuf buf) {
+        return new S2CGroupUpdatedPacket(buf.readMap(PacketByteBuf::readUuid, PlayerSummary.OfflinePlayerSummary::readBuf));
     }
 
     @Override

@@ -11,18 +11,18 @@ import org.spongepowered.asm.mixin.Unique;
 @Mixin(ClientWorld.class)
 public class MixinClientWorld implements SurveyorWorld {
     @Unique
-    private WorldSummary surveyor$worldSummary = null;
+    private WorldSummary surveyor$summary = null;
 
     @Override
-    public WorldSummary surveyor$getWorldSummary() {
+    public WorldSummary surveyor$getSummary() {
         ClientWorld self = (ClientWorld) (Object) this;
-        if (surveyor$worldSummary == null) {
+        if (surveyor$summary == null) {
             if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
-                surveyor$worldSummary = WorldSummary.of(SurveyorClient.stealServerWorld(self.getRegistryKey()));
+                surveyor$summary = WorldSummary.of(SurveyorClient.stealServerWorld(self.getRegistryKey()));
             } else {
-                surveyor$worldSummary = WorldSummary.load(self, SurveyorClient.getWorldSavePath(self), true);
+                surveyor$summary = WorldSummary.load(self, SurveyorClient.getWorldSavePath(self), true);
             }
         }
-        return surveyor$worldSummary;
+        return surveyor$summary;
     }
 }
