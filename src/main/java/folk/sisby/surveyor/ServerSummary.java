@@ -182,19 +182,12 @@ public final class ServerSummary {
     }
 
     public static void onTick(MinecraftServer server) {
-        if ((server.getTicks() & 15) != 0) return;
-        ServerSummary serverSummary = ServerSummary.of(server);
-        Set<Map<UUID, PlayerSummary>> groups = serverSummary.getGroupSummaries(server);
-        for (Map<UUID, PlayerSummary> group : groups) {
-            if (group.size() > 1) {
-                group.forEach((uuid, summary) -> {
-                    ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
-                    if (player != null) {
-                        Map<UUID, PlayerSummary> others = group.entrySet().stream().filter(e -> e.getKey() != uuid).filter(u -> server.getPlayerManager().getPlayer(uuid) != null).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-                        if (!others.isEmpty()) new S2CGroupUpdatedPacket(others).send(player);
-                    }
-                });
-            }
+        if ((server.getTicks() & 3) != 0) return;
+        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+            Map<UUID, PlayerSummary> group = ServerSummary.of(server).getGroupSummaries(player.getUuid(), server);
+            PlayerSummary playerSummary = group.get(player.getUuid());
+            group.entrySet().removeIf(e -> e.getKey().equals(player.getUuid()) || !e.getValue().online() || e.getValue().pos().squaredDistanceTo(player.getPos()) < ((playerSummary.viewDistance() * playerSummary.viewDistance() + 1) << 4));
+            if (!group.isEmpty()) new S2CGroupUpdatedPacket(group).send(player);
         }
     }
 }
