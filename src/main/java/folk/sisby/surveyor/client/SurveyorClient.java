@@ -26,7 +26,6 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Uuids;
@@ -34,7 +33,6 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.Structure;
 import org.apache.commons.io.FileUtils;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -90,21 +88,17 @@ public class SurveyorClient implements ClientModInitializer {
         }
     }
 
-    @Nullable
     public static SurveyorExploration getExploration() {
         if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
-            ServerPlayerEntity serverPlayer = stealServerPlayer(getClientUuid());
-            return serverPlayer == null ? null : SurveyorExploration.ofShared(serverPlayer);
+            return SurveyorExploration.ofShared(getClientUuid(), MinecraftClient.getInstance().getServer());
         } else {
             return PlayerSummary.OfflinePlayerSummary.OfflinePlayerExploration.ofMerged(Set.of(ClientExploration.INSTANCE, ClientExploration.SHARED));
         }
     }
 
-    @Nullable
     public static SurveyorExploration getPersonalExploration() {
         if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
-            ServerPlayerEntity serverPlayer = stealServerPlayer(getClientUuid());
-            return serverPlayer == null ? null : SurveyorExploration.of(stealServerPlayer(getClientUuid()));
+            return SurveyorExploration.of(getClientUuid(), MinecraftClient.getInstance().getServer());
         } else {
             return ClientExploration.INSTANCE;
         }
@@ -127,12 +121,6 @@ public class SurveyorClient implements ClientModInitializer {
         MinecraftServer integratedServer = MinecraftClient.getInstance().getServer();
         if (integratedServer == null) return null;
         return integratedServer.getWorld(worldKey);
-    }
-
-    public static ServerPlayerEntity stealServerPlayer(UUID uuid) {
-        MinecraftServer integratedServer = MinecraftClient.getInstance().getServer();
-        if (integratedServer == null) return null;
-        return integratedServer.getPlayerManager().getPlayer(uuid);
     }
 
     @Override

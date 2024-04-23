@@ -60,8 +60,9 @@ public class SurveyorClientNetworking {
             SurveyorClient.getSharedExploration().groupPlayers().addAll(packet.players().keySet());
         }
         NetworkHandlerSummary.of(MinecraftClient.getInstance().getNetworkHandler()).mergeSummaries(packet.players());
-        SurveyorClient.getSharedExploration().terrain().put(world.getRegistryKey(), packet.regionBits());
-        SurveyorClient.getSharedExploration().structures().put(world.getRegistryKey(), packet.structureKeys());
+        SurveyorClient.getSharedExploration().replaceTerrain(world.getRegistryKey(), packet.regionBits());
+        SurveyorClient.getSharedExploration().replaceStructures(world.getRegistryKey(), packet.structureKeys());
+        SurveyorClient.getExploration().updateClientForLandmarks(world);
         new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
         new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
         new C2SKnownLandmarksPacket(summary.landmarks().keySet(null)).send();

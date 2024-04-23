@@ -110,6 +110,11 @@ public final class ServerSummary {
         }
     }
 
+    public SurveyorExploration getExploration(UUID player, MinecraftServer server) {
+        PlayerSummary summary = getPlayer(player, server);
+        return summary == null ? null : summary.exploration();
+    }
+
     public void updatePlayer(UUID uuid, NbtCompound nbt) {
         offlineSummaries.put(uuid, new PlayerSummary.OfflinePlayerSummary(uuid, nbt));
     }
@@ -168,7 +173,7 @@ public final class ServerSummary {
     }
 
     public SurveyorExploration groupExploration(UUID player, MinecraftServer server) {
-        return PlayerSummary.OfflinePlayerSummary.OfflinePlayerExploration.ofMerged(getGroup(player).stream().map(u -> getPlayer(u, server).exploration()).collect(Collectors.toSet()));
+        return PlayerSummary.OfflinePlayerSummary.OfflinePlayerExploration.ofMerged(getGroup(player).stream().map(u -> getExploration(u, server)).collect(Collectors.toSet()));
     }
 
     public Set<ServerPlayerEntity> groupServerPlayers(UUID player, MinecraftServer server) {

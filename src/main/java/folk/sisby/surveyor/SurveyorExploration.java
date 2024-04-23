@@ -14,6 +14,7 @@ import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
@@ -33,8 +34,16 @@ public interface SurveyorExploration {
         return PlayerSummary.of(player).exploration();
     }
 
+    static SurveyorExploration of(UUID player, MinecraftServer server) {
+        return ServerSummary.of(server).getExploration(player, server);
+    }
+
     static SurveyorExploration ofShared(ServerPlayerEntity player) {
-        return ServerSummary.of(player.getServer()).groupExploration(player.getUuid(), player.getServer());
+        return ofShared(player.getUuid(), player.getServer());
+    }
+
+    static SurveyorExploration ofShared(UUID player, MinecraftServer server) {
+        return ServerSummary.of(server).groupExploration(player, server);
     }
 
     String KEY_EXPLORED_TERRAIN = "exploredTerrain";
@@ -135,8 +144,22 @@ public interface SurveyorExploration {
         SurveyorClientEvents.Invoke.landmarksAdded(world, landmarkKeys);
     }
 
+    default void updateClientForLandmarks(World world) {
+        Multimap<LandmarkType<?>, BlockPos> unexploredLandmarks = WorldSummary.of(world).landmarks().keySet(null);
+        Multimap<LandmarkType<?>, BlockPos> exploredLandmarks = WorldSummary.of(world).landmarks().keySet(this);
+        exploredLandmarks.forEach(unexploredLandmarks::remove);
+        SurveyorClientEvents.Invoke.landmarksAdded(world, exploredLandmarks);
+        SurveyorClientEvents.Invoke.landmarksRemoved(world, unexploredLandmarks);
+    }
+
     default void mergeRegion(RegistryKey<World> worldKey, ChunkPos regionPos, BitSet bitSet) {
         terrain().computeIfAbsent(worldKey, k -> new HashMap<>()).computeIfAbsent(regionPos, p -> new BitSet(RegionSummary.REGION_SIZE)).or(bitSet);
+    }
+
+    default void replaceTerrain(RegistryKey<World> worldKey, Map<ChunkPos, BitSet> bitSet) {
+        Map<ChunkPos, BitSet> oldSet = terrain().get(worldKey);
+        if (oldSet != null) oldSet.clear();
+        bitSet.forEach((pos, set) -> mergeRegion(worldKey, pos, set));
     }
 
     default void updateClientForAddChunk(World world, ChunkPos chunkPos) {
@@ -162,6 +185,12 @@ public interface SurveyorExploration {
 
     default void mergeStructures(RegistryKey<World> worldKey, RegistryKey<Structure> structureKey, LongSet starts) {
         structures().computeIfAbsent(worldKey, k -> new HashMap<>()).computeIfAbsent(structureKey, s -> new LongOpenHashSet()).addAll(starts);
+    }
+
+    default void replaceStructures(RegistryKey<World> worldKey, Map<RegistryKey<Structure>, LongSet> structures) {
+        LongSet oldSet = structures.get(worldKey);
+        if (oldSet != null) oldSet.clear();
+        structures.forEach((key, set) -> mergeStructures(worldKey, key, set));
     }
 
     default NbtCompound write(NbtCompound nbt) {
