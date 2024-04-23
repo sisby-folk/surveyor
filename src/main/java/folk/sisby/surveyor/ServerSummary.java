@@ -17,6 +17,7 @@ import net.minecraft.world.World;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -138,21 +139,23 @@ public final class ServerSummary {
             getGroup(player2).add(player1);
             shareGroups.put(player1, getGroup(player2));
         }
+        SurveyorExploration groupExploration = groupExploration(player1, server);
         for (ServerPlayerEntity friend : groupServerPlayers(player1, server)) {
-            new S2CGroupChangedPacket(getGroupSummaries(player1, server)).send(friend);
+            new S2CGroupChangedPacket(getGroupSummaries(player1, server), groupExploration.terrain().getOrDefault(friend.getWorld().getRegistryKey(), new HashMap<>()), groupExploration.structures().getOrDefault(friend.getWorld().getRegistryKey(), new HashMap<>())).send(friend);
         }
         dirty = true;
     }
 
     public void leaveGroup(UUID player, MinecraftServer server) {
         getGroup(player).remove(player); // Shares set instance with group members.
+        SurveyorExploration groupExploration = groupExploration(player, server);
         for (ServerPlayerEntity friend : groupOtherServerPlayers(player, server)) {
-            new S2CGroupChangedPacket(getGroupSummaries(player, server)).send(friend);
+            new S2CGroupChangedPacket(getGroupSummaries(friend.getUuid(), server), groupExploration.terrain().getOrDefault(friend.getWorld().getRegistryKey(), new HashMap<>()), groupExploration.structures().getOrDefault(friend.getWorld().getRegistryKey(), new HashMap<>())).send(friend);
         }
         shareGroups.put(player, new HashSet<>());
         getGroup(player).add(player);
         ServerPlayerEntity serverPlayer = server.getPlayerManager().getPlayer(player);
-        if (serverPlayer != null) new S2CGroupChangedPacket(getGroupSummaries(player, server)).send(serverPlayer);
+        if (serverPlayer != null) new S2CGroupChangedPacket(getGroupSummaries(player, server), new HashMap<>(), new HashMap<>()).send(serverPlayer);
         dirty = true;
     }
 
@@ -178,7 +181,10 @@ public final class ServerSummary {
 
     public static void onPlayerJoin(ServerPlayNetworkHandler handler, PacketSender sender, MinecraftServer server) {
         ServerSummary serverSummary = ServerSummary.of(server);
-        if (serverSummary.groupSize(handler.player.getUuid()) > 1) new S2CGroupChangedPacket(serverSummary.getGroupSummaries(handler.player.getUuid(), server)).send(handler.getPlayer());
+        if (serverSummary.groupSize(handler.player.getUuid()) > 1) {
+            SurveyorExploration groupExploration = serverSummary.groupExploration(handler.player.getUuid(), server);
+            new S2CGroupChangedPacket(serverSummary.getGroupSummaries(handler.player.getUuid(), server), groupExploration.terrain().getOrDefault(handler.player.getWorld().getRegistryKey(), new HashMap<>()), groupExploration.structures().getOrDefault(handler.player.getWorld().getRegistryKey(), new HashMap<>())).send(handler.getPlayer());
+        }
     }
 
     public static void onTick(MinecraftServer server) {

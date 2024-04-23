@@ -7,6 +7,9 @@ import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.SurveyorNetworking;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.landmark.LandmarkType;
+import folk.sisby.surveyor.packet.C2SKnownLandmarksPacket;
+import folk.sisby.surveyor.packet.C2SKnownStructuresPacket;
+import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
 import folk.sisby.surveyor.packet.S2CGroupChangedPacket;
 import folk.sisby.surveyor.packet.S2CGroupUpdatedPacket;
 import folk.sisby.surveyor.packet.S2CPacket;
@@ -57,6 +60,11 @@ public class SurveyorClientNetworking {
             SurveyorClient.getSharedExploration().groupPlayers().addAll(packet.players().keySet());
         }
         NetworkHandlerSummary.of(MinecraftClient.getInstance().getNetworkHandler()).mergeSummaries(packet.players());
+        SurveyorClient.getSharedExploration().terrain().put(world.getRegistryKey(), packet.regionBits());
+        SurveyorClient.getSharedExploration().structures().put(world.getRegistryKey(), packet.structureKeys());
+        new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
+        new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
+        new C2SKnownLandmarksPacket(summary.landmarks().keySet(null)).send();
     }
 
     private static void handleGroupUpdated(ClientWorld world, WorldSummary summary, S2CGroupUpdatedPacket packet) {
