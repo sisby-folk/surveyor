@@ -197,8 +197,15 @@ public final class ServerSummary {
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             Map<UUID, PlayerSummary> group = ServerSummary.of(server).getGroupSummaries(player.getUuid(), server);
             PlayerSummary playerSummary = group.get(player.getUuid());
-            group.entrySet().removeIf(e -> e.getKey().equals(player.getUuid()) || !e.getValue().online() || e.getValue().pos().squaredDistanceTo(player.getPos()) < ((playerSummary.viewDistance() * playerSummary.viewDistance() + 1) << 4));
+            group.entrySet().removeIf(e -> e.getKey().equals(player.getUuid()) || !e.getValue().online() || !e.getValue().dimension().equals(player.getWorld().getRegistryKey()) || e.getValue().pos().squaredDistanceTo(player.getPos()) < ((playerSummary.viewDistance() * playerSummary.viewDistance() + 1) << 4));
             if (!group.isEmpty()) new S2CGroupUpdatedPacket(group).send(player);
+        }
+    }
+
+    public static void onPlayerDisconnect(ServerPlayNetworkHandler handler, MinecraftServer server) {
+        for (ServerPlayerEntity friend : ServerSummary.of(server).groupOtherServerPlayers(handler.player.getUuid(), server)) {
+            if (friend.getWorld() != handler.getPlayer().getWorld()) continue;
+            new S2CGroupUpdatedPacket(Map.of(handler.player.getUuid(), ServerSummary.of(server).getPlayer(handler.player.getUuid(), server))).send(friend);
         }
     }
 }
