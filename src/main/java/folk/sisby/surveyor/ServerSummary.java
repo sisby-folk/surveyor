@@ -205,9 +205,12 @@ public final class ServerSummary {
             Map<UUID, PlayerSummary> group = ServerSummary.of(server).getGroupSummaries(player.getUuid(), server);
             PlayerSummary playerSummary = group.get(player.getUuid());
             group.entrySet().removeIf(e -> e.getKey().equals(player.getUuid()));
-            group.entrySet().removeIf(e ->  !e.getValue().online());
+            group.entrySet().removeIf(e -> !e.getValue().online());
             group.entrySet().removeIf(e -> !e.getValue().dimension().equals(playerSummary.dimension()));
-            group.entrySet().removeIf(e -> e.getValue().pos().squaredDistanceTo(playerSummary.pos()) < ((playerSummary.viewDistance() * playerSummary.viewDistance() + 1) << 4));
+            group.entrySet().removeIf(e -> {
+                ServerPlayerEntity friend = server.getPlayerManager().getPlayer(e.getKey());
+                return (friend == null || !friend.isSpectator()) && e.getValue().pos().squaredDistanceTo(playerSummary.pos()) < ((playerSummary.viewDistance() * playerSummary.viewDistance() + 1) << 4);
+            });
             if (!group.isEmpty()) new S2CGroupUpdatedPacket(group).send(player);
         }
     }
