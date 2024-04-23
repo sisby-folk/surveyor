@@ -200,7 +200,7 @@ public final class ServerSummary {
     }
 
     public static void onTick(MinecraftServer server) {
-        if ((server.getTicks() & 3) != 0) return;
+        if ((server.getTicks() % Surveyor.CONFIG.ticksPerFriendUpdate) != 0) return;
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             Map<UUID, PlayerSummary> group = ServerSummary.of(server).getGroupSummaries(player.getUuid(), server);
             PlayerSummary playerSummary = group.get(player.getUuid());
