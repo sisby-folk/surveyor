@@ -63,9 +63,11 @@ public class SurveyorClientNetworking {
         SurveyorClient.getSharedExploration().replaceTerrain(world.getRegistryKey(), packet.regionBits());
         SurveyorClient.getSharedExploration().replaceStructures(world.getRegistryKey(), packet.structureKeys());
         SurveyorClient.getExploration().updateClientForLandmarks(world);
-        new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
-        new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
-        new C2SKnownLandmarksPacket(summary.landmarks().keySet(null)).send();
+        if (summary != null) {
+            new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
+            new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
+            new C2SKnownLandmarksPacket(summary.landmarks().keySet(null)).send();
+        }
     }
 
     private static void handleGroupUpdated(ClientWorld world, WorldSummary summary, S2CGroupUpdatedPacket packet) {
