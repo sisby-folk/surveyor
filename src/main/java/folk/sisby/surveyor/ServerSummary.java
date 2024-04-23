@@ -68,7 +68,7 @@ public final class ServerSummary {
             File playerFile = playerFolder.toPath().resolve(uuid.toString() + ".dat").toFile();
             try {
                 NbtCompound playerNbt = NbtIo.readCompressed(playerFile);
-                offlineSummaries.put(uuid, new PlayerSummary.OfflinePlayerSummary(uuid, playerNbt));
+                offlineSummaries.put(uuid, new PlayerSummary.OfflinePlayerSummary(uuid, playerNbt, false));
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error loading offline player data for {}, removing from share groups...", uuid, e);
                 shareGroups.get(uuid).remove(uuid);
@@ -115,8 +115,15 @@ public final class ServerSummary {
         return summary == null ? null : summary.exploration();
     }
 
-    public void updatePlayer(UUID uuid, NbtCompound nbt) {
-        offlineSummaries.put(uuid, new PlayerSummary.OfflinePlayerSummary(uuid, nbt));
+    public void updatePlayer(UUID uuid, NbtCompound nbt, boolean online, MinecraftServer server) {
+        PlayerSummary newSummary = new PlayerSummary.OfflinePlayerSummary(uuid, nbt, online);
+        offlineSummaries.put(uuid, newSummary);
+        if (!online) {
+            for (ServerPlayerEntity friend : groupOtherServerPlayers(uuid, server)) {
+                if (!friend.getWorld().getRegistryKey().equals(newSummary.dimension())) continue;
+                S2CGroupUpdatedPacket.of(uuid, newSummary).send(friend);
+            }
+        }
     }
 
     public Set<Set<UUID>> getGroups() {
@@ -132,7 +139,7 @@ public final class ServerSummary {
     }
 
     public Map<UUID, PlayerSummary> getGroupSummaries(UUID player, MinecraftServer server) {
-        return getGroup(player).stream().filter(u -> getPlayer(player, server) != null).collect(Collectors.toMap(u -> u, u -> getPlayer(player, server)));
+        return getGroup(player).stream().filter(u -> getPlayer(u, server) != null).collect(Collectors.toMap(u -> u, u -> getPlayer(u, server)));
     }
 
     public void joinGroup(UUID player1, UUID player2, MinecraftServer server) {
@@ -197,15 +204,11 @@ public final class ServerSummary {
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             Map<UUID, PlayerSummary> group = ServerSummary.of(server).getGroupSummaries(player.getUuid(), server);
             PlayerSummary playerSummary = group.get(player.getUuid());
-            group.entrySet().removeIf(e -> e.getKey().equals(player.getUuid()) || !e.getValue().online() || !e.getValue().dimension().equals(player.getWorld().getRegistryKey()) || e.getValue().pos().squaredDistanceTo(player.getPos()) < ((playerSummary.viewDistance() * playerSummary.viewDistance() + 1) << 4));
+            group.entrySet().removeIf(e -> e.getKey().equals(player.getUuid()));
+            group.entrySet().removeIf(e ->  !e.getValue().online());
+            group.entrySet().removeIf(e -> !e.getValue().dimension().equals(playerSummary.dimension()));
+            group.entrySet().removeIf(e -> e.getValue().pos().squaredDistanceTo(playerSummary.pos()) < ((playerSummary.viewDistance() * playerSummary.viewDistance() + 1) << 4));
             if (!group.isEmpty()) new S2CGroupUpdatedPacket(group).send(player);
-        }
-    }
-
-    public static void onPlayerDisconnect(ServerPlayNetworkHandler handler, MinecraftServer server) {
-        for (ServerPlayerEntity friend : ServerSummary.of(server).groupOtherServerPlayers(handler.player.getUuid(), server)) {
-            if (friend.getWorld() != handler.getPlayer().getWorld()) continue;
-            new S2CGroupUpdatedPacket(Map.of(handler.player.getUuid(), ServerSummary.of(server).getPlayer(handler.player.getUuid(), server))).send(friend);
         }
     }
 }

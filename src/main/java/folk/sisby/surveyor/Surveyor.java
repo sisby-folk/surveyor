@@ -85,7 +85,6 @@ public class Surveyor implements ModInitializer {
         SurveyorNetworking.init();
         CommandRegistrationCallback.EVENT.register(SurveyorCommands::registerCommands);
         ServerPlayConnectionEvents.JOIN.register(ServerSummary::onPlayerJoin);
-        ServerPlayConnectionEvents.DISCONNECT.register(ServerSummary::onPlayerDisconnect);
         ServerChunkEvents.CHUNK_LOAD.register(WorldTerrainSummary::onChunkLoad);
         ServerChunkEvents.CHUNK_LOAD.register(WorldStructureSummary::onChunkLoad);
         ServerChunkEvents.CHUNK_UNLOAD.register(WorldTerrainSummary::onChunkUnload);

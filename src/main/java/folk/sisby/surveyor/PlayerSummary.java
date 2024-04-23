@@ -57,14 +57,14 @@ public interface PlayerSummary {
     boolean online();
 
     record OfflinePlayerSummary(SurveyorExploration exploration, String username, RegistryKey<World> dimension, Vec3d pos, float yaw, boolean online) implements PlayerSummary {
-        public OfflinePlayerSummary(UUID uuid, NbtCompound nbt) {
+        public OfflinePlayerSummary(UUID uuid, NbtCompound nbt, boolean online) {
             this(
                 OfflinePlayerExploration.from(uuid, nbt.getCompound(KEY_DATA)),
                 nbt.getCompound(KEY_DATA).getString(KEY_USERNAME),
-                RegistryKey.of(RegistryKeys.WORLD, new Identifier(nbt.getString("dimension"))),
+                RegistryKey.of(RegistryKeys.WORLD, new Identifier(nbt.getString("Dimension"))),
                 ArrayUtil.toVec3d(nbt.getList("Pos", NbtElement.DOUBLE_TYPE).stream().mapToDouble(e -> ((NbtDouble) e).doubleValue()).toArray()),
                 nbt.getList("Rotation", NbtElement.FLOAT_TYPE).getFloat(0),
-                false
+                online
             );
         }
 
