@@ -90,7 +90,7 @@ A player explores a chunk when they're sent it, explores a structure when they s
 
 ### Terrain Summary Layers
 
-In order to facilitate cave mapping, Surveyor records the top layer of blocks at **multiple height levels** (layer heights).
+To facilitate cave mapping, Surveyor records the top layer of blocks at **multiple height levels** (layer heights).
 
 **The Overworld** scans for floors in these layers:
 * 257-319 - usually empty
