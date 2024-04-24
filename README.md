@@ -11,33 +11,48 @@ Requires <a href="https://modrinth.com/mod/connector">Connector</a> and <a href=
 
 ---
 
+### Player Usage
+
 > *Surveyor is a library for map mod developers! You shouldn't need to download it alone.*
 
-**Surveyor** is a map library that:
+#### Commands
+
+* `/surveyor` - display information about your map exploration, including sharing.
+* `/surveyor share [username]` - request/accept sharing map exploration with a player.
+* `/surveyor unshare` - stop sharing map exploration (leave your "sharing group")
+
+#### Configuration
+
+* `ticksPerFriendUpdate` - how often to sync the position of sharing players to eachother (server)
+* `shareAll{type}` - whether to ignore exploration and show all available data when possible.
+
+---
+
+### Library Features
+
+**Surveyor relieves the scanning, saving, and networking responsibilities from dependent map mods.**
+
+In general, Surveyor:
 * Records terrain, structure, and "landmark" data suitable for maps as the world is changed.
-* Tracks individual player exploration of the world, and avoids revealing things they couldn't know about.
-* Holds the data in a small, compressed format in-memory and on-disk.
-* Uses data formats that are map-mod-agnostic - i.e:
-  * Terrain is a top-down view of blocks with height, biome, light level, and water depth.
-  * Terrain contains multiple layers, allowing for usable cave and nether maps.
-  * Structures are recorded with all their base data intact.
-  * Landmarks generically represent other positional map data - e.g. waypoints, POIs, or faction claims.
-* Syncs structure summaries to the client for use on maps.
-* Restores missing terrain and landmark data from the server if the client loses it.
-* Removes the need for map mods to implement save data or networking in most cases.
+* Enables live map sharing between players by tracking individual exploration of the map.
+* Sends the client structures as they're discovered or shared.
+* Syncs map data and landmarks (e.g. waypoints) when sharing or on client data loss.
+* Exposes a generic API for map mod integrations (e.g. adding map markers to important locations).
+* Only adds 2-5% to save size, using an efficient format both in-memory and on-disk.
 
-
-### Configuration
-
-To force surveyor to show and share map data globally, you can set the `shareAll` settings in `config/surveyor.toml`.
+Surveyor's data **deliberately preserves key details**, designed to allow any abitrary map mod to use it:
+* Terrain is a top-down view of blocks with height, biome, light level, and water depth.
+* Terrain contains multiple layers, allowing for usable cave and nether maps.
+* Structures have IDs, pieces, tags, and even full piece NBT for smaller structures intact.
+* Landmarks generically represent other positional map data - e.g. waypoints, POIs, or faction claims.
 
 ---
 
 **Notice: Surveyor is still in early releases.**
-- The API might break several times during 0.x
-- The networking format will break several times during 0.x.
-- The save format will likely break on the change to 1.x
-- Javadoc is very limited
+* The API might break several times during 0.x
+* The networking format will break several times during 0.x.
+* The save format will likely break on the change to 1.x
+* Javadoc is very limited
 
 ---
 
@@ -49,10 +64,16 @@ repositories {
 }
 
 dependencies {
-    modImplementation 'folk.sisby:surveyor:0.1.0+1.20'
-    include 'folk.sisby:surveyor:0.1.0+1.20'
+    modImplementation 'folk.sisby:surveyor:0.3.0+1.20'
+    include 'folk.sisby:surveyor:0.3.0+1.20'
 }
 ```
+
+#### Examples
+
+* **[Antique Atlas 4](https://github.com/sisby-folk/antique-atlas)** - A stylized client-side map mod.
+* **[SurveyorSurveyor](https://github.com/HestiMae/surveyor-surveyor)** - An enhanced-vanilla style java map image generator, using raw surveyor save files.
+* **[Surveystones](https://github.com/sisby-folk/antique-fwaystones)** - A mixed-side addon that automatically adds landmarks for waystones from [Fabric Waystones](https://modrinth.com/mod/fwaystones/versions).
 
 ### Core Concepts
 
@@ -72,10 +93,10 @@ A player explores a chunk when they're sent it, explores a structure when they s
 In order to facilitate cave mapping, Surveyor records the top layer of blocks at **multiple height levels** (layer heights).
 
 **The Overworld** scans for floors in these layers:
-- 257-319 - usually empty
-- 62-256 - surface terrain
-- 0-61 - sea floors and riverbeds, ravines, and caves
-- -64-0 - deepslate caves
+* 257-319 - usually empty
+* 62-256 - surface terrain
+* 0-61 - sea floors and riverbeds, ravines, and caves
+* -64-0 - deepslate caves
 
 **The Nether** scans for floors in these layers:
 * 127-255 - usually flat bedrock
@@ -83,7 +104,8 @@ In order to facilitate cave mapping, Surveyor records the top layer of blocks at
 * 41-70 - mid-level outcrops and walkways
 * 0-40 - the lava sea and shores
 
-Roughly speaking, Surveyor will accept any non-clear block within or below a 2-high walk-space as a floor.
+Roughly speaking, Surveyor will accept any non-clear solid block below a 2-high walk-space as a floor.<br/>
+It will also detect "carpets" (non-clear non-solid blocks) above these floors and use those instead.
 
 Surveyor supports any layer height configuration, but currently lacks the API/config to change this for specific dimensions.
 
@@ -155,6 +177,14 @@ To improve how landmarks are displayed, you can use `instanceof` to check for ad
 
 To add a waypoint landmark, just make a `SimplePointLandmark` owned by the player and use `put(Landmark)`.<br/>
 This will save to disk and send a copy to the server.
+
+#### Player Rendering
+
+You can use `SurveyorClient.getFriends()` to get a set of players to draw on the map.
+
+This includes both the client player, online "friends" (map sharing group members), and offline friends.
+
+The players are represented abstractly, providing UUID, username, global position, yaw, and online status.
 
 </details>
 
