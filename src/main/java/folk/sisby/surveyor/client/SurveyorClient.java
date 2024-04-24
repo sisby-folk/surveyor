@@ -92,7 +92,10 @@ public class SurveyorClient implements ClientModInitializer {
         if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
             return SurveyorExploration.ofShared(getClientUuid(), MinecraftClient.getInstance().getServer());
         } else {
-            return PlayerSummary.OfflinePlayerSummary.OfflinePlayerExploration.ofMerged(Set.of(ClientExploration.INSTANCE, ClientExploration.SHARED));
+            Set<SurveyorExploration> set = new HashSet<>();
+            set.add(ClientExploration.INSTANCE);
+            set.add(ClientExploration.SHARED);
+            return PlayerSummary.OfflinePlayerSummary.OfflinePlayerExploration.ofMerged(set);
         }
     }
 
@@ -139,7 +142,7 @@ public class SurveyorClient implements ClientModInitializer {
         });
         ClientTickEvents.END_WORLD_TICK.register((world -> {
             if (!SurveyorClientEvents.INITIALIZING_WORLD) return;
-            if (getExploration() != null && MinecraftClient.getInstance().player != null) {
+            if (MinecraftClient.getInstance().player != null && getExploration() != null) {
                 SurveyorClientEvents.INITIALIZING_WORLD = false;
                 if (WorldSummary.of(world).isClient()) {
                     WorldSummary summary = WorldSummary.of(world);
@@ -193,9 +196,9 @@ public class SurveyorClient implements ClientModInitializer {
             }
             ClientExploration.INSTANCE.terrain.clear();
             ClientExploration.INSTANCE.structures.clear();
+            ClientExploration.INSTANCE.groupPlayers.clear();
             ClientExploration.SHARED.terrain.clear();
             ClientExploration.SHARED.structures.clear();
-            ClientExploration.INSTANCE.groupPlayers.clear();
             ClientExploration.SHARED.groupPlayers.clear();
         }
 
