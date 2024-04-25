@@ -69,7 +69,11 @@ public class WorldStructureSummary {
     }
 
     public boolean contains(World world, StructureStart start) {
-        RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElseThrow();
+        RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElse(null);
+        if (key == null) {
+            Surveyor.LOGGER.error("Encountered an unregistered structure! {} | {}", start, start.getStructure());
+            return true;
+        }
         return structures.containsKey(key) && structures.get(key).containsKey(start.getPos());
     }
 
