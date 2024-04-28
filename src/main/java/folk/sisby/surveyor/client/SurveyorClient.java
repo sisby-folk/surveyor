@@ -79,7 +79,7 @@ public class SurveyorClient implements ClientModInitializer {
         if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
             MinecraftServer integratedServer = MinecraftClient.getInstance().getServer();
             if (integratedServer == null) return new HashMap<>();
-            return ServerSummary.of(integratedServer).getGroupSummaries(getClientUuid(), integratedServer);
+            return ServerSummary.of(integratedServer).getGroupSummaries(getSingleplayerUuid(), integratedServer);
         } else {
             ClientPlayNetworkHandler handler = MinecraftClient.getInstance().getNetworkHandler();
             if (handler == null) return new HashMap<>();
@@ -90,7 +90,7 @@ public class SurveyorClient implements ClientModInitializer {
 
     public static SurveyorExploration getExploration() {
         if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
-            return SurveyorExploration.ofShared(getClientUuid(), MinecraftClient.getInstance().getServer());
+            return SurveyorExploration.ofShared(getSingleplayerUuid(), MinecraftClient.getInstance().getServer());
         } else {
             Set<SurveyorExploration> set = new HashSet<>();
             set.add(ClientExploration.INSTANCE);
@@ -101,7 +101,7 @@ public class SurveyorClient implements ClientModInitializer {
 
     public static SurveyorExploration getPersonalExploration() {
         if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
-            return SurveyorExploration.of(getClientUuid(), MinecraftClient.getInstance().getServer());
+            return SurveyorExploration.of(getSingleplayerUuid(), MinecraftClient.getInstance().getServer());
         } else {
             return ClientExploration.INSTANCE;
         }
@@ -117,6 +117,11 @@ public class SurveyorClient implements ClientModInitializer {
 
     public static UUID getClientUuid() { // UUID needs to always match what the server is using.
         GameProfile profile = ((SurveyorNetworkHandler) MinecraftClient.getInstance().getNetworkHandler()).getProfile();
+        return Uuids.getUuidFromProfile(profile);
+    }
+
+    public static UUID getSingleplayerUuid() {
+        GameProfile profile = MinecraftClient.getInstance().getSession().getProfile();
         return Uuids.getUuidFromProfile(profile);
     }
 
