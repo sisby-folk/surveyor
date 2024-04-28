@@ -47,7 +47,7 @@ public class WorldTerrainSummary {
 
     public ChunkSummary get(ChunkPos pos) {
         ChunkPos regionPos = regionPosOf(pos);
-        return regions.get(regionPos).get(pos);
+        return regions.containsKey(regionPos) ? regions.get(regionPos).get(pos) : null;
     }
 
     public RegionSummary getRegion(ChunkPos regionPos) {
