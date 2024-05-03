@@ -89,6 +89,7 @@ public final class ServerSummary {
             File sharingFile = new File(folder, "sharing.dat");
             try {
                 NbtIo.writeCompressed(writeNbt(new NbtCompound()), sharingFile);
+                dirty = false;
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error writing sharing file.", e);
             }

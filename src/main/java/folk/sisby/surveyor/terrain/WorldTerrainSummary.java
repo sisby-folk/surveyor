@@ -99,6 +99,7 @@ public class WorldTerrainSummary {
             File regionFile = new File(folder, "c.%d.%d.dat".formatted(pos.x, pos.z));
             try {
                 NbtIo.writeCompressed(regionCompound, regionFile);
+                summary.dirty = false;
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error writing region summary file {}.", regionFile.getName(), e);
             }

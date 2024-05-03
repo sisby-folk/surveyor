@@ -152,6 +152,7 @@ public class WorldLandmarks {
             File landmarksFile = new File(folder, "landmarks.dat");
             try {
                 NbtIo.writeCompressed(Landmarks.writeNbt(landmarks, new NbtCompound()), landmarksFile);
+                dirty = false;
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error writing landmarks file for {}.", world.getRegistryKey().getValue(), e);
             }

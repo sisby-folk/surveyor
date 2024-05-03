@@ -159,6 +159,7 @@ public class WorldStructureSummary {
             File structureFile = new File(folder, "structures.dat");
             try {
                 NbtIo.writeCompressed(writeNbt(new NbtCompound()), structureFile);
+                dirty = false;
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error writing structure summary file for {}.", world.getRegistryKey().getValue(), e);
             }

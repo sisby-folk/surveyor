@@ -23,11 +23,10 @@ public record WorldSummary(WorldTerrainSummary terrain, WorldStructureSummary st
     }
 
     public void save(World world, File folder, boolean suppressLogs) {
-        if (!suppressLogs) Surveyor.LOGGER.info("[Surveyor] Saving data for {}", world.getRegistryKey().getValue());
         folder.mkdirs();
         int chunks = terrain.save(world, folder);
         int keys = structures.save(world, folder);
         int marks = landmarks.save(world, folder);
-        if (!suppressLogs) Surveyor.LOGGER.info("[Surveyor] Finished saving data for {} | {} regions, {} structures, {} landmarks", world.getRegistryKey().getValue(), chunks, keys, marks);
+        if (!suppressLogs && (chunks > 0 || keys > 0 || marks > 0)) Surveyor.LOGGER.info("[Surveyor] Finished saving data for {} | cleaned {} regions, {} structures, {} landmarks", world.getRegistryKey().getValue(), chunks, keys, marks);
     }
 }
