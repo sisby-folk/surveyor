@@ -22,7 +22,6 @@ import net.minecraft.util.math.BlockPos;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.IntStream;
 
 public class JigsawPieceSummary extends StructurePieceSummary {
     public static final String KEY_POS = "pos";
@@ -100,7 +99,16 @@ public class JigsawPieceSummary extends StructurePieceSummary {
         String idKey = TYPE_KEYS.inverse().get(elementType);
         nbt.putString(idKey, id.toString());
         if (!junctions.isEmpty()) {
-            nbt.putIntArray(KEY_JUNCTIONS, junctions.stream().flatMapToInt(j -> IntStream.of(j.getSourceX(), j.getSourceGroundY(), j.getSourceZ(), j.getDeltaY(), j.getDestProjection().ordinal())).toArray());
+            int[] junctionArray = new int[junctions.size() * 5];
+            for (int i = 0; i < junctions.size(); i++) {
+                JigsawJunction j = junctions.get(i);
+                junctionArray[i * 5] = j.getSourceX();
+                junctionArray[i * 5 + 1] = j.getSourceGroundY();
+                junctionArray[i * 5 + 2] = j.getSourceZ();
+                junctionArray[i * 5 + 3] = j.getDeltaY();
+                junctionArray[i * 5 + 4] = j.getDestProjection().ordinal();
+            }
+            nbt.putIntArray(KEY_JUNCTIONS, junctionArray);
         }
     }
 
