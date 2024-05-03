@@ -5,7 +5,6 @@ import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
-import folk.sisby.surveyor.util.BitSetUtil;
 import folk.sisby.surveyor.util.MapUtil;
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.PacketByteBuf;
@@ -16,7 +15,6 @@ import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.Structure;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;

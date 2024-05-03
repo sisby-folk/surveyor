@@ -36,7 +36,7 @@ public class SurveyorClientNetworking {
         ClientPlayNetworking.registerGlobalReceiver(S2CUpdateRegionPacket.ID, (c, h, b, s) -> handleClientUnparsed(b, SurveyorClientNetworking::handleTerrainAdded));
         ClientPlayNetworking.registerGlobalReceiver(S2CGroupChangedPacket.ID, (c, h, b, s) -> handleClient(b, S2CGroupChangedPacket::read, SurveyorClientNetworking::handleGroupChanged));
         ClientPlayNetworking.registerGlobalReceiver(S2CGroupUpdatedPacket.ID, (c, h, b, s) -> handleClient(b, S2CGroupUpdatedPacket::read, SurveyorClientNetworking::handleGroupUpdated));
-        ClientPlayNetworking.registerGlobalReceiver(SyncLandmarksAddedPacket.ID, (c, h, b, s) -> handleClient(b, SyncLandmarksAddedPacket::read, SurveyorClientNetworking::handleLandmarksAdded));
+        ClientPlayNetworking.registerGlobalReceiver(SyncLandmarksAddedPacket.ID, (c, h, b, s) -> handleClientUnparsed(b, SurveyorClientNetworking::handleLandmarksAdded));
         ClientPlayNetworking.registerGlobalReceiver(SyncLandmarksRemovedPacket.ID, (c, h, b, s) -> handleClient(b, SyncLandmarksRemovedPacket::read, SurveyorClientNetworking::handleLandmarksRemoved));
     }
 
@@ -74,10 +74,8 @@ public class SurveyorClientNetworking {
         NetworkHandlerSummary.of(MinecraftClient.getInstance().getNetworkHandler()).mergeSummaries(packet.players());
     }
 
-    private static void handleLandmarksAdded(ClientWorld world, WorldSummary summary, SyncLandmarksAddedPacket packet) {
-        Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
-        packet.landmarks().forEach((type, map) -> map.forEach((pos, landmark) -> summary.landmarks().putForBatch(changed, landmark)));
-        summary.landmarks().handleChanged(world, changed, true, null);
+    private static void handleLandmarksAdded(ClientWorld world, WorldSummary summary, PacketByteBuf buf) {
+        SyncLandmarksAddedPacket packet = SyncLandmarksAddedPacket.handle(buf, world, summary, null);
     }
 
     private static void handleLandmarksRemoved(ClientWorld world, WorldSummary summary, SyncLandmarksRemovedPacket packet) {

@@ -2,7 +2,6 @@ package folk.sisby.surveyor;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.packet.C2SKnownLandmarksPacket;
 import folk.sisby.surveyor.packet.C2SKnownStructuresPacket;
@@ -35,7 +34,7 @@ public class SurveyorNetworking {
         ServerPlayNetworking.registerGlobalReceiver(C2SKnownTerrainPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, C2SKnownTerrainPacket::read, SurveyorNetworking::handleKnownTerrain));
         ServerPlayNetworking.registerGlobalReceiver(C2SKnownStructuresPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, C2SKnownStructuresPacket::read, SurveyorNetworking::handleKnownStructures));
         ServerPlayNetworking.registerGlobalReceiver(C2SKnownLandmarksPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, C2SKnownLandmarksPacket::read, SurveyorNetworking::handleKnownLandmarks));
-        ServerPlayNetworking.registerGlobalReceiver(SyncLandmarksAddedPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, SyncLandmarksAddedPacket::read, SurveyorNetworking::handleLandmarksAdded));
+        ServerPlayNetworking.registerGlobalReceiver(SyncLandmarksAddedPacket.ID, (sv, p, h, b, se) -> handleServerUnparsed(p, b, SurveyorNetworking::handleLandmarksAdded));
         ServerPlayNetworking.registerGlobalReceiver(SyncLandmarksRemovedPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, SyncLandmarksRemovedPacket::read, SurveyorNetworking::handleLandmarksRemoved));
     }
 
@@ -66,22 +65,13 @@ public class SurveyorNetworking {
     }
 
     private static void handleKnownLandmarks(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownLandmarksPacket packet) {
-        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks = summary.landmarks().asMap(SurveyorExploration.ofShared(player));
-        packet.landmarks().forEach((type, pos) -> {
-            if (landmarks.containsKey(type)) {
-                landmarks.get(type).remove(pos);
-                if (landmarks.get(type).isEmpty()) landmarks.remove(type);
-            }
-        });
-        if (!landmarks.isEmpty()) new SyncLandmarksAddedPacket(landmarks).send(player);
+        Multimap<LandmarkType<?>, BlockPos> landmarks = summary.landmarks().keySet(SurveyorExploration.ofShared(player));
+        packet.landmarks().forEach(landmarks::remove);
+        if (!landmarks.isEmpty()) new SyncLandmarksAddedPacket(landmarks, summary.landmarks()).send(player);
     }
 
-    private static void handleLandmarksAdded(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, SyncLandmarksAddedPacket packet) {
-        Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
-        packet.landmarks().forEach((type, map) -> map.forEach((pos, landmark) -> {
-            if (player.getUuid().equals(landmark.owner())) summary.landmarks().putForBatch(changed, landmark);
-        }));
-        if (!changed.isEmpty()) summary.landmarks().handleChanged(world, changed, false, player);
+    private static void handleLandmarksAdded(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, PacketByteBuf buf) {
+        SyncLandmarksAddedPacket packet = SyncLandmarksAddedPacket.handle(buf, world, summary, player);
     }
 
     private static void handleLandmarksRemoved(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, SyncLandmarksRemovedPacket packet) {
@@ -97,7 +87,11 @@ public class SurveyorNetworking {
         handler.handle(player, player.getServerWorld(), WorldSummary.of(player.getServerWorld()), packet);
     }
 
-    public interface ServerPacketHandler<T extends C2SPacket> {
+    private static void handleServerUnparsed(ServerPlayerEntity player, PacketByteBuf buf, ServerPacketHandler<PacketByteBuf> handler) {
+        handler.handle(player, player.getServerWorld(), WorldSummary.of(player.getWorld()), buf);
+    }
+
+    public interface ServerPacketHandler<T> {
         void handle(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, T packet);
     }
 }
