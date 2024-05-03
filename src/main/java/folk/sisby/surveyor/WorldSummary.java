@@ -27,6 +27,6 @@ public record WorldSummary(WorldTerrainSummary terrain, WorldStructureSummary st
         int chunks = terrain.save(world, folder);
         int keys = structures.save(world, folder);
         int marks = landmarks.save(world, folder);
-        if (!suppressLogs && (chunks > 0 || keys > 0 || marks > 0)) Surveyor.LOGGER.info("[Surveyor] Finished saving data for {} | cleaned {} regions, {} structures, {} landmarks", world.getRegistryKey().getValue(), chunks, keys, marks);
+        if (!suppressLogs && (chunks > 0 || keys > 0 || marks > 0)) Surveyor.LOGGER.info("[Surveyor] Finished saving data for {} | cleaned {} terrain regions, {} structure regions, {} landmarks", world.getRegistryKey().getValue(), chunks, keys, marks);
     }
 }

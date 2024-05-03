@@ -109,24 +109,25 @@ public class RegionSummary {
         dirty = true;
     }
 
-    public RegionSummary readNbt(NbtCompound nbt, DynamicRegistryManager manager) {
+    public static RegionSummary readNbt(NbtCompound nbt, DynamicRegistryManager manager) {
+        RegionSummary summary = new RegionSummary();
         Registry<Biome> biomeRegistry = manager.get(RegistryKeys.BIOME);
         Registry<Block> blockRegistry = manager.get(RegistryKeys.BLOCK);
         nbt.getList(KEY_BIOMES, NbtElement.STRING_TYPE).stream().map(e -> biomeRegistry.get(new Identifier(e.asString()))).forEach(b -> {
-            biomePalette.add(b);
-            rawBiomePalette.add(biomeRegistry.getRawId(b));
+            summary.biomePalette.add(b);
+            summary.rawBiomePalette.add(biomeRegistry.getRawId(b));
         });
         nbt.getList(KEY_BLOCKS, NbtElement.STRING_TYPE).stream().map(e -> blockRegistry.get(new Identifier(e.asString()))).forEach(b -> {
-            blockPalette.add(b);
-            rawBlockPalette.add(blockRegistry.getRawId(b));
+            summary.blockPalette.add(b);
+            summary.rawBlockPalette.add(blockRegistry.getRawId(b));
         });
         NbtCompound chunksCompound = nbt.getCompound(KEY_CHUNKS);
         for (String posKey : chunksCompound.getKeys()) {
             int x = regionRelative(Integer.parseInt(posKey.split(",")[0]));
             int z = regionRelative(Integer.parseInt(posKey.split(",")[1]));
-            chunks[x][z] = new ChunkSummary(chunksCompound.getCompound(posKey));
+            summary.chunks[x][z] = new ChunkSummary(chunksCompound.getCompound(posKey));
         }
-        return this;
+        return summary;
     }
 
     public NbtCompound writeNbt(DynamicRegistryManager manager, NbtCompound nbt, ChunkPos regionPos) {

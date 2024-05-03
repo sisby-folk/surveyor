@@ -108,32 +108,8 @@ public class WorldTerrainSummary {
     }
 
     public static WorldTerrainSummary load(World world, File folder) {
-        File[] chunkFiles = folder.listFiles((file, name) -> {
-            String[] split = name.split("\\.");
-            if (split.length == 4 && split[0].equals("c") && split[3].equals("dat")) {
-                try {
-                    Integer.parseInt(split[1]);
-                    Integer.parseInt(split[2]);
-                    return true;
-                } catch (NumberFormatException ignored) {
-                }
-            }
-            return false;
-        });
-        Map<ChunkPos, RegionSummary> regions;
-        regions = new HashMap<>();
-        if (chunkFiles != null) {
-            for (File regionFile : chunkFiles) {
-                ChunkPos regionPos = new ChunkPos(Integer.parseInt(regionFile.getName().split("\\.")[1]), Integer.parseInt(regionFile.getName().split("\\.")[2]));
-                NbtCompound regionCompound = null;
-                try {
-                    regionCompound = NbtIo.readCompressed(regionFile);
-                } catch (IOException e) {
-                    Surveyor.LOGGER.error("[Surveyor] Error loading region summary file {}.", regionFile.getName(), e);
-                }
-                if (regionCompound != null) regions.put(regionPos, new RegionSummary().readNbt(regionCompound, world.getRegistryManager()));
-            }
-        }
+        Map<ChunkPos, RegionSummary> regions = new HashMap<>();
+        ChunkUtil.getRegionNbt(folder, "c").forEach((pos, nbt) -> regions.put(pos, RegionSummary.readNbt(nbt, world.getRegistryManager())));
         return new WorldTerrainSummary(world.getRegistryKey(), regions);
     }
 

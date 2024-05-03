@@ -7,6 +7,8 @@ import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.WorldSummary;
+import folk.sisby.surveyor.terrain.RegionSummary;
+import folk.sisby.surveyor.util.ChunkUtil;
 import folk.sisby.surveyor.util.MapUtil;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -19,8 +21,6 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.structure.StructureContext;
-import net.minecraft.structure.StructurePiece;
 import net.minecraft.structure.StructurePieceType;
 import net.minecraft.structure.StructureStart;
 import net.minecraft.util.Identifier;
@@ -44,20 +44,22 @@ public class WorldStructureSummary {
     public static final String KEY_STRUCTURES = "structures";
     public static final String KEY_TYPE = "type";
     public static final String KEY_TAGS = "tags";
-    public static final String KEY_STARTS = "starts";
-    public static final String KEY_PIECES = "pieces";
 
     protected final RegistryKey<World> worldKey;
-    protected final Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> structures = new ConcurrentHashMap<>();
+    protected final Map<ChunkPos, RegionStructureSummary> regions = new ConcurrentHashMap<>();
     protected final Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> structureTypes = new ConcurrentHashMap<>();
     protected final Multimap<RegistryKey<Structure>, TagKey<Structure>> structureTags = Multimaps.synchronizedSetMultimap(HashMultimap.create());
     protected boolean dirty = false;
 
-    public WorldStructureSummary(RegistryKey<World> worldKey, Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> structures, Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> structureTypes, Multimap<RegistryKey<Structure>, TagKey<Structure>> structureTags) {
+    public WorldStructureSummary(RegistryKey<World> worldKey, Map<ChunkPos, RegionStructureSummary> regions, Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> structureTypes, Multimap<RegistryKey<Structure>, TagKey<Structure>> structureTags) {
         this.worldKey = worldKey;
-        this.structures.putAll(structures);
+        this.regions.putAll(regions);
         this.structureTypes.putAll(structureTypes);
         this.structureTags.putAll(structureTags);
+    }
+
+    protected static ChunkPos regionPosOf(ChunkPos pos) {
+        return new ChunkPos(pos.x >> RegionSummary.REGION_POWER, pos.z >> RegionSummary.REGION_POWER);
     }
 
     public RegistryKey<StructureType<?>> getType(RegistryKey<Structure> key) {
@@ -69,20 +71,18 @@ public class WorldStructureSummary {
     }
 
     public boolean contains(World world, StructureStart start) {
-        RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElse(null);
-        if (key == null) {
-            Surveyor.LOGGER.error("Encountered an unregistered structure! {} | {}", start, start.getStructure());
-            return true;
-        }
-        return structures.containsKey(key) && structures.get(key).containsKey(start.getPos());
+        ChunkPos rPos = regionPosOf(start.getPos());
+        return regions.containsKey(rPos) && regions.get(rPos).contains(world, start);
     }
 
     public boolean contains(RegistryKey<Structure> key, ChunkPos pos) {
-        return structures.containsKey(key) && structures.get(key).containsKey(pos);
+        ChunkPos rPos = regionPosOf(pos);
+        return regions.containsKey(rPos) && regions.get(rPos).contains(key, pos);
     }
 
     public StructureStartSummary get(RegistryKey<Structure> key, ChunkPos pos) {
-        return structures.get(key).get(pos);
+        ChunkPos rPos = regionPosOf(pos);
+        return regions.containsKey(rPos) ? regions.get(rPos).get(key, pos) : null;
     }
 
     public Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> asMap(SurveyorExploration exploration) {
@@ -93,41 +93,27 @@ public class WorldStructureSummary {
     }
 
     public Multimap<RegistryKey<Structure>, ChunkPos> keySet(SurveyorExploration exploration) {
-        Multimap<RegistryKey<Structure>, ChunkPos> map = MapUtil.keyMultiMap(structures);
+        Multimap<RegistryKey<Structure>, ChunkPos> map = HashMultimap.create();
+        regions.values().forEach(r -> map.putAll(r.keySet()));
         if (exploration != null) exploration.limitStructureKeySet(worldKey, map);
         return map;
     }
 
-    protected static StructureStartSummary summarisePieces(StructureContext context, StructureStart start) {
-        List<StructurePieceSummary> pieces = new ArrayList<>();
-        for (StructurePiece piece : start.getChildren()) {
-            if (piece.getType().equals(StructurePieceType.JIGSAW)) {
-                pieces.addAll(JigsawPieceSummary.tryFromPiece(piece));
-            } else {
-                pieces.add(StructurePieceSummary.fromPiece(context, piece, start.getChildren().size() <= 10));
-            }
-        }
-        return new StructureStartSummary(pieces);
-    }
-
     public void put(ServerWorld world, StructureStart start) {
+        ChunkPos rPos = regionPosOf(start.getPos());
+        regions.computeIfAbsent(rPos, k -> new RegionStructureSummary()).put(world, start);
         RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElseThrow();
-        structures.computeIfAbsent(key, k -> new ConcurrentHashMap<>());
-        ChunkPos pos = start.getPos();
-        if (!structures.get(key).containsKey(pos)) {
-            StructureStartSummary summary = summarisePieces(StructureContext.from(world), start);
-            RegistryKey<StructureType<?>> type = world.getRegistryManager().get(RegistryKeys.STRUCTURE_TYPE).getKey(start.getStructure().getType()).orElseThrow();
-            List<TagKey<Structure>> tags = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getEntry(start.getStructure()).streamTags().toList();
-            structures.get(key).put(pos, summary);
-            structureTypes.put(key, type);
-            structureTags.putAll(key, tags);
-            dirty = true;
-            SurveyorEvents.Invoke.structuresAdded(world, key, pos);
-        }
+        RegistryKey<StructureType<?>> type = world.getRegistryManager().get(RegistryKeys.STRUCTURE_TYPE).getKey(start.getStructure().getType()).orElseThrow();
+        List<TagKey<Structure>> tags = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getEntry(start.getStructure()).streamTags().toList();
+        structureTypes.put(key, type);
+        structureTags.putAll(key, tags);
+        dirty = true;
+        SurveyorEvents.Invoke.structuresAdded(world, key, start.getPos());
     }
 
     public void put(World world, RegistryKey<Structure> key, ChunkPos pos, StructureStartSummary summary, RegistryKey<StructureType<?>> type, Collection<TagKey<Structure>> tagKeys) {
-        structures.computeIfAbsent(key, k -> new ConcurrentHashMap<>()).put(pos, summary);
+        ChunkPos rPos = regionPosOf(pos);
+        regions.computeIfAbsent(rPos, k -> new RegionStructureSummary()).put(key, pos, summary);
         structureTypes.put(key, type);
         structureTags.putAll(key, tagKeys);
         dirty = true;
@@ -136,18 +122,10 @@ public class WorldStructureSummary {
 
     protected NbtCompound writeNbt(NbtCompound nbt) {
         NbtCompound structuresCompound = new NbtCompound();
-        structures.forEach((key, starts) -> {
+        structureTypes.forEach((key, starts) -> {
             NbtCompound structureCompound = new NbtCompound();
             structureCompound.putString(KEY_TYPE, structureTypes.get(key).getValue().toString());
             structureCompound.put(KEY_TAGS, new NbtList(structureTags.get(key).stream().map(t -> (NbtElement) NbtString.of(t.id().toString())).toList(), NbtElement.STRING_TYPE));
-            NbtCompound startsCompound = new NbtCompound();
-            starts.forEach((pos, summary) -> {
-                NbtList pieceList = new NbtList(summary.getChildren().stream().map(p -> (NbtElement) p.toNbt()).toList(), NbtElement.COMPOUND_TYPE);
-                NbtCompound startCompound = new NbtCompound();
-                startCompound.put(KEY_PIECES, pieceList);
-                startsCompound.put("%s,%s".formatted(pos.x, pos.z), startCompound);
-            });
-            structureCompound.put(KEY_STARTS, startsCompound);
             structuresCompound.put(key.getValue().toString(), structureCompound);
         });
         nbt.put(KEY_STRUCTURES, structuresCompound);
@@ -155,17 +133,29 @@ public class WorldStructureSummary {
     }
 
     public int save(World world, File folder) {
+        List<ChunkPos> savedRegions = new ArrayList<>();
         if (dirty) {
             File structureFile = new File(folder, "structures.dat");
             try {
                 NbtIo.writeCompressed(writeNbt(new NbtCompound()), structureFile);
                 dirty = false;
             } catch (IOException e) {
-                Surveyor.LOGGER.error("[Surveyor] Error writing structure summary file for {}.", world.getRegistryKey().getValue(), e);
+                Surveyor.LOGGER.error("[Surveyor] Error writing world structure summary file for {}.", world.getRegistryKey().getValue(), e);
             }
-            return structures.values().stream().mapToInt(Map::size).sum();
+            regions.forEach((pos, summary) -> {
+                if (!summary.isDirty()) return;
+                savedRegions.add(pos);
+                NbtCompound regionCompound = summary.writeNbt(new NbtCompound());
+                File regionFile = new File(folder, "s.%d.%d.dat".formatted(pos.x, pos.z));
+                try {
+                    NbtIo.writeCompressed(regionCompound, regionFile);
+                    summary.dirty = false;
+                } catch (IOException e) {
+                    Surveyor.LOGGER.error("[Surveyor] Error writing region structure summary file {}.", regionFile.getName(), e);
+                }
+            });
         }
-        return 0;
+        return savedRegions.size();
     }
 
     public static StructurePieceSummary readStructurePieceNbt(NbtCompound nbt) {
@@ -176,8 +166,7 @@ public class WorldStructureSummary {
         }
     }
 
-    protected static WorldStructureSummary readNbt(RegistryKey<World> worldKey, NbtCompound nbt) {
-        Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> structures = new ConcurrentHashMap<>();
+    protected static WorldStructureSummary readNbt(RegistryKey<World> worldKey, NbtCompound nbt, Map<ChunkPos, RegionStructureSummary> regions) {
         Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> structureTypes = new ConcurrentHashMap<>();
         Multimap<RegistryKey<Structure>, TagKey<Structure>> structureTags = HashMultimap.create();
         NbtCompound structuresCompound = nbt.getCompound(KEY_STRUCTURES);
@@ -188,32 +177,30 @@ public class WorldStructureSummary {
             structureTypes.put(key, type);
             Collection<TagKey<Structure>> tags = structureCompound.getList(KEY_TAGS, NbtElement.STRING_TYPE).stream().map(e -> TagKey.of(RegistryKeys.STRUCTURE, new Identifier(e.asString()))).toList();
             structureTags.putAll(key, tags);
-            NbtCompound startsCompound = structureCompound.getCompound(KEY_STARTS);
-            for (String posKey : startsCompound.getKeys()) {
-                int x = Integer.parseInt(posKey.split(",")[0]);
-                int z = Integer.parseInt(posKey.split(",")[1]);
-                NbtCompound startCompound = startsCompound.getCompound(posKey);
-                Collection<StructurePieceSummary> pieces = new ArrayList<>();
-                for (NbtElement pieceElement : startCompound.getList(KEY_PIECES, NbtElement.COMPOUND_TYPE)) {
-                    pieces.add(readStructurePieceNbt((NbtCompound) pieceElement));
-                }
-                structures.computeIfAbsent(key, p -> new ConcurrentHashMap<>()).put(new ChunkPos(x, z), new StructureStartSummary(pieces));
-            }
         }
-        return new WorldStructureSummary(worldKey, structures, structureTypes, structureTags);
+        return new WorldStructureSummary(worldKey, regions, structureTypes, structureTags);
     }
 
     public static WorldStructureSummary load(World world, File folder) {
-        NbtCompound structureNbt = new NbtCompound();
         File structuresFile = new File(folder, "structures.dat");
+        NbtCompound worldNbt = new NbtCompound();
         if (structuresFile.exists()) {
             try {
-                structureNbt = NbtIo.readCompressed(structuresFile);
+                worldNbt = NbtIo.readCompressed(structuresFile);
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error loading structure summary file for {}.", world.getRegistryKey().getValue(), e);
             }
         }
-        return WorldStructureSummary.readNbt(world.getRegistryKey(), structureNbt);
+        Map<ChunkPos, RegionStructureSummary> regions = new HashMap<>();
+        ChunkUtil.getRegionNbt(folder, "s").forEach((pos, nbt) -> regions.put(pos, RegionStructureSummary.readNbt(nbt)));
+        if (regions.isEmpty()) { // Try load legacy data
+            RegionStructureSummary worldSummary = RegionStructureSummary.readNbt(worldNbt);
+            worldSummary.structures.forEach((key, map) -> map.forEach((pos, start) -> {
+                ChunkPos rPos = regionPosOf(pos);
+                regions.computeIfAbsent(rPos, k -> new RegionStructureSummary()).put(key, pos, start);
+            }));
+        }
+        return readNbt(world.getRegistryKey(), worldNbt, regions);
     }
 
     public static void onChunkLoad(ServerWorld world, WorldChunk chunk) {
