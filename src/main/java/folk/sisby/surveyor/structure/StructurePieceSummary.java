@@ -1,8 +1,7 @@
 package folk.sisby.surveyor.structure;
 
-import folk.sisby.surveyor.Surveyor;
+import folk.sisby.surveyor.util.ArrayUtil;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
@@ -53,7 +52,7 @@ public class StructurePieceSummary extends StructurePiece {
     public final NbtCompound toNbt() {
         NbtCompound nbt = new NbtCompound();
         nbt.putString("id", typeKey.getValue().toString());
-        BlockBox.CODEC.encodeStart(NbtOps.INSTANCE, this.boundingBox).resultOrPartial(Surveyor.LOGGER::error).ifPresent(nbtElement -> nbt.put("BB", nbtElement));
+        nbt.putIntArray("BB", ArrayUtil.ofBlockBox(this.boundingBox));
         Direction direction = this.getFacing();
         nbt.putInt("O", direction == null ? -1 : direction.getHorizontal());
         nbt.putInt("GD", this.chainLength);
