@@ -7,6 +7,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
+import net.minecraft.nbt.NbtSizeTracker;
 import net.minecraft.nbt.NbtString;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
@@ -49,7 +50,7 @@ public final class ServerSummary {
         File sharingFile = new File(folder, "sharing.dat");
         if (sharingFile.exists()) {
             try {
-                sharingNbt = NbtIo.readCompressed(sharingFile);
+                sharingNbt = NbtIo.readCompressed(sharingFile.toPath(), NbtSizeTracker.ofUnlimitedBytes());
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error loading sharing file.", e);
             }
@@ -67,7 +68,7 @@ public final class ServerSummary {
         for (UUID uuid : new HashSet<>(shareGroups.keySet())) {
             File playerFile = playerFolder.toPath().resolve(uuid.toString() + ".dat").toFile();
             try {
-                NbtCompound playerNbt = NbtIo.readCompressed(playerFile);
+                NbtCompound playerNbt = NbtIo.readCompressed(playerFile.toPath(), NbtSizeTracker.ofUnlimitedBytes());
                 offlineSummaries.put(uuid, new PlayerSummary.OfflinePlayerSummary(uuid, playerNbt, false));
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error loading offline player data for {}, removing from share groups...", uuid, e);
@@ -88,7 +89,7 @@ public final class ServerSummary {
         if (dirty) {
             File sharingFile = new File(folder, "sharing.dat");
             try {
-                NbtIo.writeCompressed(writeNbt(new NbtCompound()), sharingFile);
+                NbtIo.writeCompressed(writeNbt(new NbtCompound()), sharingFile.toPath());
                 dirty = false;
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error writing sharing file.", e);

@@ -4,10 +4,8 @@ import com.mojang.authlib.GameProfile;
 import folk.sisby.surveyor.client.NetworkHandlerSummary;
 import folk.sisby.surveyor.client.SurveyorNetworkHandler;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.network.ClientConnectionState;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.client.network.ServerInfo;
-import net.minecraft.client.util.telemetry.WorldSession;
 import net.minecraft.network.ClientConnection;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -28,7 +26,7 @@ public abstract class MixinClientPlayNetworkHandler implements SurveyorNetworkHa
     @Accessor public abstract GameProfile getProfile();
 
     @Inject(method = "<init>", at = @At("TAIL"))
-    private void onInit(MinecraftClient client, Screen screen, ClientConnection connection, ServerInfo serverInfo, GameProfile profile, WorldSession worldSession, CallbackInfo ci) {
+    private void onInit(MinecraftClient client, ClientConnection clientConnection, ClientConnectionState clientConnectionState, CallbackInfo ci) {
         ClientPlayNetworkHandler self = (ClientPlayNetworkHandler) (Object) this;
         surveyor$summary = new NetworkHandlerSummary(self);
     }

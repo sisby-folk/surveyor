@@ -8,7 +8,6 @@ accessible field net/minecraft/world/PersistentStateManager directory Ljava/io/F
 accessible field net/minecraft/world/biome/source/BiomeAccess seed J
 accessible field net/minecraft/structure/pool/ListPoolElement elements Ljava/util/List;
 accessible field net/minecraft/structure/PoolStructurePiece structureTemplateManager Lnet/minecraft/structure/StructureTemplateManager;
-accessible field net/minecraft/client/gui/screen/ConnectScreen connection Lnet/minecraft/network/ClientConnection;
 accessible field net/minecraft/client/network/ClientLoginNetworkHandler serverInfo Lnet/minecraft/client/network/ServerInfo;
 accessible field net/minecraft/world/chunk/PalettedContainer data Lnet/minecraft/world/chunk/PalettedContainer$Data;
 accessible field net/minecraft/world/chunk/PalettedContainer$Data storage Lnet/minecraft/util/collection/PaletteStorage;

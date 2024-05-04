@@ -9,7 +9,7 @@ import folk.sisby.surveyor.landmark.PlayerDeathLandmark;
 import folk.sisby.surveyor.util.TextUtil;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.packet.c2s.play.ClientSettingsC2SPacket;
+import net.minecraft.network.packet.c2s.common.SyncedClientOptions;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -25,7 +25,7 @@ public class MixinServerPlayerEntity implements SurveyorPlayer {
     PlayerSummary.ServerPlayerEntitySummary surveyor$summary = null;
 
     @Inject(method = "<init>", at = @At("TAIL"))
-    public void init(MinecraftServer server, ServerWorld world, GameProfile profile, CallbackInfo ci) {
+    public void init(MinecraftServer server, ServerWorld world, GameProfile profile, SyncedClientOptions clientOptions, CallbackInfo ci) {
         ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
         surveyor$summary = new PlayerSummary.ServerPlayerEntitySummary(self);
     }
@@ -42,11 +42,6 @@ public class MixinServerPlayerEntity implements SurveyorPlayer {
         ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
         surveyor$summary.read(nbt);
         ServerSummary.of(self.getServer()).updatePlayer(self.getUuid(), nbt, true, self.getServer());
-    }
-
-    @Inject(method = "setClientSettings", at = @At("HEAD"))
-    public void setSurveyorViewDistance(ClientSettingsC2SPacket packet, CallbackInfo ci) {
-        surveyor$summary.setViewDistance(packet.viewDistance());
     }
 
     @Inject(method = "onDeath", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/damage/DamageTracker;update()V"))

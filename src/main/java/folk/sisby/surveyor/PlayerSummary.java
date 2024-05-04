@@ -62,7 +62,7 @@ public interface PlayerSummary {
                 OfflinePlayerExploration.from(uuid, nbt.getCompound(KEY_DATA)),
                 nbt.getCompound(KEY_DATA).getString(KEY_USERNAME),
                 RegistryKey.of(RegistryKeys.WORLD, new Identifier(nbt.getString("Dimension"))),
-                ArrayUtil.toVec3d(nbt.getList("Pos", NbtElement.DOUBLE_TYPE).stream().mapToDouble(e -> ((NbtDouble) e).doubleValue()).toArray()),
+                nbt.contains("Pos", NbtElement.LIST_TYPE) ? ArrayUtil.toVec3d(nbt.getList("Pos", NbtElement.DOUBLE_TYPE).stream().mapToDouble(e -> ((NbtDouble) e).doubleValue()).toArray()) : new Vec3d(0, 0, 0),
                 nbt.getList("Rotation", NbtElement.FLOAT_TYPE).getFloat(0),
                 online
             );
@@ -121,7 +121,7 @@ public interface PlayerSummary {
     }
 
     class PlayerEntitySummary implements PlayerSummary {
-        private final PlayerEntity player;
+        protected final PlayerEntity player;
 
         public PlayerEntitySummary(PlayerEntity player) {
             this.player = player;
@@ -164,7 +164,6 @@ public interface PlayerSummary {
     }
 
     class ServerPlayerEntitySummary extends PlayerEntitySummary implements PlayerSummary {
-        private int viewDistance;
         private final ServerPlayerExploration exploration;
 
         public ServerPlayerEntitySummary(ServerPlayerEntity player) {
@@ -179,11 +178,7 @@ public interface PlayerSummary {
 
         @Override
         public int viewDistance() {
-            return viewDistance;
-        }
-
-        public void setViewDistance(int viewDistance) {
-            this.viewDistance = viewDistance;
+            return ((ServerPlayerEntity) this.player).getViewDistance();
         }
 
         public void read(NbtCompound nbt) {

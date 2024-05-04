@@ -14,6 +14,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
+import net.minecraft.nbt.NbtSizeTracker;
 import net.minecraft.nbt.NbtString;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.Registries;
@@ -137,7 +138,7 @@ public class WorldStructureSummary {
         if (dirty) {
             File structureFile = new File(folder, "structures.dat");
             try {
-                NbtIo.writeCompressed(writeNbt(new NbtCompound()), structureFile);
+                NbtIo.writeCompressed(writeNbt(new NbtCompound()), structureFile.toPath());
                 dirty = false;
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error writing world structure summary file for {}.", world.getRegistryKey().getValue(), e);
@@ -148,7 +149,7 @@ public class WorldStructureSummary {
                 NbtCompound regionCompound = summary.writeNbt(new NbtCompound());
                 File regionFile = new File(folder, "s.%d.%d.dat".formatted(pos.x, pos.z));
                 try {
-                    NbtIo.writeCompressed(regionCompound, regionFile);
+                    NbtIo.writeCompressed(regionCompound, regionFile.toPath());
                     summary.dirty = false;
                 } catch (IOException e) {
                     Surveyor.LOGGER.error("[Surveyor] Error writing region structure summary file {}.", regionFile.getName(), e);
@@ -186,7 +187,7 @@ public class WorldStructureSummary {
         NbtCompound worldNbt = new NbtCompound();
         if (structuresFile.exists()) {
             try {
-                worldNbt = NbtIo.readCompressed(structuresFile);
+                worldNbt = NbtIo.readCompressed(structuresFile.toPath(), NbtSizeTracker.ofUnlimitedBytes());
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error loading structure summary file for {}.", world.getRegistryKey().getValue(), e);
             }

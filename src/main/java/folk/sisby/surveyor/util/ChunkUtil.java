@@ -3,6 +3,7 @@ package folk.sisby.surveyor.util;
 import folk.sisby.surveyor.Surveyor;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtSizeTracker;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.chunk.Chunk;
 
@@ -40,7 +41,7 @@ public class ChunkUtil {
                 ChunkPos regionPos = new ChunkPos(Integer.parseInt(regionFile.getName().split("\\.")[1]), Integer.parseInt(regionFile.getName().split("\\.")[2]));
                 NbtCompound regionCompound = null;
                 try {
-                    regionCompound = NbtIo.readCompressed(regionFile);
+                    regionCompound = NbtIo.readCompressed(regionFile.toPath(), NbtSizeTracker.ofUnlimitedBytes());
                 } catch (IOException e) {
                     Surveyor.LOGGER.error("[Surveyor] Error loading region nbt file {}.", regionFile.getName(), e);
                 }

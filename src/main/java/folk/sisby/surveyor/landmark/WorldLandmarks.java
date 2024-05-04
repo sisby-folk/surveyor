@@ -11,6 +11,7 @@ import folk.sisby.surveyor.util.MapUtil;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.NbtSizeTracker;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -153,7 +154,7 @@ public class WorldLandmarks {
         if (dirty) {
             File landmarksFile = new File(folder, "landmarks.dat");
             try {
-                NbtIo.writeCompressed(Landmarks.writeNbt(landmarks, new NbtCompound()), landmarksFile);
+                NbtIo.writeCompressed(Landmarks.writeNbt(landmarks, new NbtCompound()), landmarksFile.toPath());
                 dirty = false;
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error writing landmarks file for {}.", world.getRegistryKey().getValue(), e);
@@ -168,7 +169,7 @@ public class WorldLandmarks {
         File landmarksFile = new File(folder, "landmarks.dat");
         if (landmarksFile.exists()) {
             try {
-                landmarkNbt = NbtIo.readCompressed(landmarksFile);
+                landmarkNbt = NbtIo.readCompressed(landmarksFile.toPath(), NbtSizeTracker.ofUnlimitedBytes());
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error loading landmarks file for {}.", world.getRegistryKey().getValue(), e);
             }

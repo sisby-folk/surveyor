@@ -24,11 +24,11 @@ import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.ServerInfo;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtSizeTracker;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.Uuids;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.Structure;
@@ -117,12 +117,11 @@ public class SurveyorClient implements ClientModInitializer {
 
     public static UUID getClientUuid() { // UUID needs to always match what the server is using.
         GameProfile profile = ((SurveyorNetworkHandler) MinecraftClient.getInstance().getNetworkHandler()).getProfile();
-        return Uuids.getUuidFromProfile(profile);
+        return profile.getId();
     }
 
     public static UUID getSingleplayerUuid() {
-        GameProfile profile = MinecraftClient.getInstance().getSession().getProfile();
-        return Uuids.getUuidFromProfile(profile);
+        return MinecraftClient.getInstance().getSession().getUuidOrNull();
     }
 
     public static ServerWorld stealServerWorld(RegistryKey<World> worldKey) {
@@ -177,7 +176,7 @@ public class SurveyorClient implements ClientModInitializer {
                 NbtCompound explorationNbt = new NbtCompound();
                 if (saveFile.exists()) {
                     try {
-                        explorationNbt = NbtIo.readCompressed(saveFile);
+                        explorationNbt = NbtIo.readCompressed(saveFile.toPath(), NbtSizeTracker.ofUnlimitedBytes());
                     } catch (IOException e) {
                         Surveyor.LOGGER.error("[Surveyor] Error loading client exploration file.", e);
                     }
@@ -193,7 +192,7 @@ public class SurveyorClient implements ClientModInitializer {
                     NbtCompound nbt = ClientExploration.INSTANCE.write(new NbtCompound());
                     NbtCompound sharedNbt = ClientExploration.SHARED.write(new NbtCompound());
                     nbt.put(KEY_SHARED, sharedNbt);
-                    NbtIo.writeCompressed(nbt, saveFile);
+                    NbtIo.writeCompressed(nbt, saveFile.toPath());
                 } catch (IOException e) {
                     Surveyor.LOGGER.error("[Surveyor] Error saving client exploration file.", e);
                 }

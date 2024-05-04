@@ -98,7 +98,7 @@ public class WorldTerrainSummary {
             NbtCompound regionCompound = summary.writeNbt(world.getRegistryManager(), new NbtCompound(), pos);
             File regionFile = new File(folder, "c.%d.%d.dat".formatted(pos.x, pos.z));
             try {
-                NbtIo.writeCompressed(regionCompound, regionFile);
+                NbtIo.writeCompressed(regionCompound, regionFile.toPath());
                 summary.dirty = false;
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error writing region summary file {}.", regionFile.getName(), e);
