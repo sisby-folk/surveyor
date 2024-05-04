@@ -55,7 +55,7 @@ public record S2CStructuresAddedPacket(boolean shared, Multimap<RegistryKey<Stru
             Multimap<RegistryKey<Structure>, ChunkPos> firstHalf = HashMultimap.create();
             Multimap<RegistryKey<Structure>, ChunkPos> secondHalf = HashMultimap.create();
             keySet.forEach((key, pos) -> {
-                if (firstHalf.size() < keySet.size()) {
+                if (firstHalf.size() < keySet.size() / 2) {
                     firstHalf.put(key, pos);
                 } else {
                     secondHalf.put(key, pos);

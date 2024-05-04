@@ -52,7 +52,7 @@ public record SyncLandmarksAddedPacket(Multimap<LandmarkType<?>, BlockPos> keySe
             Multimap<LandmarkType<?>, BlockPos> firstHalf = HashMultimap.create();
             Multimap<LandmarkType<?>, BlockPos> secondHalf = HashMultimap.create();
             keySet.forEach((key, pos) -> {
-                if (firstHalf.size() < keySet.size()) {
+                if (firstHalf.size() < keySet.size() / 2) {
                     firstHalf.put(key, pos);
                 } else {
                     secondHalf.put(key, pos);
