@@ -76,7 +76,7 @@ public class ChunkSummary {
                         } else { // Blocks Movement or Has Non-Water Fluid.
                             if (foundFloor == null) {
                                 if (carpetPos.getY() == y + 1) {
-                                    foundFloor = new LayerSummary.FloorSummary(carpetPos.getY(), section.getBiomeEntry(x, carpetPos.getY(), z, world.getBottomY(), world.getTopY()).value(), carpetBlock, world.getLightLevel(LightType.BLOCK, carpetPos), waterDepth);
+                                    foundFloor = new LayerSummary.FloorSummary(carpetPos.getY(), section.getBiomeEntry(x, carpetPos.getY(), z, world.getBottomY(), world.getTopY()).value(), carpetBlock, world.getLightLevel(LightType.BLOCK, carpetPos), waterDepth, waterDepth == 0 ? 0 : world.getLightLevel(LightType.BLOCK, pos.up().up(waterDepth)));
                                     if (carpetPos.getY() > layerHeights[layerIndex]) { // Actually a floor for the layer above
                                         if (layerFloors[layerIndex - 1][x * 16 + z] == null) layerFloors[layerIndex - 1][x * 16 + z] = foundFloor;
                                         foundFloor = null;
@@ -85,7 +85,7 @@ public class ChunkSummary {
                                     walkspaceHeight = 0;
                                     waterDepth = 0;
                                 } else if (walkspaceHeight >= MINIMUM_AIR_DEPTH && state.getMapColor(world, pos) != MapColor.CLEAR) {
-                                    foundFloor = new LayerSummary.FloorSummary(y, section.getBiomeEntry(x, y, z, world.getBottomY(), world.getTopY()).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, pos.up()), waterDepth);
+                                    foundFloor = new LayerSummary.FloorSummary(y, section.getBiomeEntry(x, y, z, world.getBottomY(), world.getTopY()).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, pos.up()), waterDepth, waterDepth == 0 ? 0 : world.getLightLevel(LightType.BLOCK, pos.up().up(waterDepth)));
                                 }
                             }
                             if (state.getMapColor(world, pos) != MapColor.CLEAR) { // Don't reset walkspace for glass/barriers/etc.
@@ -148,7 +148,7 @@ public class ChunkSummary {
 
     public void remap(Map<Integer, Integer> biomeRemap, Map<Integer, Integer> blockRemap) {
         Map<Integer, LayerSummary> newLayers = new HashMap<>();
-        layers.forEach((y, layer) -> newLayers.put(y, layer == null ? null : new LayerSummary(layer.found, layer.depth, UInts.remap(layer.biome, biomeRemap::get, LayerSummary.BIOME_DEFAULT, layer.found.cardinality()), UInts.remap(layer.block, blockRemap::get, LayerSummary.BLOCK_DEFAULT, layer.found.cardinality()), layer.light, layer.water)));
+        layers.forEach((y, layer) -> newLayers.put(y, layer == null ? null : new LayerSummary(layer.found, layer.depth, UInts.remap(layer.biome, biomeRemap::get, LayerSummary.BIOME_DEFAULT, layer.found.cardinality()), UInts.remap(layer.block, blockRemap::get, LayerSummary.BLOCK_DEFAULT, layer.found.cardinality()), layer.light, layer.water, layer.glint)));
         layers.clear();
         layers.putAll(newLayers);
     }
@@ -166,7 +166,7 @@ public class ChunkSummary {
      * @return A layer summary of top floors.
      */
     public @Nullable LayerSummary.Raw toSingleLayer(Integer minY, Integer maxY, int worldHeight) {
-        LayerSummary.Raw outRaw = new LayerSummary.Raw(new BitSet(256), new int[256], new int[256], new int[256], new int[256], new int[256]);
+        LayerSummary.Raw outRaw = new LayerSummary.Raw(new BitSet(256), new int[256], new int[256], new int[256], new int[256], new int[256], new int[256]);
         layers.descendingMap().forEach((y, layer) -> {
             if (layer != null) {
                 layer.fillEmptyFloors(
