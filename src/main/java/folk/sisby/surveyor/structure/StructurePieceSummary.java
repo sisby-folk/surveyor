@@ -29,8 +29,8 @@ public class StructurePieceSummary extends StructurePiece {
     }
 
     public StructurePieceSummary(NbtCompound nbt) {
-        super(Registries.STRUCTURE_PIECE.get(new Identifier(nbt.getString("id"))), nbt); // Might set the type as null
-        this.typeKey = RegistryKey.of(RegistryKeys.STRUCTURE_PIECE, new Identifier(nbt.getString("id")));
+        super(Registries.STRUCTURE_PIECE.get(Identifier.of(nbt.getString("id"))), nbt); // Might set the type as null
+        this.typeKey = RegistryKey.of(RegistryKeys.STRUCTURE_PIECE, Identifier.of(nbt.getString("id")));
         this.pieceNbt = nbt.getCompound("nbt");
     }
 

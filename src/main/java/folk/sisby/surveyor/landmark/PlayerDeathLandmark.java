@@ -14,7 +14,7 @@ import java.util.UUID;
 
 public record PlayerDeathLandmark(BlockPos pos, UUID owner, Text name, long created, int seed) implements Landmark<PlayerDeathLandmark>, HasCreated, HasSeed {
     public static LandmarkType<PlayerDeathLandmark> TYPE = new SimpleLandmarkType<>(
-        new Identifier(Surveyor.ID, "player_death"),
+        Identifier.of(Surveyor.ID, "player_death"),
         pos -> RecordCodecBuilder.create(instance -> instance.group(
             Uuids.CODEC.fieldOf("owner").forGetter(Landmark::owner),
             TextCodecs.CODEC.fieldOf("name").forGetter(Landmark::name),

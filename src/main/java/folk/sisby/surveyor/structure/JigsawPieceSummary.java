@@ -67,7 +67,7 @@ public class JigsawPieceSummary extends StructurePieceSummary {
         }
         String idKey = TYPE_KEYS.keySet().stream().filter(nbt::contains).findFirst().orElseThrow();
         this.elementType = TYPE_KEYS.get(idKey);
-        this.id = new Identifier(nbt.getString(idKey));
+        this.id = Identifier.of(nbt.getString(idKey));
     }
 
     public static List<StructurePieceSummary> tryFromElement(StructurePoolElement poolElement, PoolStructurePiece piece) {

@@ -20,7 +20,6 @@ import net.minecraft.world.World;
 import net.minecraft.world.gen.structure.Structure;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -117,14 +116,14 @@ public class RegionStructureSummary {
         Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> structures = new ConcurrentHashMap<>();
         NbtCompound structuresCompound = nbt.getCompound(KEY_STRUCTURES);
         for (String structureId : structuresCompound.getKeys()) {
-            RegistryKey<Structure> key = RegistryKey.of(RegistryKeys.STRUCTURE, new Identifier(structureId));
+            RegistryKey<Structure> key = RegistryKey.of(RegistryKeys.STRUCTURE, Identifier.of(structureId));
             NbtCompound structureCompound = structuresCompound.getCompound(structureId);
             NbtCompound startsCompound = structureCompound.getCompound(KEY_STARTS);
             for (String posKey : startsCompound.getKeys()) {
                 int x = Integer.parseInt(posKey.split(",")[0]);
                 int z = Integer.parseInt(posKey.split(",")[1]);
                 NbtCompound startCompound = startsCompound.getCompound(posKey);
-                Collection<StructurePieceSummary> pieces = new ArrayList<>();
+                List<StructurePieceSummary> pieces = new ArrayList<>();
                 for (NbtElement pieceElement : startCompound.getList(KEY_PIECES, NbtElement.COMPOUND_TYPE)) {
                     pieces.add(readStructurePieceNbt((NbtCompound) pieceElement));
                 }

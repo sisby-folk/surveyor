@@ -1,7 +1,6 @@
 package folk.sisby.surveyor.packet;
 
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -12,11 +11,9 @@ import java.util.List;
 
 public interface S2CPacket extends SurveyorPacket {
     default void send(Collection<ServerPlayerEntity> players) {
-        Collection<PacketByteBuf> bufs = null;
         for (ServerPlayerEntity player : players) {
             if (!ServerPlayNetworking.canSend(player, getId()) || player.getServer().isHost(player.getGameProfile())) continue;
-            if (bufs == null) bufs = toBufs();
-            bufs.forEach(buf -> ServerPlayNetworking.send(player, getId(), buf));
+            ServerPlayNetworking.send(player, this);
         }
     }
 

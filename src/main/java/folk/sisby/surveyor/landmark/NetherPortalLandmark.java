@@ -20,7 +20,7 @@ public record NetherPortalLandmark(BlockBox box, Direction.Axis axis) implements
     }
 
     public static LandmarkType<NetherPortalLandmark> TYPE = new SimpleLandmarkType<>(
-        new Identifier(Surveyor.ID, "poi/nether_portal"),
+        Identifier.of(Surveyor.ID, "poi/nether_portal"),
         pos -> RecordCodecBuilder.create(instance -> instance.group(
             BlockBox.CODEC.fieldOf("box").forGetter(HasBlockBox::box),
             Direction.Axis.CODEC.fieldOf("axis").forGetter(HasAxis::axis)

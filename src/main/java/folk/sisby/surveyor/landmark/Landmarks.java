@@ -2,7 +2,6 @@ package folk.sisby.surveyor.landmark;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
-import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.util.DispatchMapCodec;
 import folk.sisby.surveyor.util.SurveyorCodecs;
 import net.minecraft.nbt.NbtCompound;
@@ -44,12 +43,12 @@ public class Landmarks {
     }
 
     public static NbtCompound writeNbt(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks, NbtCompound nbt) {
-        nbt.put(KEY_LANDMARKS, CODEC.encodeStart(NbtOps.INSTANCE, landmarks).getOrThrow(false, Surveyor.LOGGER::error));
+        nbt.put(KEY_LANDMARKS, CODEC.encodeStart(NbtOps.INSTANCE, landmarks).getOrThrow());
         return nbt;
     }
 
     public static Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> fromNbt(NbtCompound nbt) {
-        return CODEC.decode(NbtOps.INSTANCE, nbt.getCompound(KEY_LANDMARKS)).getOrThrow(false, Surveyor.LOGGER::error).getFirst();
+        return CODEC.decode(NbtOps.INSTANCE, nbt.getCompound(KEY_LANDMARKS)).getOrThrow().getFirst();
     }
 
     public static LandmarkType<?> getType(Identifier id) {

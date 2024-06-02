@@ -157,11 +157,11 @@ public class SurveyorClient implements ClientModInitializer {
                 SurveyorClientEvents.Invoke.worldLoad(MinecraftClient.getInstance().player.clientWorld, MinecraftClient.getInstance().player);
             }
         }));
-        SurveyorEvents.Register.landmarksAdded(new Identifier(Surveyor.ID, "client"), ((world, worldLandmarks, landmarks) -> {
+        SurveyorEvents.Register.landmarksAdded(Identifier.of(Surveyor.ID, "client"), ((world, worldLandmarks, landmarks) -> {
             SurveyorExploration exploration = getExploration();
             if (exploration != null) SurveyorClientEvents.Invoke.landmarksAdded(world, exploration.limitLandmarkKeySet(world.getRegistryKey(), worldLandmarks, HashMultimap.create(landmarks)));
         }));
-        SurveyorEvents.Register.landmarksRemoved(new Identifier(Surveyor.ID, "client"), (world, summary, landmarks) -> SurveyorClientEvents.Invoke.landmarksRemoved(world, landmarks));
+        SurveyorEvents.Register.landmarksRemoved(Identifier.of(Surveyor.ID, "client"), (world, summary, landmarks) -> SurveyorClientEvents.Invoke.landmarksRemoved(world, landmarks));
     }
 
     public record ClientExploration(Set<UUID> groupPlayers, Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures) implements SurveyorExploration {

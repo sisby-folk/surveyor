@@ -10,7 +10,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtDouble;
 import net.minecraft.nbt.NbtElement;
-import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
@@ -61,7 +61,7 @@ public interface PlayerSummary {
             this(
                 OfflinePlayerExploration.from(uuid, nbt.getCompound(KEY_DATA)),
                 nbt.getCompound(KEY_DATA).getString(KEY_USERNAME),
-                RegistryKey.of(RegistryKeys.WORLD, new Identifier(nbt.getString("Dimension"))),
+                RegistryKey.of(RegistryKeys.WORLD, Identifier.of(nbt.getString("Dimension"))),
                 nbt.contains("Pos", NbtElement.LIST_TYPE) ? ArrayUtil.toVec3d(nbt.getList("Pos", NbtElement.DOUBLE_TYPE).stream().mapToDouble(e -> ((NbtDouble) e).doubleValue()).toArray()) : new Vec3d(0, 0, 0),
                 nbt.getList("Rotation", NbtElement.FLOAT_TYPE).getFloat(0),
                 online
@@ -73,7 +73,7 @@ public interface PlayerSummary {
             return 0;
         }
 
-        public static void writeBuf(PacketByteBuf buf, PlayerSummary summary) {
+        public static void writeBuf(PlayerSummary summary, RegistryByteBuf buf) {
             buf.writeString(summary.username());
             buf.writeRegistryKey(summary.dimension());
             buf.writeDouble(summary.pos().x);
@@ -83,7 +83,7 @@ public interface PlayerSummary {
             buf.writeBoolean(summary.online());
         }
 
-        public static PlayerSummary readBuf(PacketByteBuf buf) {
+        public static PlayerSummary readBuf(RegistryByteBuf buf) {
             return new OfflinePlayerSummary(
                 null,
                 buf.readString(),
@@ -207,7 +207,7 @@ public interface PlayerSummary {
                         SurveyorExploration friendExploration = SurveyorExploration.of(friend);
                         BitSet sendSet = (BitSet) bitSet.clone();
                         if (friendExploration.terrain().containsKey(worldKey) && friendExploration.terrain().get(worldKey).containsKey(regionPos)) sendSet.andNot(friendExploration.terrain().get(worldKey).get(regionPos));
-                        if (!sendSet.isEmpty()) new S2CUpdateRegionPacket(true, regionPos, WorldSummary.of(player.getWorld()).terrain().getRegion(regionPos), sendSet).send(friend);
+                        if (!sendSet.isEmpty()) S2CUpdateRegionPacket.of(true, regionPos, WorldSummary.of(player.getWorld()).terrain().getRegion(regionPos), sendSet).send(friend);
                     }
                 }
             }
@@ -222,7 +222,7 @@ public interface PlayerSummary {
                         RegionSummary region = WorldSummary.of(player.getServer().getWorld(worldKey)).terrain().getRegion(regionPos);
                         BitSet sendSet = new BitSet();
                         sendSet.set(RegionSummary.bitForChunk(pos));
-                        new S2CUpdateRegionPacket(true, regionPos, region, sendSet).send(friend);
+                        S2CUpdateRegionPacket.of(true, regionPos, region, sendSet).send(friend);
                     }
                 }
             }

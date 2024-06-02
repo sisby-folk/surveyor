@@ -23,7 +23,7 @@
     ]
   },
   "depends": {
-    "minecraft": ">=${mc}",
+    "minecraft": ">=1.21-",
     "fabricloader": ">=${fl}",
     "fabric-api": ">=${fapi}"
   },

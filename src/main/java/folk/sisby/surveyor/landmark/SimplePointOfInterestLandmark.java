@@ -13,7 +13,7 @@ import net.minecraft.world.poi.PointOfInterestType;
 
 public record SimplePointOfInterestLandmark(BlockPos pos, RegistryKey<PointOfInterestType> poiType, DyeColor color, Text name, Identifier texture) implements Landmark<SimplePointOfInterestLandmark>, HasPoiType {
     public static LandmarkType<SimplePointOfInterestLandmark> TYPE = new SimpleLandmarkType<>(
-            new Identifier(Surveyor.ID, "poi"),
+            Identifier.of(Surveyor.ID, "poi"),
             pos -> RecordCodecBuilder.create(instance -> instance.group(
                     RegistryKey.createCodec(RegistryKeys.POINT_OF_INTEREST_TYPE).fieldOf("poiType").forGetter(HasPoiType::poiType),
                     DyeColor.CODEC.fieldOf("color").orElse(null).forGetter(Landmark::color),

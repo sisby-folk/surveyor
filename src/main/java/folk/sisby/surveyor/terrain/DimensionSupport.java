@@ -28,7 +28,7 @@ public class DimensionSupport {
             int newLayer = 0;
             if (newLayer > dimension.minY() && newLayer < dimension.minY() + dimension.height()) layers.add(newLayer);
         }
-        if (world.getDimensionKey() == DimensionTypes.THE_NETHER) {
+        if (world.getDimensionEntry().getKey().orElseThrow() == DimensionTypes.THE_NETHER) {
             layers.add(70); // Mid outcrops
             layers.add(40); // Lava Shores
         }

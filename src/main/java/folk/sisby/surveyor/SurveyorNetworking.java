@@ -7,12 +7,14 @@ import folk.sisby.surveyor.packet.C2SKnownLandmarksPacket;
 import folk.sisby.surveyor.packet.C2SKnownStructuresPacket;
 import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
 import folk.sisby.surveyor.packet.C2SPacket;
+import folk.sisby.surveyor.packet.S2CGroupChangedPacket;
+import folk.sisby.surveyor.packet.S2CGroupUpdatedPacket;
 import folk.sisby.surveyor.packet.SyncLandmarksAddedPacket;
 import folk.sisby.surveyor.packet.SyncLandmarksRemovedPacket;
 import folk.sisby.surveyor.packet.S2CStructuresAddedPacket;
 import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -23,7 +25,6 @@ import net.minecraft.world.gen.structure.Structure;
 import java.util.BitSet;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class SurveyorNetworking {
 
@@ -31,11 +32,24 @@ public class SurveyorNetworking {
     };
 
     public static void init() {
-        ServerPlayNetworking.registerGlobalReceiver(C2SKnownTerrainPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, C2SKnownTerrainPacket::read, SurveyorNetworking::handleKnownTerrain));
-        ServerPlayNetworking.registerGlobalReceiver(C2SKnownStructuresPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, C2SKnownStructuresPacket::read, SurveyorNetworking::handleKnownStructures));
-        ServerPlayNetworking.registerGlobalReceiver(C2SKnownLandmarksPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, C2SKnownLandmarksPacket::read, SurveyorNetworking::handleKnownLandmarks));
-        ServerPlayNetworking.registerGlobalReceiver(SyncLandmarksAddedPacket.ID, (sv, p, h, b, se) -> handleServerUnparsed(p, b, SurveyorNetworking::handleLandmarksAdded));
-        ServerPlayNetworking.registerGlobalReceiver(SyncLandmarksRemovedPacket.ID, (sv, p, h, b, se) -> handleServer(p, b, SyncLandmarksRemovedPacket::read, SurveyorNetworking::handleLandmarksRemoved));
+        PayloadTypeRegistry.playC2S().register(C2SKnownTerrainPacket.ID, C2SKnownTerrainPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(C2SKnownStructuresPacket.ID, C2SKnownStructuresPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(C2SKnownLandmarksPacket.ID, C2SKnownLandmarksPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(SyncLandmarksAddedPacket.ID, SyncLandmarksAddedPacket.CODEC);
+        PayloadTypeRegistry.playC2S().register(SyncLandmarksRemovedPacket.ID, SyncLandmarksRemovedPacket.CODEC);
+
+        PayloadTypeRegistry.playS2C().register(S2CUpdateRegionPacket.ID, S2CUpdateRegionPacket.CODEC);
+        PayloadTypeRegistry.playS2C().register(S2CStructuresAddedPacket.ID, S2CStructuresAddedPacket.CODEC);
+        PayloadTypeRegistry.playS2C().register(S2CGroupChangedPacket.ID, S2CGroupChangedPacket.CODEC);
+        PayloadTypeRegistry.playS2C().register(S2CGroupUpdatedPacket.ID, S2CGroupUpdatedPacket.CODEC);
+        PayloadTypeRegistry.playS2C().register(SyncLandmarksAddedPacket.ID, SyncLandmarksAddedPacket.CODEC);
+        PayloadTypeRegistry.playS2C().register(SyncLandmarksRemovedPacket.ID, SyncLandmarksRemovedPacket.CODEC);
+
+        ServerPlayNetworking.registerGlobalReceiver(C2SKnownTerrainPacket.ID, (packet, context) -> handleServer(packet, context, SurveyorNetworking::handleKnownTerrain));
+        ServerPlayNetworking.registerGlobalReceiver(C2SKnownStructuresPacket.ID, (packet, context) -> handleServer(packet, context, SurveyorNetworking::handleKnownStructures));
+        ServerPlayNetworking.registerGlobalReceiver(C2SKnownLandmarksPacket.ID, (packet, context) -> handleServer(packet, context, SurveyorNetworking::handleKnownLandmarks));
+        ServerPlayNetworking.registerGlobalReceiver(SyncLandmarksAddedPacket.ID, (packet, context) -> handleServer(packet, context, SurveyorNetworking::handleLandmarksAdded));
+        ServerPlayNetworking.registerGlobalReceiver(SyncLandmarksRemovedPacket.ID, (packet, context) -> handleServer(packet, context, SurveyorNetworking::handleLandmarksRemoved));
     }
 
     private static void handleKnownTerrain(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownTerrainPacket packet) {
@@ -46,9 +60,9 @@ public class SurveyorNetworking {
             if (!set.isEmpty()) {
                 SurveyorExploration personalExploration = SurveyorExploration.of(player);
                 BitSet personalSet = personalExploration.limitTerrainBitset(world.getRegistryKey(), rPos, (BitSet) set.clone());
-                if (!personalSet.isEmpty()) new S2CUpdateRegionPacket(false, rPos, summary.terrain().getRegion(rPos), personalSet).send(player);
+                if (!personalSet.isEmpty()) S2CUpdateRegionPacket.of(false, rPos, summary.terrain().getRegion(rPos), personalSet).send(player);
                 set.andNot(personalSet);
-                if (!set.isEmpty()) new S2CUpdateRegionPacket(true, rPos, summary.terrain().getRegion(rPos), set).send(player);
+                if (!set.isEmpty()) S2CUpdateRegionPacket.of(true, rPos, summary.terrain().getRegion(rPos), set).send(player);
             }
         });
     }
@@ -59,19 +73,19 @@ public class SurveyorNetworking {
         if (structures.isEmpty()) return;
         SurveyorExploration personalExploration = SurveyorExploration.of(player);
         Multimap<RegistryKey<Structure>, ChunkPos> personalStructures = personalExploration.limitStructureKeySet(world.getRegistryKey(), HashMultimap.create(structures));
-        if (!personalStructures.isEmpty()) new S2CStructuresAddedPacket(false, personalStructures, summary.structures()).send(player);
+        if (!personalStructures.isEmpty()) S2CStructuresAddedPacket.of(false, personalStructures, summary.structures()).send(player);
         personalStructures.forEach(structures::remove);
-        if (!structures.isEmpty()) new S2CStructuresAddedPacket(true, structures, summary.structures()).send(player);
+        if (!structures.isEmpty()) S2CStructuresAddedPacket.of(true, structures, summary.structures()).send(player);
     }
 
     private static void handleKnownLandmarks(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownLandmarksPacket packet) {
         Multimap<LandmarkType<?>, BlockPos> landmarks = summary.landmarks().keySet(SurveyorExploration.ofShared(player));
         packet.landmarks().forEach(landmarks::remove);
-        if (!landmarks.isEmpty()) new SyncLandmarksAddedPacket(landmarks, summary.landmarks()).send(player);
+        if (!landmarks.isEmpty()) SyncLandmarksAddedPacket.of(landmarks, summary.landmarks()).send(player);
     }
 
-    private static void handleLandmarksAdded(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, PacketByteBuf buf) {
-        SyncLandmarksAddedPacket packet = SyncLandmarksAddedPacket.handle(buf, world, summary, player);
+    private static void handleLandmarksAdded(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, SyncLandmarksAddedPacket packet) {
+        summary.landmarks().readUpdatePacket(world, packet, player);
     }
 
     private static void handleLandmarksRemoved(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, SyncLandmarksRemovedPacket packet) {
@@ -82,13 +96,8 @@ public class SurveyorNetworking {
         if (!changed.isEmpty()) summary.landmarks().handleChanged(world, changed, false, player);
     }
 
-    private static <T extends C2SPacket> void handleServer(ServerPlayerEntity player, PacketByteBuf buf, Function<PacketByteBuf, T> reader, ServerPacketHandler<T> handler) {
-        T packet = reader.apply(buf);
-        handler.handle(player, player.getServerWorld(), WorldSummary.of(player.getServerWorld()), packet);
-    }
-
-    private static void handleServerUnparsed(ServerPlayerEntity player, PacketByteBuf buf, ServerPacketHandler<PacketByteBuf> handler) {
-        handler.handle(player, player.getServerWorld(), WorldSummary.of(player.getWorld()), buf);
+    private static <T extends C2SPacket> void handleServer(T packet, ServerPlayNetworking.Context context, ServerPacketHandler<T> handler) {
+        handler.handle(context.player(), context.player().getServerWorld(), WorldSummary.of(context.player().getServerWorld()), packet);
     }
 
     public interface ServerPacketHandler<T> {

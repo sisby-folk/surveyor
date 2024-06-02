@@ -2,13 +2,13 @@ package folk.sisby.surveyor.structure;
 
 import net.minecraft.util.math.BlockBox;
 
-import java.util.Collection;
+import java.util.List;
 
 public class StructureStartSummary {
-    protected final Collection<StructurePieceSummary> children;
+    protected final List<StructurePieceSummary> children;
     protected BlockBox boundingBox;
 
-    public StructureStartSummary(Collection<StructurePieceSummary> children) {
+    public StructureStartSummary(List<StructurePieceSummary> children) {
         this.children = children;
     }
 
@@ -19,7 +19,7 @@ public class StructureStartSummary {
         return boundingBox;
     }
 
-    public Collection<StructurePieceSummary> getChildren() {
+    public List<StructurePieceSummary> getChildren() {
         return children;
     }
 }

@@ -1,61 +1,37 @@
 package folk.sisby.surveyor.packet;
 
 import folk.sisby.surveyor.Surveyor;
-import folk.sisby.surveyor.WorldSummary;
+import folk.sisby.surveyor.terrain.ChunkSummary;
 import folk.sisby.surveyor.terrain.RegionSummary;
-import folk.sisby.surveyor.util.BitSetUtil;
-import io.netty.buffer.Unpooled;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.network.RegistryByteBuf;
+import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.network.codec.PacketCodecs;
+import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.dynamic.Codecs;
 import net.minecraft.util.math.ChunkPos;
 
-import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Collection;
 import java.util.List;
 
-public record S2CUpdateRegionPacket(boolean shared, ChunkPos regionPos, RegionSummary summary, BitSet chunks) implements S2CPacket {
-    public static final Identifier ID = new Identifier(Surveyor.ID, "s2c_update_region");
+public record S2CUpdateRegionPacket(boolean shared, ChunkPos regionPos, List<Integer> biomePalette, List<Integer> blockPalette, BitSet set, List<ChunkSummary> chunks) implements S2CPacket {
+    public static final CustomPayload.Id<S2CUpdateRegionPacket> ID = new CustomPayload.Id<>(Identifier.of(Surveyor.ID, "s2c_update_region"));
+    public static final PacketCodec<RegistryByteBuf, S2CUpdateRegionPacket> CODEC = PacketCodec.tuple(
+        PacketCodecs.BOOL, S2CUpdateRegionPacket::shared,
+        PacketCodecs.VAR_LONG.xmap(ChunkPos::new, ChunkPos::toLong), S2CUpdateRegionPacket::regionPos,
+        PacketCodecs.INTEGER.collect(PacketCodecs.toList()), S2CUpdateRegionPacket::biomePalette,
+        PacketCodecs.INTEGER.collect(PacketCodecs.toList()), S2CUpdateRegionPacket::blockPalette,
+        PacketCodecs.codec(Codecs.BIT_SET), S2CUpdateRegionPacket::set,
+        PacketCodec.of(ChunkSummary::writeBuf, ChunkSummary::new).collect(PacketCodecs.toList()), S2CUpdateRegionPacket::chunks,
+        S2CUpdateRegionPacket::new
+    );
 
-    public static S2CUpdateRegionPacket handle(PacketByteBuf buf, DynamicRegistryManager manager, WorldSummary summary) {
-        boolean shared = buf.readBoolean();
-        ChunkPos regionPos = buf.readChunkPos();
-        RegionSummary region = summary.terrain().getRegion(regionPos);
-        BitSet chunks = region.readBuf(manager, buf);
-        return new S2CUpdateRegionPacket(
-            shared,
-            regionPos,
-            region,
-            chunks
-        );
+    public static S2CUpdateRegionPacket of(boolean shared, ChunkPos regionPos, RegionSummary summary, BitSet keys) {
+        return summary.createUpdatePacket(shared, regionPos, keys);
     }
 
     @Override
-    public void writeBuf(PacketByteBuf buf) {
-        buf.writeBoolean(shared);
-        buf.writeChunkPos(regionPos);
-        summary.writeBuf(buf, chunks);
-    }
-
-    @Override
-    public Collection<PacketByteBuf> toBufs() {
-        List<PacketByteBuf> bufs = new ArrayList<>();
-        PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-        writeBuf(buf);
-        if (buf.readableBytes() < MAX_PAYLOAD_SIZE) {
-            bufs.add(buf);
-        } else {
-            if (chunks.cardinality() == 1) throw new RuntimeException("Couldn't create a terrain update packet - an individual chunk would be too large to send!");
-            for (BitSet splitChunks : BitSetUtil.half(chunks)) {
-                bufs.addAll(new S2CUpdateRegionPacket(shared, regionPos, summary, splitChunks).toBufs());
-            }
-        }
-        return bufs;
-    }
-
-    @Override
-    public Identifier getId() {
+    public CustomPayload.Id<S2CUpdateRegionPacket> getId() {
         return ID;
     }
 }

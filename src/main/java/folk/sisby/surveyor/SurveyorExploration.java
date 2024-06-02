@@ -242,7 +242,7 @@ public interface SurveyorExploration {
                     i += bitLength;
                 }
             }
-            terrain().put(RegistryKey.of(RegistryKeys.WORLD, new Identifier(worldKeyString)), regionMap);
+            terrain().put(RegistryKey.of(RegistryKeys.WORLD, Identifier.of(worldKeyString)), regionMap);
         }
 
         NbtCompound structuresCompound = nbt.getCompound(KEY_EXPLORED_STRUCTURES);
@@ -250,9 +250,9 @@ public interface SurveyorExploration {
             Map<RegistryKey<Structure>, LongSet> structureMap = new HashMap<>();
             NbtCompound worldStructuresCompound = structuresCompound.getCompound(worldKeyString);
             for (String key : worldStructuresCompound.getKeys()) {
-                structureMap.put(RegistryKey.of(RegistryKeys.STRUCTURE, new Identifier(key)), new LongOpenHashSet(worldStructuresCompound.getLongArray(key)));
+                structureMap.put(RegistryKey.of(RegistryKeys.STRUCTURE, Identifier.of(key)), new LongOpenHashSet(worldStructuresCompound.getLongArray(key)));
             }
-            structures().put(RegistryKey.of(RegistryKeys.WORLD, new Identifier(worldKeyString)), structureMap);
+            structures().put(RegistryKey.of(RegistryKeys.WORLD, Identifier.of(worldKeyString)), structureMap);
         }
     }
 }

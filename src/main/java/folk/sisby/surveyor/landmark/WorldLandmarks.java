@@ -10,9 +10,7 @@ import folk.sisby.surveyor.packet.SyncLandmarksRemovedPacket;
 import folk.sisby.surveyor.util.MapUtil;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.NbtSizeTracker;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -84,7 +82,7 @@ public class WorldLandmarks {
         if (!landmarksAddedChanged.isEmpty()) SurveyorEvents.Invoke.landmarksAdded(world, landmarksAddedChanged);
         if (!local) {
             if (!landmarksRemoved.isEmpty()) new SyncLandmarksRemovedPacket(landmarksRemoved).send(sender, world);
-            if (!landmarksAddedChanged.isEmpty()) new SyncLandmarksAddedPacket(landmarksAddedChanged, this).send(sender, world);
+            if (!landmarksAddedChanged.isEmpty()) SyncLandmarksAddedPacket.of(landmarksAddedChanged, this).send(sender, world);
         }
     }
 
@@ -177,25 +175,18 @@ public class WorldLandmarks {
         return new WorldLandmarks(world.getRegistryKey(), Landmarks.fromNbt(landmarkNbt));
     }
 
-    public Multimap<LandmarkType<?>, BlockPos> readBuf(World world, PacketByteBuf buf, @Nullable ServerPlayerEntity sender) {
-        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks = buf.readMap(
-            b -> Landmarks.getType(b.readIdentifier()),
-            b -> b.readMap(PacketByteBuf::readBlockPos, b2 -> Landmarks.CODEC.decode(NbtOps.INSTANCE, b2.readNbt()).getOrThrow(false, Surveyor.LOGGER::error).getFirst().values().stream().findFirst().orElseThrow().values().stream().findFirst().orElseThrow())
-        );
+    public Multimap<LandmarkType<?>, BlockPos> readUpdatePacket(World world, SyncLandmarksAddedPacket packet, @Nullable ServerPlayerEntity sender) {
         Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
-        landmarks.forEach((type, map) -> map.forEach((pos, landmark) -> {
+        packet.landmarks().forEach((type, map) -> map.forEach((pos, landmark) -> {
             if (sender == null || sender.getUuid().equals(landmark.owner())) putForBatch(changed, landmark);
         }));
         if (!changed.isEmpty()) handleChanged(world, changed, sender == null, sender);
-        return MapUtil.keyMultiMap(landmarks);
+        return MapUtil.keyMultiMap(packet.landmarks());
     }
 
-    public void writeBuf(PacketByteBuf buf, Multimap<LandmarkType<?>, BlockPos> keySet) {
+    public SyncLandmarksAddedPacket createUpdatePacket(Multimap<LandmarkType<?>, BlockPos> keySet) {
         Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks = new HashMap<>();
         keySet.forEach((type, pos) -> landmarks.computeIfAbsent(type, k -> new HashMap<>()).put(pos, get(type, pos)));
-        buf.writeMap(landmarks,
-            (b, k) -> b.writeIdentifier(k.id()),
-            (b, m) -> b.writeMap(m, PacketByteBuf::writeBlockPos, (b2, landmark) -> b2.writeNbt((NbtCompound) Landmarks.CODEC.encodeStart(NbtOps.INSTANCE, Map.of(landmark.type(), Map.of(landmark.pos(), landmark))).getOrThrow(false, Surveyor.LOGGER::error)))
-        );
+        return new SyncLandmarksAddedPacket(landmarks);
     }
 }

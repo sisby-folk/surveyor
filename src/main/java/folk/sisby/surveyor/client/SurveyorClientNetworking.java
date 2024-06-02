@@ -21,37 +21,37 @@ import folk.sisby.surveyor.terrain.RegionSummary;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
-import net.minecraft.network.PacketByteBuf;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.util.math.BlockPos;
-
-import java.util.function.Function;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.gen.structure.Structure;
 
 public class SurveyorClientNetworking {
     public static void init() {
         SurveyorNetworking.C2S_SENDER = p -> {
             if (!ClientPlayNetworking.canSend(p.getId())) return;
-            p.toBufs().forEach(buf -> ClientPlayNetworking.send(p.getId(), buf));
+            ClientPlayNetworking.send(p);
         };
-        ClientPlayNetworking.registerGlobalReceiver(S2CStructuresAddedPacket.ID, (c, h, b, s) -> handleClientUnparsed(b, SurveyorClientNetworking::handleStructuresAdded));
-        ClientPlayNetworking.registerGlobalReceiver(S2CUpdateRegionPacket.ID, (c, h, b, s) -> handleClientUnparsed(b, SurveyorClientNetworking::handleTerrainAdded));
-        ClientPlayNetworking.registerGlobalReceiver(S2CGroupChangedPacket.ID, (c, h, b, s) -> handleClient(b, S2CGroupChangedPacket::read, SurveyorClientNetworking::handleGroupChanged));
-        ClientPlayNetworking.registerGlobalReceiver(S2CGroupUpdatedPacket.ID, (c, h, b, s) -> handleClient(b, S2CGroupUpdatedPacket::read, SurveyorClientNetworking::handleGroupUpdated));
-        ClientPlayNetworking.registerGlobalReceiver(SyncLandmarksAddedPacket.ID, (c, h, b, s) -> handleClientUnparsed(b, SurveyorClientNetworking::handleLandmarksAdded));
-        ClientPlayNetworking.registerGlobalReceiver(SyncLandmarksRemovedPacket.ID, (c, h, b, s) -> handleClient(b, SyncLandmarksRemovedPacket::read, SurveyorClientNetworking::handleLandmarksRemoved));
+        ClientPlayNetworking.registerGlobalReceiver(S2CStructuresAddedPacket.ID, (packet, context) -> handleClient(packet, context, SurveyorClientNetworking::handleStructuresAdded));
+        ClientPlayNetworking.registerGlobalReceiver(S2CUpdateRegionPacket.ID, (packet, context) -> handleClient(packet, context, SurveyorClientNetworking::handleTerrainAdded));
+        ClientPlayNetworking.registerGlobalReceiver(S2CGroupChangedPacket.ID, (packet, context) -> handleClient(packet, context, SurveyorClientNetworking::handleGroupChanged));
+        ClientPlayNetworking.registerGlobalReceiver(S2CGroupUpdatedPacket.ID, (packet, context) -> handleClient(packet, context, SurveyorClientNetworking::handleGroupUpdated));
+        ClientPlayNetworking.registerGlobalReceiver(SyncLandmarksAddedPacket.ID, (packet, context) -> handleClient(packet, context, SurveyorClientNetworking::handleLandmarksAdded));
+        ClientPlayNetworking.registerGlobalReceiver(SyncLandmarksRemovedPacket.ID, (packet, context) -> handleClient(packet, context, SurveyorClientNetworking::handleLandmarksRemoved));
     }
 
-    private static void handleStructuresAdded(ClientWorld world, WorldSummary summary, PacketByteBuf buf) {
-        S2CStructuresAddedPacket packet = S2CStructuresAddedPacket.handle(buf, world, summary);
+    private static void handleStructuresAdded(ClientWorld world, WorldSummary summary, S2CStructuresAddedPacket packet) {
+        Multimap<RegistryKey<Structure>, ChunkPos> keySet = summary.structures().readUpdatePacket(world, packet);
         if (MinecraftClient.getInstance().player != null) {
             SurveyorExploration exploration = (packet.shared() ? SurveyorClient.getSharedExploration() : SurveyorClient.getPersonalExploration());
-            packet.keySet().forEach((key, pos) -> exploration.addStructure(world.getRegistryKey(), key, pos));
+            keySet.forEach((key, pos) -> exploration.addStructure(world.getRegistryKey(), key, pos));
         }
     }
 
-    private static void handleTerrainAdded(ClientWorld world, WorldSummary summary, PacketByteBuf buf) {
-        S2CUpdateRegionPacket packet = S2CUpdateRegionPacket.handle(buf, world.getRegistryManager(), summary);
-        (packet.shared() ? SurveyorClient.getSharedExploration() : SurveyorClient.getPersonalExploration()).mergeRegion(world.getRegistryKey(), packet.regionPos(), packet.chunks());
-        SurveyorEvents.Invoke.terrainUpdated(world, packet.chunks().stream().mapToObj(i -> RegionSummary.chunkForBit(packet.regionPos(), i)).toList());
+    private static void handleTerrainAdded(ClientWorld world, WorldSummary summary, S2CUpdateRegionPacket packet) {
+        summary.terrain().getRegion(packet.regionPos()).readUpdatePacket(world.getRegistryManager(), packet);
+        (packet.shared() ? SurveyorClient.getSharedExploration() : SurveyorClient.getPersonalExploration()).mergeRegion(world.getRegistryKey(), packet.regionPos(), packet.set());
+        SurveyorEvents.Invoke.terrainUpdated(world, packet.set().stream().mapToObj(i -> RegionSummary.chunkForBit(packet.regionPos(), i)).toList());
     }
 
     private static void handleGroupChanged(ClientWorld world, WorldSummary summary, S2CGroupChangedPacket packet) {
@@ -74,8 +74,8 @@ public class SurveyorClientNetworking {
         NetworkHandlerSummary.of(MinecraftClient.getInstance().getNetworkHandler()).mergeSummaries(packet.players());
     }
 
-    private static void handleLandmarksAdded(ClientWorld world, WorldSummary summary, PacketByteBuf buf) {
-        SyncLandmarksAddedPacket packet = SyncLandmarksAddedPacket.handle(buf, world, summary, null);
+    private static void handleLandmarksAdded(ClientWorld world, WorldSummary summary, SyncLandmarksAddedPacket packet) {
+        summary.landmarks().readUpdatePacket(world, packet, null);
     }
 
     private static void handleLandmarksRemoved(ClientWorld world, WorldSummary summary, SyncLandmarksRemovedPacket packet) {
@@ -84,18 +84,11 @@ public class SurveyorClientNetworking {
         summary.landmarks().handleChanged(world, changed, true, null);
     }
 
-    private static <T extends S2CPacket> void handleClient(PacketByteBuf buf, Function<PacketByteBuf, T> reader, ClientPacketHandler<T> handler) {
-        T packet = reader.apply(buf);
-        WorldSummary summary = MinecraftClient.getInstance().world == null ? null : WorldSummary.of(MinecraftClient.getInstance().world);
+    private static <T extends S2CPacket> void handleClient(T packet, ClientPlayNetworking.Context context, ClientPacketHandler<T> handler) {
+        ClientWorld world = context.client().world;
+        WorldSummary summary = world == null ? null : WorldSummary.of(world);
         if (summary != null && !summary.isClient()) return;
-        MinecraftClient.getInstance().execute(() -> handler.handle(MinecraftClient.getInstance().world, summary, packet));
-    }
-
-    private static void handleClientUnparsed(PacketByteBuf buf, ClientPacketHandler<PacketByteBuf> handler) {
-        ClientWorld world = MinecraftClient.getInstance().world;
-        WorldSummary summary = MinecraftClient.getInstance().world == null ? null : WorldSummary.of(MinecraftClient.getInstance().world);
-        if (summary != null && !summary.isClient()) return;
-        handler.handle(world, summary, buf);
+        MinecraftClient.getInstance().execute(() -> handler.handle(world, summary, packet));
     }
 
     public interface ClientPacketHandler<T> {
