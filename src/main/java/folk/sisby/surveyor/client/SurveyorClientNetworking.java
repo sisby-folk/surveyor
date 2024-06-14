@@ -49,7 +49,7 @@ public class SurveyorClientNetworking {
     }
 
     private static void handleTerrainAdded(ClientWorld world, WorldSummary summary, PacketByteBuf buf) {
-        S2CUpdateRegionPacket packet = S2CUpdateRegionPacket.handle(buf, world.getRegistryManager(), summary);
+        S2CUpdateRegionPacket packet = S2CUpdateRegionPacket.handle(buf, summary);
         (packet.shared() ? SurveyorClient.getSharedExploration() : SurveyorClient.getPersonalExploration()).mergeRegion(world.getRegistryKey(), packet.regionPos(), packet.chunks());
         SurveyorEvents.Invoke.terrainUpdated(world, packet.chunks().stream().mapToObj(i -> RegionSummary.chunkForBit(packet.regionPos(), i)).toList());
     }

@@ -1,15 +1,8 @@
 package folk.sisby.surveyor.terrain;
 
-import folk.sisby.surveyor.util.PaletteUtil;
 import folk.sisby.surveyor.util.uints.UInts;
-import net.minecraft.block.Block;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.util.collection.Int2ObjectBiMap;
-import net.minecraft.world.World;
-import net.minecraft.world.biome.Biome;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -49,9 +42,7 @@ public class LayerSummary {
         this.glint = glint;
     }
 
-    public static LayerSummary fromSummaries(World world, FloorSummary[] floorSummaries, int layerY, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Integer> rawBiomePalette, Int2ObjectBiMap<Block> blockPalette, Int2ObjectBiMap<Integer> rawBlockPalette) {
-        Registry<Biome> biomeRegistry = world.getRegistryManager().get(RegistryKeys.BIOME);
-        Registry<Block> blockRegistry = world.getRegistryManager().get(RegistryKeys.BLOCK);
+    public static LayerSummary fromSummaries(FloorSummary[] floorSummaries, int layerY) {
         BitSet found = new BitSet(256);
         for (int i = 0; i < floorSummaries.length; i++) {
             found.set(i, floorSummaries[i] != null);
@@ -69,8 +60,8 @@ public class LayerSummary {
             if (found.get(i)) {
                 FloorSummary summary = floorSummaries[i];
                 depth[c] = layerY - summary.y;
-                biome[c] = PaletteUtil.idOrAdd(biomePalette, rawBiomePalette, summary.biome, biomeRegistry);
-                block[c] = PaletteUtil.idOrAdd(blockPalette, rawBlockPalette, summary.block, blockRegistry);
+                biome[c] = summary.biome;
+                block[c] = summary.block;
                 light[c] = summary.lightLevel;
                 water[c] = summary.fluidDepth;
                 glint[c] = summary.waterLight;
@@ -158,6 +149,6 @@ public class LayerSummary {
     public record Raw(BitSet exists, int[] depths, int[] biomes, int[] blocks, int[] lightLevels, int[] waterDepths, int[] waterLights) {
     }
 
-    public record FloorSummary(int y, Biome biome, Block block, int lightLevel, int fluidDepth, int waterLight) {
+    public record FloorSummary(int y, int biome, int block, int lightLevel, int fluidDepth, int waterLight) {
     }
 }

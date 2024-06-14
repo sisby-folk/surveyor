@@ -8,6 +8,7 @@ import folk.sisby.surveyor.util.ChunkUtil;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.util.collection.IndexedIterable;
 import net.minecraft.util.math.ChunkPos;
@@ -29,10 +30,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class WorldTerrainSummary {
     protected final RegistryKey<World> worldKey;
+    protected final DynamicRegistryManager registryManager;
     protected final Map<ChunkPos, RegionSummary> regions = new ConcurrentHashMap<>();
 
-    public WorldTerrainSummary(RegistryKey<World> worldKey, Map<ChunkPos, RegionSummary> regions) {
+    public WorldTerrainSummary(RegistryKey<World> worldKey, DynamicRegistryManager registryManager, Map<ChunkPos, RegionSummary> regions) {
         this.worldKey = worldKey;
+        this.registryManager = registryManager;
         this.regions.putAll(regions);
     }
 
@@ -51,7 +54,7 @@ public class WorldTerrainSummary {
     }
 
     public RegionSummary getRegion(ChunkPos regionPos) {
-        return regions.computeIfAbsent(regionPos, k -> new RegionSummary());
+        return regions.computeIfAbsent(regionPos, k -> new RegionSummary(registryManager));
     }
 
     public IndexedIterable<Biome> getBiomePalette(ChunkPos pos) {
@@ -86,7 +89,7 @@ public class WorldTerrainSummary {
     }
 
     public void put(World world, WorldChunk chunk) {
-        regions.computeIfAbsent(regionPosOf(chunk.getPos()), k -> new RegionSummary()).putChunk(world, chunk);
+        regions.computeIfAbsent(regionPosOf(chunk.getPos()), k -> new RegionSummary(registryManager)).putChunk(world, chunk);
         SurveyorEvents.Invoke.terrainUpdated(world, chunk.getPos());
     }
 
@@ -110,7 +113,7 @@ public class WorldTerrainSummary {
     public static WorldTerrainSummary load(World world, File folder) {
         Map<ChunkPos, RegionSummary> regions = new HashMap<>();
         ChunkUtil.getRegionNbt(folder, "c").forEach((pos, nbt) -> regions.put(pos, RegionSummary.readNbt(nbt, world.getRegistryManager())));
-        return new WorldTerrainSummary(world.getRegistryKey(), regions);
+        return new WorldTerrainSummary(world.getRegistryKey(), world.getRegistryManager(), regions);
     }
 
     public static void onChunkLoad(World world, WorldChunk chunk) {

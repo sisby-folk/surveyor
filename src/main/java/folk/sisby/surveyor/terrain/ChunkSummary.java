@@ -1,6 +1,7 @@
 package folk.sisby.surveyor.terrain;
 
 import folk.sisby.surveyor.util.ChunkUtil;
+import folk.sisby.surveyor.util.RegistryPalette;
 import folk.sisby.surveyor.util.uints.UInts;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -9,7 +10,6 @@ import net.minecraft.fluid.Fluid;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
-import net.minecraft.util.collection.Int2ObjectBiMap;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.world.LightType;
@@ -32,7 +32,7 @@ public class ChunkSummary {
     protected final Integer airCount;
     protected final TreeMap<Integer, @Nullable LayerSummary> layers = new TreeMap<>();
 
-    public ChunkSummary(World world, WorldChunk chunk, int[] layerHeights, Int2ObjectBiMap<Biome> biomePalette, Int2ObjectBiMap<Integer> rawBiomePalette, Int2ObjectBiMap<Block> blockPalette, Int2ObjectBiMap<Integer> rawBlockPalette, boolean countAir) {
+    public ChunkSummary(World world, WorldChunk chunk, int[] layerHeights, RegistryPalette<Biome> biomePalette, RegistryPalette<Block> blockPalette, boolean countAir) {
         this.airCount = countAir ? ChunkUtil.airCount(chunk) : null;
         LayerSummary.FloorSummary[][] layerFloors = new LayerSummary.FloorSummary[layerHeights.length - 1][256];
         ChunkSection[] rawSections = chunk.getSectionArray();
@@ -76,7 +76,7 @@ public class ChunkSummary {
                         } else { // Blocks Movement or Has Non-Water Fluid.
                             if (foundFloor == null) {
                                 if (carpetPos.getY() == y + 1) {
-                                    foundFloor = new LayerSummary.FloorSummary(carpetPos.getY(), section.getBiomeEntry(x, carpetPos.getY(), z, world.getBottomY(), world.getTopY()).value(), carpetBlock, world.getLightLevel(LightType.BLOCK, carpetPos), waterDepth, waterDepth == 0 ? 0 : world.getLightLevel(LightType.BLOCK, pos.up().up(waterDepth)));
+                                    foundFloor = new LayerSummary.FloorSummary(carpetPos.getY(), biomePalette.findOrAdd(section.getBiomeEntry(x, carpetPos.getY(), z, world.getBottomY(), world.getTopY()).value()), blockPalette.findOrAdd(carpetBlock), world.getLightLevel(LightType.BLOCK, carpetPos), waterDepth, waterDepth == 0 ? 0 : world.getLightLevel(LightType.BLOCK, pos.up().up(waterDepth)));
                                     if (carpetPos.getY() > layerHeights[layerIndex]) { // Actually a floor for the layer above
                                         if (layerFloors[layerIndex - 1][x * 16 + z] == null) layerFloors[layerIndex - 1][x * 16 + z] = foundFloor;
                                         foundFloor = null;
@@ -85,7 +85,7 @@ public class ChunkSummary {
                                     walkspaceHeight = 0;
                                     waterDepth = 0;
                                 } else if (walkspaceHeight >= MINIMUM_AIR_DEPTH && state.getMapColor(world, pos) != MapColor.CLEAR) {
-                                    foundFloor = new LayerSummary.FloorSummary(y, section.getBiomeEntry(x, y, z, world.getBottomY(), world.getTopY()).value(), state.getBlock(), world.getLightLevel(LightType.BLOCK, pos.up()), waterDepth, waterDepth == 0 ? 0 : world.getLightLevel(LightType.BLOCK, pos.up().up(waterDepth)));
+                                    foundFloor = new LayerSummary.FloorSummary(y, biomePalette.findOrAdd(section.getBiomeEntry(x, y, z, world.getBottomY(), world.getTopY()).value()), blockPalette.findOrAdd(state.getBlock()), world.getLightLevel(LightType.BLOCK, pos.up()), waterDepth, waterDepth == 0 ? 0 : world.getLightLevel(LightType.BLOCK, pos.up().up(waterDepth)));
                                 }
                             }
                             if (state.getMapColor(world, pos) != MapColor.CLEAR) { // Don't reset walkspace for glass/barriers/etc.
@@ -99,7 +99,7 @@ public class ChunkSummary {
             }
         }
         for (int i = 0; i < layerFloors.length; i++) {
-            this.layers.put(layerHeights[i], LayerSummary.fromSummaries(world, layerFloors[i], layerHeights[i], biomePalette, rawBiomePalette, blockPalette, rawBlockPalette));
+            this.layers.put(layerHeights[i], LayerSummary.fromSummaries(layerFloors[i], layerHeights[i]));
         }
     }
 
