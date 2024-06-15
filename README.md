@@ -81,12 +81,12 @@ The **World Summary** holds all of surveyor's data for a world. It can be access
 
 **Chunk Summaries** (or the "Terrain Summary") represent the world viewed from above. This includes the top layer of blocks, along with their biome, height, block light level, and the depth of water above them.
 
-**Structure Summaries** represent an in-world structure (called `StructureStart` in yarn) - they include map-critical information for identifying the structure and its pieces, but not any actual blocks or piece NBT.
+**Structure Summaries** represent an in-world structure (called `StructureStart` in yarn) - they include map-critical information for identifying the structure and its pieces, even full NBT for structures with under 10 pieces, but not any actual blocks.
 
 **Landmarks** are a way to represent all other positional information on-map. They have unique serialization per-type, and are uniquely keyed by their type and position to prevent overlaps.
 
 **Exploration** is a record of what chunks, structures, and landmarks a player should be able to see.<br/>
-A player explores a chunk when they're sent it, explores a structure when they stand in (or look at) one of its pieces, and explores an (unowned) landmark when they've explore the chunk it's in. 
+A player explores a chunk when they're sent it, explores a structure when they stand in (or look at) one of its pieces, and explores an (unowned) landmark when they explore the chunk it's in. 
 
 ### Terrain Summary Layers
 
