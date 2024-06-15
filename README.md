@@ -150,6 +150,7 @@ This will produce a raw layer summary of one-dimensional arrays:
 * **blocks** - The floor block. Indexed per-region via `getBlockPalette(ChunkPos)`.
 * **biomes** - The floor biome. Indexed per-region via `getBiomePalette(ChunkPos)`.
 * **lightLevels** - The block light level directly above the floor (i.e. the block light for its top face). 0-15.
+* **waterLights** - The block light level directly above the water's surface (if there is one). 0-15.
 * **waterDepths** - How deep the contiguous water above the floor is.
   * All other liquid surfaces are considered floors, but water is special-cased.
   * The sea floor (e.g. sand) is recorded, and this depth value indicates the water surface instead.
