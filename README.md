@@ -2,7 +2,7 @@
 
 
 <center>
-<img alt="surveyor banner" src="https://cdn.modrinth.com/data/4KjqhPc9/images/f84b10d3e0257c66e4f60066f3f570bc26ca34b2.png"><br/>
+<img alt="surveyor banner" src="https://cdn.modrinth.com/data/4KjqhPc9/images/036db8bcb021c9e81e18561698d45d3c7bb71127.png"><br/>
 Unified API, networking, and save data for map mods.<br/>
 Used in <a href="https://modrinth.com/mod/antique-atlas-4">Antique Atlas 4</a>.
 Requires <a href="https://modrinth.com/mod/connector">Connector</a> and <a href="https://modrinth.com/mod/forgified-fabric-api">FFAPI</a> on forge.<br/>
@@ -81,12 +81,12 @@ The **World Summary** holds all of surveyor's data for a world. It can be access
 
 **Chunk Summaries** (or the "Terrain Summary") represent the world viewed from above. This includes the top layer of blocks, along with their biome, height, block light level, and the depth of water above them.
 
-**Structure Summaries** represent an in-world structure (called `StructureStart` in yarn) - they include map-critical information for identifying the structure and its pieces, but not any actual blocks or piece NBT.
+**Structure Summaries** represent an in-world structure (called `StructureStart` in yarn) - they include map-critical information for identifying the structure and its pieces, even full NBT for structures with under 10 pieces, but not any actual blocks.
 
 **Landmarks** are a way to represent all other positional information on-map. They have unique serialization per-type, and are uniquely keyed by their type and position to prevent overlaps.
 
 **Exploration** is a record of what chunks, structures, and landmarks a player should be able to see.<br/>
-A player explores a chunk when they're sent it, explores a structure when they stand in (or look at) one of its pieces, and explores an (unowned) landmark when they've explore the chunk it's in. 
+A player explores a chunk when they're sent it, explores a structure when they stand in (or look at) one of its pieces, and explores an (unowned) landmark when they explore the chunk it's in. 
 
 ### Terrain Summary Layers
 
@@ -150,6 +150,7 @@ This will produce a raw layer summary of one-dimensional arrays:
 * **blocks** - The floor block. Indexed per-region via `getBlockPalette(ChunkPos)`.
 * **biomes** - The floor biome. Indexed per-region via `getBiomePalette(ChunkPos)`.
 * **lightLevels** - The block light level directly above the floor (i.e. the block light for its top face). 0-15.
+* **waterLights** - The block light level directly above the water's surface (if there is one). 0-15.
 * **waterDepths** - How deep the contiguous water above the floor is.
   * All other liquid surfaces are considered floors, but water is special-cased.
   * The sea floor (e.g. sand) is recorded, and this depth value indicates the water surface instead.
