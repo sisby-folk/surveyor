@@ -8,7 +8,6 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
@@ -147,15 +146,14 @@ public class RegionSummary {
     }
 
     public BitSet readUpdatePacket(DynamicRegistryManager manager, S2CUpdateRegionPacket packet) {
-        int[] rawBiomes = buf.readList(PacketByteBuf::readVarInt).stream().mapToInt(i -> i).toArray();
         Map<Integer, Integer> biomeRemap = new Int2IntArrayMap();
-        for (int i = 0; i < rawBiomes.length; i++) {
-            biomeRemap.put(i, biomePalette.findOrAdd(rawBiomes[i]));
+        for (int i = 0; i < packet.biomePalette().size(); i++) {
+            biomeRemap.put(i, biomePalette.findOrAdd(packet.biomePalette().get(i)));
         }
-        int[] rawBlocks = buf.readList(PacketByteBuf::readVarInt).stream().mapToInt(i -> i).toArray();
+
         Map<Integer, Integer> blockRemap = new Int2IntArrayMap();
-        for (int i = 0; i < rawBlocks.length; i++) {
-            blockRemap.put(i, blockPalette.findOrAdd(rawBlocks[i]));
+        for (int i = 0; i < packet.blockPalette().size(); i++) {
+            blockRemap.put(i, blockPalette.findOrAdd(packet.blockPalette().get(i)));
         }
         int[] indices = packet.set().stream().toArray();
         for (int i = 0; i < packet.chunks().size(); i++) {
@@ -168,7 +166,7 @@ public class RegionSummary {
     }
 
     public S2CUpdateRegionPacket createUpdatePacket(boolean shared, ChunkPos rPos, BitSet set) {
-        return new S2CUpdateRegionPacket(shared, rPos, mapPalette(rawBiomePalette, i -> i), mapPalette(rawBlockPalette, i -> i), set, set.stream().mapToObj(i -> chunks[xForBit(i)][zForBit(i)]).toList());
+        return new S2CUpdateRegionPacket(shared, rPos, mapIterable(biomePalette, i -> i), mapIterable(blockPalette, i -> i), set, set.stream().mapToObj(i -> chunks[xForBit(i)][zForBit(i)]).toList());
     }
 
     public boolean isDirty() {
