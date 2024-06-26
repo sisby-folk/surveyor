@@ -5,7 +5,7 @@
 <img alt="surveyor banner" src="https://cdn.modrinth.com/data/4KjqhPc9/images/036db8bcb021c9e81e18561698d45d3c7bb71127.png"><br/>
 Unified API, networking, and save data for map mods.<br/>
 Used in <a href="https://modrinth.com/mod/antique-atlas-4">Antique Atlas 4</a>.
-Requires <a href="https://modrinth.com/mod/connector">Connector</a> and <a href="https://modrinth.com/mod/forgified-fabric-api">FFAPI</a> on forge.<br/>
+<b>Requires <a href="https://modrinth.com/mod/connector">Connector</a> and <a href="https://modrinth.com/mod/forgified-fabric-api">FFAPI</a> on forge.<br/></b>
 <i>Other names considered: Polaris, Ichnite, Trackway, Lay of the Land, Worldsense, and Lithography.</i>
 </center>
 

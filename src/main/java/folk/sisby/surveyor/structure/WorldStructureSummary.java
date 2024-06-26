@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class WorldStructureSummary {
@@ -103,9 +104,13 @@ public class WorldStructureSummary {
         ChunkPos rPos = regionPosOf(start.getPos());
         regions.computeIfAbsent(rPos, k -> new RegionStructureSummary()).put(world, start);
         RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElseThrow();
-        RegistryKey<StructureType<?>> type = world.getRegistryManager().get(RegistryKeys.STRUCTURE_TYPE).getKey(start.getStructure().getType()).orElseThrow();
+        Optional<RegistryKey<StructureType<?>>> type = world.getRegistryManager().get(RegistryKeys.STRUCTURE_TYPE).getKey(start.getStructure().getType());
+        if (type.isEmpty()) {
+            Surveyor.LOGGER.error("Cowardly refusing to save structure {} as it has no structure type! Report this to the structure mod author!", key.getValue());
+            return;
+        }
         List<TagKey<Structure>> tags = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getEntry(start.getStructure()).streamTags().toList();
-        structureTypes.put(key, type);
+        structureTypes.put(key, type.orElseThrow());
         structureTags.putAll(key, tags);
         dirty = true;
         SurveyorEvents.Invoke.structuresAdded(world, key, start.getPos());
