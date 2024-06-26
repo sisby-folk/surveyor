@@ -45,7 +45,11 @@ public record S2CUpdateRegionPacket(boolean shared, ChunkPos regionPos, RegionSu
         if (buf.readableBytes() < MAX_PAYLOAD_SIZE) {
             bufs.add(buf);
         } else {
-            if (chunks.cardinality() == 1) throw new RuntimeException("Couldn't create a terrain update packet - an individual chunk would be too large to send!");
+            if (chunks.cardinality() == 1) {
+                int bit = chunks.stream().findFirst().orElseThrow();
+                Surveyor.LOGGER.error("Couldn't create a terrain update packet at {} - an individual chunk would be too large to send!", "[%d,%d]".formatted(regionPos.x + RegionSummary.xForBit(bit), regionPos.z + RegionSummary.zForBit(bit)));
+                return List.of();
+            }
             for (BitSet splitChunks : BitSetUtil.half(chunks)) {
                 bufs.addAll(new S2CUpdateRegionPacket(shared, regionPos, summary, splitChunks).toBufs());
             }

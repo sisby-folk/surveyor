@@ -51,7 +51,10 @@ public record S2CStructuresAddedPacket(boolean shared, Multimap<RegistryKey<Stru
         if (buf.readableBytes() < MAX_PAYLOAD_SIZE) {
             bufs.add(buf);
         } else {
-            if (keySet.size() == 1) throw new RuntimeException("Couldn't create a structure update packet - an individual structure would be too large to send!");
+            if (keySet.size() == 1) {
+                Surveyor.LOGGER.error("Couldn't create a structure update packet for {} - an individual structure would be too large to send!", keySet.keys().stream().findFirst().orElseThrow().getValue());
+                return List.of();
+            }
             Multimap<RegistryKey<Structure>, ChunkPos> firstHalf = HashMultimap.create();
             Multimap<RegistryKey<Structure>, ChunkPos> secondHalf = HashMultimap.create();
             keySet.forEach((key, pos) -> {

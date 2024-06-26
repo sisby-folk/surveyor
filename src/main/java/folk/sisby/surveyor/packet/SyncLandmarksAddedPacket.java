@@ -48,7 +48,10 @@ public record SyncLandmarksAddedPacket(Multimap<LandmarkType<?>, BlockPos> keySe
         if (buf.readableBytes() < MAX_PAYLOAD_SIZE) {
             bufs.add(buf);
         } else {
-            if (keySet.size() == 1) throw new RuntimeException("Couldn't create a landmark update packet - an individual landmark would be too large to send!");
+            if (keySet.size() == 1) {
+                Surveyor.LOGGER.error("Couldn't create a landmark update packet for {} at {} - an individual landmark would be too large to send!", keySet.keys().stream().findFirst().orElseThrow().id(), keySet.values().stream().findFirst().orElseThrow());
+                return List.of();
+            }
             Multimap<LandmarkType<?>, BlockPos> firstHalf = HashMultimap.create();
             Multimap<LandmarkType<?>, BlockPos> secondHalf = HashMultimap.create();
             keySet.forEach((key, pos) -> {

@@ -62,6 +62,7 @@ public class RegistryPalette<T> implements IntIterable {
     public class ValueView implements IndexedIterable<T> {
         private final List<T> values = new ArrayList<>(registry.size());
 
+        @Override
         public T get(int index) {
             return values.get(index);
         }
