@@ -13,7 +13,6 @@ import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.collection.IndexedIterable;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
@@ -173,11 +172,11 @@ public class RegionSummary {
         return dirty;
     }
 
-    public IndexedIterable<Biome> getBiomePalette() {
+    public RegistryPalette<Biome>.ValueView getBiomePalette() {
         return biomePalette.view();
     }
 
-    public IndexedIterable<Block> getBlockPalette() {
+    public RegistryPalette<Block>.ValueView getBlockPalette() {
         return blockPalette.view();
     }
 }

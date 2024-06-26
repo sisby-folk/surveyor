@@ -48,7 +48,7 @@ public record S2CUpdateRegionPacket(boolean shared, ChunkPos regionPos, List<Int
                 return List.of();
             }
             for (BitSet splitChunks : BitSetUtil.half(set)) {
-                payloads.addAll(new S2CUpdateRegionPacket(shared, regionPos, biomePalette, blockPalette, splitChunks, ListUtil.splitSet(chunks, splitChunks)).toPayloads());
+                payloads.addAll(new S2CUpdateRegionPacket(shared, regionPos, biomePalette, blockPalette, splitChunks, ListUtil.splitSet(chunks, splitChunks, set)).toPayloads());
             }
         }
         return payloads;

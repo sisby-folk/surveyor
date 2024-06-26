@@ -5,12 +5,12 @@ import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.util.ChunkUtil;
+import folk.sisby.surveyor.util.RegistryPalette;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.collection.IndexedIterable;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
@@ -57,12 +57,12 @@ public class WorldTerrainSummary {
         return regions.computeIfAbsent(regionPos, k -> new RegionSummary(registryManager));
     }
 
-    public IndexedIterable<Biome> getBiomePalette(ChunkPos pos) {
+    public RegistryPalette<Biome>.ValueView getBiomePalette(ChunkPos pos) {
         ChunkPos regionPos = regionPosOf(pos);
         return regions.get(regionPos).getBiomePalette();
     }
 
-    public IndexedIterable<Block> getBlockPalette(ChunkPos pos) {
+    public RegistryPalette<Block>.ValueView getBlockPalette(ChunkPos pos) {
         ChunkPos regionPos = regionPosOf(pos);
         return regions.get(regionPos).getBlockPalette();
     }
