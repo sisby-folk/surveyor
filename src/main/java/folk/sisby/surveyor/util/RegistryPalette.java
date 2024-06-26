@@ -33,7 +33,8 @@ public class RegistryPalette<T> implements IntIterable {
     private int add(int value) {
         raw[size] = value;
         inverse[value] = size;
-        valueView.values.add(size, registry.get(value));
+        T object = registry.get(value);
+        valueView.values.add(size, object);
         size++;
         return size - 1;
     }
@@ -61,6 +62,10 @@ public class RegistryPalette<T> implements IntIterable {
 
     public class ValueView implements IndexedIterable<T> {
         private final List<T> values = new ArrayList<>(registry.size());
+
+        public Registry<T> registry() {
+            return registry;
+        }
 
         @Override
         public T get(int index) {
