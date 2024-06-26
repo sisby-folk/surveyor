@@ -11,9 +11,11 @@ import java.util.List;
 
 public interface S2CPacket extends SurveyorPacket {
     default void send(Collection<ServerPlayerEntity> players) {
+        List<SurveyorPacket> split = this.toPayloads();
+        if (split.isEmpty()) return;
         for (ServerPlayerEntity player : players) {
             if (!ServerPlayNetworking.canSend(player, getId()) || player.getServer().isHost(player.getGameProfile())) continue;
-            ServerPlayNetworking.send(player, this);
+            split.forEach(p -> ServerPlayNetworking.send(player, p));
         }
     }
 

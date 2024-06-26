@@ -30,7 +30,7 @@ public class SurveyorClientNetworking {
     public static void init() {
         SurveyorNetworking.C2S_SENDER = p -> {
             if (!ClientPlayNetworking.canSend(p.getId())) return;
-            ClientPlayNetworking.send(p);
+            p.toPayloads().forEach(ClientPlayNetworking::send);
         };
         ClientPlayNetworking.registerGlobalReceiver(S2CStructuresAddedPacket.ID, (packet, context) -> handleClient(packet, context, SurveyorClientNetworking::handleStructuresAdded));
         ClientPlayNetworking.registerGlobalReceiver(S2CUpdateRegionPacket.ID, (packet, context) -> handleClient(packet, context, SurveyorClientNetworking::handleTerrainAdded));
