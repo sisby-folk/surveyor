@@ -20,6 +20,8 @@ public interface SingleUInts extends UInts {
 
     @Override
     default UInts remap(Function<Integer, Integer> remapping, int defaultValue, int cardinality) {
-        return UInts.ofSingle(remapping.apply(get()), defaultValue);
+        int val = get();
+        Integer mapped = remapping.apply(val);
+        return UInts.ofSingle(mapped == null ? val : mapped, defaultValue);
     }
 }

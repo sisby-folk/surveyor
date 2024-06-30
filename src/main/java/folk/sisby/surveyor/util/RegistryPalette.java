@@ -1,8 +1,10 @@
 package folk.sisby.surveyor.util;
 
+import folk.sisby.surveyor.Surveyor;
 import it.unimi.dsi.fastutil.ints.IntIterable;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntIterators;
+import net.minecraft.registry.DefaultedRegistry;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.collection.IndexedIterable;
 import org.jetbrains.annotations.NotNull;
@@ -34,7 +36,7 @@ public class RegistryPalette<T> implements IntIterable {
         raw[size] = value;
         inverse[value] = size;
         T object = registry.get(value);
-        valueView.values.add(size, object);
+        valueView.values.add(object);
         size++;
         return size - 1;
     }
@@ -61,7 +63,8 @@ public class RegistryPalette<T> implements IntIterable {
     }
 
     public class ValueView implements IndexedIterable<T> {
-        private final List<T> values = new ArrayList<>(registry.size());
+        private final T defaultValue = registry instanceof DefaultedRegistry<T> defreg ? defreg.get(defreg.getDefaultId()) : registry.get(0);
+        private final List<T> values = new ArrayList<>();
 
         public Registry<T> registry() {
             return registry;
@@ -69,6 +72,10 @@ public class RegistryPalette<T> implements IntIterable {
 
         @Override
         public T get(int index) {
+            if (index >= values.size()) {
+                Surveyor.LOGGER.error("[Surveyor] Palette view access at index {} for palette size {}! Returning garbage!", index, values.size());
+                return defaultValue;
+            }
             return values.get(index);
         }
 

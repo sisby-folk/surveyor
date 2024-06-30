@@ -112,7 +112,7 @@ public class WorldTerrainSummary {
 
     public static WorldTerrainSummary load(World world, File folder) {
         Map<ChunkPos, RegionSummary> regions = new HashMap<>();
-        ChunkUtil.getRegionNbt(folder, "c").forEach((pos, nbt) -> regions.put(pos, RegionSummary.readNbt(nbt, world.getRegistryManager())));
+        ChunkUtil.getRegionNbt(folder, "c").forEach((pos, nbt) -> regions.put(pos, RegionSummary.readNbt(nbt, world.getRegistryManager(), pos)));
         return new WorldTerrainSummary(world.getRegistryKey(), world.getRegistryManager(), regions);
     }
 
