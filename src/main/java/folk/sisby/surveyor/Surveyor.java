@@ -58,7 +58,7 @@ public class Surveyor implements ModInitializer {
                 e -> structureRegistry.getKey(e.getKey()).orElseThrow(),
                 e -> e.getValue().longStream().mapToObj(ChunkPos::new).toList()
             )));
-            unexploredStructures.entries().removeIf(e -> exploration.exploredStructure(world.getRegistryKey(), e.getKey(), e.getValue()));
+            unexploredStructures.entries().removeIf(e -> exploration.exploredStructure(world.getRegistryKey(), e.getKey(), e.getValue(), false));
             unexploredStructures.entries().removeIf(e -> !worldStructures.contains(e.getKey(), e.getValue()));
             unexploredStructures.forEach((structureKey, startPos) -> {
                 Structure structure = structureRegistry.get(structureKey);

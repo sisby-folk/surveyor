@@ -217,7 +217,7 @@ public interface PlayerSummary {
                 SurveyorExploration.super.addChunk(worldKey, pos);
                 if (player.getServer().isHost(player.getGameProfile())) updateClientForAddChunk(player.getServerWorld(), pos);
                 for (ServerPlayerEntity friend : ServerSummary.of(player.getServer()).groupOtherServerPlayers(player.getUuid(), player.getServer())) {
-                    if (friend.getWorld().getRegistryKey().equals(worldKey) && !SurveyorExploration.of(friend).exploredChunk(worldKey, pos)) {
+                    if (friend.getWorld().getRegistryKey().equals(worldKey) && !SurveyorExploration.of(friend).exploredChunk(worldKey, pos, false)) {
                         ChunkPos regionPos = new ChunkPos(pos.getRegionX(), pos.getRegionZ());
                         RegionSummary region = WorldSummary.of(player.getServer().getWorld(worldKey)).terrain().getRegion(regionPos);
                         BitSet sendSet = new BitSet();
@@ -235,7 +235,7 @@ public interface PlayerSummary {
                 WorldStructureSummary summary = WorldSummary.of(world).structures();
                 S2CStructuresAddedPacket.of(false, structureKey, pos, summary).send(player);
                 for (ServerPlayerEntity friend : ServerSummary.of(player.getServer()).groupOtherServerPlayers(player.getUuid(), player.getServer())) {
-                    if (friend.getWorld().getRegistryKey().equals(worldKey) && !SurveyorExploration.of(friend).exploredStructure(worldKey, structureKey, pos)) {
+                    if (friend.getWorld().getRegistryKey().equals(worldKey) && !SurveyorExploration.of(friend).exploredStructure(worldKey, structureKey, pos, false)) {
                         S2CStructuresAddedPacket.of(true, structureKey, pos, summary).send(friend);
                     }
                 }
