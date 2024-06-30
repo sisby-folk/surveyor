@@ -48,7 +48,7 @@ public class WorldLandmarks {
     public <T extends Landmark<T>> Map<BlockPos, T> asMap(LandmarkType<T> type, SurveyorExploration exploration) {
         Map<BlockPos, T> outMap = new HashMap<>();
         if (landmarks.containsKey(type)) landmarks.get(type).forEach((pos, landmark) -> {
-            if (exploration == null || exploration.exploredLandmark(worldKey, landmark)) outMap.put(pos, (T) landmark);
+            if (exploration == null || exploration.exploredLandmark(worldKey, landmark, true)) outMap.put(pos, (T) landmark);
         });
         return outMap;
     }
@@ -56,7 +56,7 @@ public class WorldLandmarks {
     public Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> asMap(SurveyorExploration exploration) {
         Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> outmap = new HashMap<>();
         landmarks.forEach((type, map) -> map.forEach((pos, landmark) -> {
-            if (exploration == null || exploration.exploredLandmark(worldKey, landmark)) outmap.computeIfAbsent(type, t -> new HashMap<>()).put(pos, landmark);
+            if (exploration == null || exploration.exploredLandmark(worldKey, landmark, true)) outmap.computeIfAbsent(type, t -> new HashMap<>()).put(pos, landmark);
         }));
         return outmap;
     }
@@ -64,7 +64,7 @@ public class WorldLandmarks {
     public Multimap<LandmarkType<?>, BlockPos> keySet(SurveyorExploration exploration) {
         Multimap<LandmarkType<?>, BlockPos> outMap = HashMultimap.create();
         landmarks.forEach((type, map) -> map.forEach((pos, landmark) -> {
-            if (exploration == null || exploration.exploredLandmark(worldKey, landmark)) outMap.put(type, pos);
+            if (exploration == null || exploration.exploredLandmark(worldKey, landmark, true)) outMap.put(type, pos);
         }));
         return outMap;
     }
