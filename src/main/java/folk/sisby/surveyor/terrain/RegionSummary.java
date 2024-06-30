@@ -120,7 +120,7 @@ public class RegionSummary {
         NbtList biomeList = nbt.getList(KEY_BIOMES, NbtElement.STRING_TYPE);
         Map<Integer, Integer> biomeRemap = new Int2IntArrayMap(biomeList.size());
         for (int i = 0; i < biomeList.size(); i++) {
-            Identifier biomeId = new Identifier(biomeList.get(i).asString());
+            Identifier biomeId = Identifier.tryParse(biomeList.get(i).asString());
             Biome biome = biomeRegistry.get(biomeId);
             Biome newBiome = biome == null ? biomeRegistry.get(BiomeKeys.THE_VOID) : biome;
             int newIndex = summary.biomePalette.findOrAdd(newBiome);
@@ -133,7 +133,7 @@ public class RegionSummary {
         NbtList blockList = nbt.getList(KEY_BLOCKS, NbtElement.STRING_TYPE);
         Map<Integer, Integer> blockRemap = new Int2IntArrayMap(blockList.size());
         for (int i = 0; i < blockList.size(); i++) {
-            Identifier blockId = new Identifier(blockList.get(i).asString());
+            Identifier blockId = Identifier.tryParse(blockList.get(i).asString());
             Block block = blockRegistry.get(blockId);
             Block newBlock = block == null ? Blocks.AIR : block;
             int newIndex = summary.blockPalette.findOrAdd(newBlock);
