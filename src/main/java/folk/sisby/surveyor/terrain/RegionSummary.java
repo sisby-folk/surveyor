@@ -1,9 +1,11 @@
 package folk.sisby.surveyor.terrain;
 
 import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
+import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.util.RegistryPalette;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
@@ -16,6 +18,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeKeys;
 import net.minecraft.world.chunk.WorldChunk;
 
 import java.util.ArrayList;
@@ -110,17 +113,42 @@ public class RegionSummary {
         dirty = true;
     }
 
-    public static RegionSummary readNbt(NbtCompound nbt, DynamicRegistryManager manager) {
+    public static RegionSummary readNbt(NbtCompound nbt, DynamicRegistryManager manager, ChunkPos pos) {
         RegionSummary summary = new RegionSummary(manager);
         Registry<Biome> biomeRegistry = manager.get(RegistryKeys.BIOME);
         Registry<Block> blockRegistry = manager.get(RegistryKeys.BLOCK);
-        nbt.getList(KEY_BIOMES, NbtElement.STRING_TYPE).stream().map(e -> biomeRegistry.get(Identifier.of(e.asString()))).forEach(b -> summary.biomePalette.findOrAdd(biomeRegistry.getRawId(b)));
-        nbt.getList(KEY_BLOCKS, NbtElement.STRING_TYPE).stream().map(e -> blockRegistry.get(Identifier.of(e.asString()))).forEach(b -> summary.blockPalette.findOrAdd(blockRegistry.getRawId(b)));
+        NbtList biomeList = nbt.getList(KEY_BIOMES, NbtElement.STRING_TYPE);
+        Map<Integer, Integer> biomeRemap = new Int2IntArrayMap(biomeList.size());
+        for (int i = 0; i < biomeList.size(); i++) {
+            Identifier biomeId = new Identifier(biomeList.get(i).asString());
+            Biome biome = biomeRegistry.get(biomeId);
+            Biome newBiome = biome == null ? biomeRegistry.get(BiomeKeys.THE_VOID) : biome;
+            int newIndex = summary.biomePalette.findOrAdd(newBiome);
+            if (biome == null || newIndex != i) {
+                Surveyor.LOGGER.warn("[Surveyor] Remapping biome palette in region {}: {} (#{}) is now {} (#{})", pos, biomeId, i, biomeRegistry.getId(newBiome), newIndex);
+                biomeRemap.put(i, newIndex);
+                summary.dirty = true;
+            }
+        }
+        NbtList blockList = nbt.getList(KEY_BLOCKS, NbtElement.STRING_TYPE);
+        Map<Integer, Integer> blockRemap = new Int2IntArrayMap(blockList.size());
+        for (int i = 0; i < blockList.size(); i++) {
+            Identifier blockId = new Identifier(blockList.get(i).asString());
+            Block block = blockRegistry.get(blockId);
+            Block newBlock = block == null ? Blocks.AIR : block;
+            int newIndex = summary.blockPalette.findOrAdd(newBlock);
+            if (block == null || newIndex != i) {
+                Surveyor.LOGGER.warn("[Surveyor] Remapping block palette in region {}: {} (#{}) is now {} (#{})", pos, blockList.get(i).asString(), i, blockRegistry.getId(newBlock), newIndex);
+                blockRemap.put(i, newIndex);
+                summary.dirty = true;
+            }
+        }
         NbtCompound chunksCompound = nbt.getCompound(KEY_CHUNKS);
         for (String posKey : chunksCompound.getKeys()) {
             int x = regionRelative(Integer.parseInt(posKey.split(",")[0]));
             int z = regionRelative(Integer.parseInt(posKey.split(",")[1]));
             summary.chunks[x][z] = new ChunkSummary(chunksCompound.getCompound(posKey));
+            if (!biomeRemap.isEmpty() || !blockRemap.isEmpty()) summary.chunks[x][z].remap(biomeRemap, blockRemap);
         }
         return summary;
     }
