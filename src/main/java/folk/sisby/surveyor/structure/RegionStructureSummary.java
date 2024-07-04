@@ -2,6 +2,7 @@ package folk.sisby.surveyor.structure;
 
 import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.Surveyor;
+import folk.sisby.surveyor.SurveyorConfig;
 import folk.sisby.surveyor.util.MapUtil;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -79,12 +80,12 @@ public class RegionStructureSummary {
         ChunkPos pos = start.getPos();
         StructureStartSummary summary = summarisePieces(StructureContext.from(world), start);
         structures.get(key).put(pos, summary);
-        dirty = true;
+        dirty();
     }
 
     public void put(RegistryKey<Structure> key, ChunkPos pos, StructureStartSummary summary) {
         structures.computeIfAbsent(key, k -> new ConcurrentHashMap<>()).put(pos, summary);
-        dirty = true;
+        dirty();
     }
 
     protected NbtCompound writeNbt(NbtCompound nbt) {
@@ -135,6 +136,10 @@ public class RegionStructureSummary {
     }
 
     public boolean isDirty() {
-        return dirty;
+        return dirty && Surveyor.CONFIG.structures != SurveyorConfig.SystemMode.FROZEN;
+    }
+
+    private void dirty() {
+        dirty = true;
     }
 }

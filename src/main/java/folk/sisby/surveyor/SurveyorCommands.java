@@ -21,7 +21,25 @@ import java.util.function.Consumer;
 public class SurveyorCommands {
     private static final Multimap<UUID, UUID> requests = HashMultimap.create();
 
-    public static int info(ServerSummary serverSummary, ServerPlayerEntity player, SurveyorExploration exploration, String ignored, Consumer<Text> feedback) {
+    private static void informGroup(ServerPlayerEntity player, Set<PlayerSummary> group, Consumer<Text> feedback) {
+        feedback.accept(
+            Text.literal("You're sharing your map with ").formatted(Formatting.GOLD)
+                .append(Text.literal("%d".formatted(group.size() - 1)).formatted(Formatting.WHITE))
+                .append(Text.literal(" other" + (group.size() - 1 > 1 ? " players:" : " player:")).formatted(Formatting.GOLD))
+        );
+        feedback.accept(
+            TextUtil.highlightStrings(group.stream().map(PlayerSummary::username).filter(u -> !u.equals(player.getGameProfile().getName())).toList(), s -> Formatting.WHITE).formatted(Formatting.GOLD)
+        );
+    }
+
+    private static int informGlobal(ServerSummary serverSummary, ServerPlayerEntity player, SurveyorExploration exploration, String ignored, Consumer<Text> feedback) {
+        feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("The server has global sharing enabled!").formatted(Formatting.YELLOW)));
+        feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You can't leave or modify the global sharing group!").formatted(Formatting.YELLOW)));
+        informGroup(player, serverSummary.groupPlayers(player.getUuid(), player.getServer()), feedback);
+        return 0;
+    }
+
+    private static int info(ServerSummary serverSummary, ServerPlayerEntity player, SurveyorExploration exploration, String ignored, Consumer<Text> feedback) {
         Set<PlayerSummary> group = serverSummary.groupPlayers(player.getUuid(), player.getServer());
         SurveyorExploration groupExploration = SurveyorExploration.ofShared(player);
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("---Map Exploration Summary---").formatted(Formatting.GRAY)));
@@ -48,14 +66,7 @@ public class SurveyorCommands {
                 )
         );
         if (group.size() > 1) {
-            feedback.accept(
-                Text.literal("You're sharing your map with ").formatted(Formatting.GOLD)
-                    .append(Text.literal("%d".formatted(group.size() - 1)).formatted(Formatting.WHITE))
-                    .append(Text.literal(" other" + (group.size() - 1 > 1 ? " players:" : " player:")).formatted(Formatting.GOLD))
-            );
-            feedback.accept(
-                TextUtil.highlightStrings(group.stream().map(PlayerSummary::username).filter(u -> !u.equals(player.getGameProfile().getName())).toList(), s -> Formatting.WHITE).formatted(Formatting.GOLD)
-            );
+            informGroup(player, group, feedback);
         }
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("-------End Summary-------").formatted(Formatting.GRAY)));
         return 1;
@@ -157,14 +168,16 @@ public class SurveyorCommands {
                 .then(
                     CommandManager.literal("share").then(
                         CommandManager.argument("player", StringArgumentType.word()).suggests((c, b) -> {
-                            c.getSource().getServer().getPlayerManager().getPlayerList().stream().filter(p -> c.getSource().getPlayer() != p).map(p -> p.getGameProfile().getName()).forEach(b::suggest);
-                            return b.buildFuture();
-                        }).executes(c -> execute(c, "player", SurveyorCommands::share))
-                    )
+                                c.getSource().getServer().getPlayerManager().getPlayerList().stream().filter(p -> c.getSource().getPlayer() != p).map(p -> p.getGameProfile().getName()).forEach(b::suggest);
+                                return b.buildFuture();
+                            }).requires(c -> !Surveyor.CONFIG.sync.forceGlobal)
+                            .executes(c -> execute(c, "player", SurveyorCommands::share))
+                    ).requires(c -> Surveyor.CONFIG.sync.forceGlobal)
+                        .executes(c -> execute(c, null, SurveyorCommands::informGlobal))
                 )
                 .then(
                     CommandManager.literal("unshare")
-                        .executes(c -> execute(c, null, SurveyorCommands::unshare))
+                        .executes(c -> execute(c, null, Surveyor.CONFIG.sync.forceGlobal ? SurveyorCommands::informGlobal : SurveyorCommands::unshare))
                 )
                 .executes(c -> execute(c, null, SurveyorCommands::info))
         );

@@ -1,6 +1,7 @@
 package folk.sisby.surveyor.terrain;
 
 import folk.sisby.surveyor.Surveyor;
+import folk.sisby.surveyor.SurveyorConfig;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.WorldSummary;
@@ -89,6 +90,7 @@ public class WorldTerrainSummary {
     }
 
     public void put(World world, WorldChunk chunk) {
+        if (Surveyor.CONFIG.terrain == SurveyorConfig.SystemMode.FROZEN) return;
         regions.computeIfAbsent(regionPosOf(chunk.getPos()), k -> new RegionSummary(registryManager)).putChunk(world, chunk);
         SurveyorEvents.Invoke.terrainUpdated(world, chunk.getPos());
     }
@@ -118,14 +120,14 @@ public class WorldTerrainSummary {
 
     public static void onChunkLoad(World world, WorldChunk chunk) {
         WorldSummary summary = WorldSummary.of(world);
-        if ((!summary.terrain().contains(chunk.getPos()) || !ChunkUtil.airCount(chunk).equals(summary.terrain().get(chunk.getPos()).getAirCount()))){
+        if (summary.terrain() != null && (!summary.terrain().contains(chunk.getPos()) || !ChunkUtil.airCount(chunk).equals(summary.terrain().get(chunk.getPos()).getAirCount()))){
             summary.terrain().put(world, chunk);
         }
     }
 
     public static void onChunkUnload(World world, WorldChunk chunk) {
         WorldSummary summary = WorldSummary.of(world);
-        if (chunk.needsSaving()) {
+        if (summary.terrain() != null && chunk.needsSaving()) {
             summary.terrain().put(world, chunk);
         }
     }

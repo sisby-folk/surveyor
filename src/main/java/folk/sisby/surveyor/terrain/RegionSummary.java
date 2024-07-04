@@ -1,6 +1,7 @@
 package folk.sisby.surveyor.terrain;
 
 import folk.sisby.surveyor.Surveyor;
+import folk.sisby.surveyor.SurveyorConfig;
 import folk.sisby.surveyor.util.RegistryPalette;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import net.minecraft.block.Block;
@@ -109,8 +110,9 @@ public class RegionSummary {
     }
 
     public void putChunk(World world, WorldChunk chunk) {
+        if (Surveyor.CONFIG.terrain == SurveyorConfig.SystemMode.FROZEN) return;
         chunks[regionRelative(chunk.getPos().x)][regionRelative(chunk.getPos().z)] = new ChunkSummary(world, chunk, DimensionSupport.getSummaryLayers(world), biomePalette, blockPalette, !(world instanceof ServerWorld));
-        dirty = true;
+        dirty();
     }
 
     public static RegionSummary readNbt(NbtCompound nbt, DynamicRegistryManager manager, ChunkPos pos) {
@@ -127,7 +129,7 @@ public class RegionSummary {
             if (biome == null || newIndex != i) {
                 Surveyor.LOGGER.warn("[Surveyor] Remapping biome palette in region {}: {} (#{}) is now {} (#{})", pos, biomeId, i, biomeRegistry.getId(newBiome), newIndex);
                 biomeRemap.put(i, newIndex);
-                summary.dirty = true;
+                summary.dirty();
             }
         }
         NbtList blockList = nbt.getList(KEY_BLOCKS, NbtElement.STRING_TYPE);
@@ -140,7 +142,7 @@ public class RegionSummary {
             if (block == null || newIndex != i) {
                 Surveyor.LOGGER.warn("[Surveyor] Remapping block palette in region {}: {} (#{}) is now {} (#{})", pos, blockList.get(i).asString(), i, blockRegistry.getId(newBlock), newIndex);
                 blockRemap.put(i, newIndex);
-                summary.dirty = true;
+                summary.dirty();
             }
         }
         NbtCompound chunksCompound = nbt.getCompound(KEY_CHUNKS);
@@ -173,6 +175,7 @@ public class RegionSummary {
     }
 
     public BitSet readBuf(PacketByteBuf buf) {
+        if (Surveyor.CONFIG.terrain == SurveyorConfig.SystemMode.FROZEN) return new BitSet();
         int[] rawBiomes = buf.readList(PacketByteBuf::readVarInt).stream().mapToInt(i -> i).toArray();
         Map<Integer, Integer> biomeRemap = new Int2IntArrayMap();
         for (int i = 0; i < rawBiomes.length; i++) {
@@ -191,7 +194,7 @@ public class RegionSummary {
             summary.remap(biomeRemap, blockRemap);
             this.chunks[xForBit(indices[i])][zForBit(indices[i])] = summary;
         }
-        dirty = true;
+        dirty();
         return set;
     }
 
@@ -203,15 +206,19 @@ public class RegionSummary {
         return buf;
     }
 
-    public boolean isDirty() {
-        return dirty;
-    }
-
     public RegistryPalette<Biome>.ValueView getBiomePalette() {
         return biomePalette.view();
     }
 
     public RegistryPalette<Block>.ValueView getBlockPalette() {
         return blockPalette.view();
+    }
+
+    public boolean isDirty() {
+        return dirty && Surveyor.CONFIG.terrain != SurveyorConfig.SystemMode.FROZEN;
+    }
+
+    private void dirty() {
+        dirty = true;
     }
 }

@@ -3,9 +3,11 @@ package folk.sisby.surveyor.mixin;
 import com.mojang.authlib.GameProfile;
 import folk.sisby.surveyor.PlayerSummary;
 import folk.sisby.surveyor.ServerSummary;
+import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorPlayer;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.landmark.PlayerDeathLandmark;
+import folk.sisby.surveyor.landmark.WorldLandmarks;
 import folk.sisby.surveyor.util.TextUtil;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.nbt.NbtCompound;
@@ -51,8 +53,11 @@ public class MixinServerPlayerEntity implements SurveyorPlayer {
 
     @Inject(method = "onDeath", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/damage/DamageTracker;update()V"))
     public void onDeath(DamageSource damageSource, CallbackInfo ci) {
+        if (!Surveyor.CONFIG.playerDeathLandmarks) return;
         ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
-        WorldSummary.of(self.getServerWorld()).landmarks().put(
+        WorldLandmarks summary = WorldSummary.of(self.getServerWorld()).landmarks();
+        if (summary == null) return;
+        summary.put(
             self.getServerWorld(),
             new PlayerDeathLandmark(self.getBlockPos(), self.getUuid(), TextUtil.stripInteraction(self.getDamageTracker().getDeathMessage()), self.getServerWorld().getTimeOfDay(), self.getRandom().nextInt())
         );

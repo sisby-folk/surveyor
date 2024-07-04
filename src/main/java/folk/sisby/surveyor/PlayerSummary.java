@@ -4,6 +4,7 @@ import folk.sisby.surveyor.packet.S2CStructuresAddedPacket;
 import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.terrain.RegionSummary;
+import folk.sisby.surveyor.terrain.WorldTerrainSummary;
 import folk.sisby.surveyor.util.ArrayUtil;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.entity.player.PlayerEntity;
@@ -98,12 +99,12 @@ public interface PlayerSummary {
             );
         }
 
-        public record OfflinePlayerExploration(Set<UUID> sharedPlayers, Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures) implements SurveyorExploration {
+        public record OfflinePlayerExploration(Set<UUID> sharedPlayers, Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures, boolean personal) implements SurveyorExploration {
             public static OfflinePlayerExploration ofMerged(Set<SurveyorExploration> explorations) {
                 Set<UUID> sharedPlayers = new HashSet<>();
                 Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain = new HashMap<>();
                 Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures = new HashMap<>();
-                OfflinePlayerExploration outExploration = new OfflinePlayerExploration(sharedPlayers, terrain, structures);
+                OfflinePlayerExploration outExploration = new OfflinePlayerExploration(sharedPlayers, terrain, structures, false);
                 for (SurveyorExploration exploration : explorations) {
                     sharedPlayers.addAll(exploration.sharedPlayers());
                     exploration.terrain().forEach((wKey, map) -> map.forEach((rPos, bits) -> outExploration.mergeRegion(wKey, rPos, bits)));
@@ -113,7 +114,7 @@ public interface PlayerSummary {
             }
 
             public static SurveyorExploration from(UUID uuid, NbtCompound nbt) {
-                OfflinePlayerExploration mutable = new OfflinePlayerExploration(new HashSet<>(Set.of(uuid)), new HashMap<>(), new HashMap<>());
+                OfflinePlayerExploration mutable = new OfflinePlayerExploration(new HashSet<>(Set.of(uuid)), new HashMap<>(), new HashMap<>(), true);
                 mutable.read(nbt);
                 return mutable;
             }
@@ -204,6 +205,11 @@ public interface PlayerSummary {
             }
 
             @Override
+            public boolean personal() {
+                return true;
+            }
+
+            @Override
             public void mergeRegion(RegistryKey<World> worldKey, ChunkPos regionPos, BitSet bitSet) { // This method is currently unused for server players, but its implemented anyway
                 SurveyorExploration.super.mergeRegion(worldKey, regionPos, bitSet);
                 if (player.getServer().isHost(player.getGameProfile())) updateClientForMergeRegion(player.getServerWorld(), regionPos, bitSet);
@@ -212,7 +218,8 @@ public interface PlayerSummary {
                         SurveyorExploration friendExploration = SurveyorExploration.of(friend);
                         BitSet sendSet = (BitSet) bitSet.clone();
                         if (friendExploration.terrain().containsKey(worldKey) && friendExploration.terrain().get(worldKey).containsKey(regionPos)) sendSet.andNot(friendExploration.terrain().get(worldKey).get(regionPos));
-                        if (!sendSet.isEmpty()) new S2CUpdateRegionPacket(true, regionPos, WorldSummary.of(player.getWorld()).terrain().getRegion(regionPos), sendSet).send(friend);
+                        WorldTerrainSummary summary = WorldSummary.of(player.getWorld()).terrain();
+                        if (!sendSet.isEmpty() && summary != null) new S2CUpdateRegionPacket(true, regionPos, summary.getRegion(regionPos), sendSet).send(friend);
                     }
                 }
             }
@@ -222,9 +229,11 @@ public interface PlayerSummary {
                 SurveyorExploration.super.addChunk(worldKey, pos);
                 if (player.getServer().isHost(player.getGameProfile())) updateClientForAddChunk(player.getServerWorld(), pos);
                 for (ServerPlayerEntity friend : ServerSummary.of(player.getServer()).groupOtherServerPlayers(player.getUuid(), player.getServer())) {
-                    if (friend.getWorld().getRegistryKey().equals(worldKey) && !SurveyorExploration.of(friend).exploredChunk(worldKey, pos, false)) {
+                    if (friend.getWorld().getRegistryKey().equals(worldKey) && !SurveyorExploration.of(friend).exploredChunk(worldKey, pos)) {
                         ChunkPos regionPos = new ChunkPos(pos.getRegionX(), pos.getRegionZ());
-                        RegionSummary region = WorldSummary.of(player.getServer().getWorld(worldKey)).terrain().getRegion(regionPos);
+                        WorldTerrainSummary summary = WorldSummary.of(player.getServer().getWorld(worldKey)).terrain();
+                        if (summary == null) continue;
+                        RegionSummary region = summary.getRegion(regionPos);
                         BitSet sendSet = new BitSet();
                         sendSet.set(RegionSummary.bitForChunk(pos));
                         new S2CUpdateRegionPacket(true, regionPos, region, sendSet).send(friend);
@@ -240,7 +249,7 @@ public interface PlayerSummary {
                 WorldStructureSummary summary = WorldSummary.of(world).structures();
                 S2CStructuresAddedPacket.of(false, structureKey, pos, summary).send(player);
                 for (ServerPlayerEntity friend : ServerSummary.of(player.getServer()).groupOtherServerPlayers(player.getUuid(), player.getServer())) {
-                    if (friend.getWorld().getRegistryKey().equals(worldKey) && !SurveyorExploration.of(friend).exploredStructure(worldKey, structureKey, pos, false)) {
+                    if (friend.getWorld().getRegistryKey().equals(worldKey) && !SurveyorExploration.of(friend).exploredStructure(worldKey, structureKey, pos)) {
                         S2CStructuresAddedPacket.of(true, structureKey, pos, summary).send(friend);
                     }
                 }

@@ -50,6 +50,7 @@ public class Surveyor implements ModInitializer {
     public static void checkStructureExploration(ServerWorld world, ServerPlayerEntity player, BlockPos pos) {
         if (!world.isChunkLoaded(pos.getX() >> 4, pos.getZ() >> 4)) return;
         WorldStructureSummary worldStructures = WorldSummary.of(world).structures();
+        if (worldStructures == null) return;
         Registry<Structure> structureRegistry = world.getRegistryManager().get(RegistryKeys.STRUCTURE);
         SurveyorExploration exploration = SurveyorExploration.of(player);
         Map<Structure, LongSet> structureReferences = world.getChunk(pos.getX() >> 4, pos.getZ() >> 4, ChunkStatus.STRUCTURE_REFERENCES).getStructureReferences();
@@ -58,7 +59,7 @@ public class Surveyor implements ModInitializer {
                 e -> structureRegistry.getKey(e.getKey()).orElseThrow(),
                 e -> e.getValue().longStream().mapToObj(ChunkPos::new).toList()
             )));
-            unexploredStructures.entries().removeIf(e -> exploration.exploredStructure(world.getRegistryKey(), e.getKey(), e.getValue(), false));
+            unexploredStructures.entries().removeIf(e -> exploration.exploredStructure(world.getRegistryKey(), e.getKey(), e.getValue()));
             unexploredStructures.entries().removeIf(e -> !worldStructures.contains(e.getKey(), e.getValue()));
             unexploredStructures.forEach((structureKey, startPos) -> {
                 Structure structure = structureRegistry.get(structureKey);

@@ -3,6 +3,7 @@ package folk.sisby.surveyor.landmark;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.Surveyor;
+import folk.sisby.surveyor.SurveyorConfig;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.packet.SyncLandmarksAddedPacket;
@@ -48,7 +49,7 @@ public class WorldLandmarks {
     public <T extends Landmark<T>> Map<BlockPos, T> asMap(LandmarkType<T> type, SurveyorExploration exploration) {
         Map<BlockPos, T> outMap = new HashMap<>();
         if (landmarks.containsKey(type)) landmarks.get(type).forEach((pos, landmark) -> {
-            if (exploration == null || exploration.exploredLandmark(worldKey, landmark, true)) outMap.put(pos, (T) landmark);
+            if (exploration == null || exploration.exploredLandmark(worldKey, landmark)) outMap.put(pos, (T) landmark);
         });
         return outMap;
     }
@@ -56,7 +57,7 @@ public class WorldLandmarks {
     public Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> asMap(SurveyorExploration exploration) {
         Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> outmap = new HashMap<>();
         landmarks.forEach((type, map) -> map.forEach((pos, landmark) -> {
-            if (exploration == null || exploration.exploredLandmark(worldKey, landmark, true)) outmap.computeIfAbsent(type, t -> new HashMap<>()).put(pos, landmark);
+            if (exploration == null || exploration.exploredLandmark(worldKey, landmark)) outmap.computeIfAbsent(type, t -> new HashMap<>()).put(pos, landmark);
         }));
         return outmap;
     }
@@ -64,7 +65,7 @@ public class WorldLandmarks {
     public Multimap<LandmarkType<?>, BlockPos> keySet(SurveyorExploration exploration) {
         Multimap<LandmarkType<?>, BlockPos> outMap = HashMultimap.create();
         landmarks.forEach((type, map) -> map.forEach((pos, landmark) -> {
-            if (exploration == null || exploration.exploredLandmark(worldKey, landmark, true)) outMap.put(type, pos);
+            if (exploration == null || exploration.exploredLandmark(worldKey, landmark)) outMap.put(type, pos);
         }));
         return outMap;
     }
@@ -82,61 +83,70 @@ public class WorldLandmarks {
         if (!landmarksRemoved.isEmpty()) SurveyorEvents.Invoke.landmarksRemoved(world, landmarksRemoved);
         if (!landmarksAddedChanged.isEmpty()) SurveyorEvents.Invoke.landmarksAdded(world, landmarksAddedChanged);
         if (!local) {
-            if (!landmarksRemoved.isEmpty()) new SyncLandmarksRemovedPacket(landmarksRemoved).send(sender, world);
-            if (!landmarksAddedChanged.isEmpty()) new SyncLandmarksAddedPacket(landmarksAddedChanged, this).send(sender, world);
+            if (!landmarksRemoved.isEmpty() && (world instanceof ServerWorld || !Surveyor.CONFIG.sync.privateWaypoints)) new SyncLandmarksRemovedPacket(landmarksRemoved).send(sender, world);
+            if (!landmarksAddedChanged.isEmpty() && (world instanceof ServerWorld || !Surveyor.CONFIG.sync.privateWaypoints)) new SyncLandmarksAddedPacket(landmarksAddedChanged, this).send(sender, world);
         }
     }
 
     public Multimap<LandmarkType<?>, BlockPos> putForBatch(Multimap<LandmarkType<?>, BlockPos> changed, Landmark<?> landmark) {
+        if (Surveyor.CONFIG.landmarks == SurveyorConfig.SystemMode.FROZEN) return changed;
         landmarks.computeIfAbsent(landmark.type(), t -> new ConcurrentHashMap<>()).put(landmark.pos(), landmark);
-        dirty = true;
+        dirty();
         changed.put(landmark.type(), landmark.pos());
         return changed;
     }
 
     public void putLocal(World world, Landmark<?> landmark) {
+        if (Surveyor.CONFIG.landmarks == SurveyorConfig.SystemMode.FROZEN) return;
         Multimap<LandmarkType<?>, BlockPos> changed = landmark.put(HashMultimap.create(), world, this);
         handleChanged(world, changed, true, null);
     }
 
     public void put(World world, Landmark<?> landmark) {
+        if (Surveyor.CONFIG.landmarks == SurveyorConfig.SystemMode.FROZEN) return;
         Multimap<LandmarkType<?>, BlockPos> changed = landmark.put(HashMultimap.create(), world, this);
         handleChanged(world, changed, false, null);
     }
 
     public void put(ServerPlayerEntity sender, ServerWorld world, Landmark<?> landmark) {
+        if (Surveyor.CONFIG.landmarks == SurveyorConfig.SystemMode.FROZEN) return;
         Multimap<LandmarkType<?>, BlockPos> changed = landmark.put(HashMultimap.create(), world, this);
         handleChanged(world, changed, false, sender);
     }
 
     public Multimap<LandmarkType<?>, BlockPos> removeForBatch(Multimap<LandmarkType<?>, BlockPos> changed, LandmarkType<?> type, BlockPos pos) {
+        if (Surveyor.CONFIG.landmarks == SurveyorConfig.SystemMode.FROZEN) return changed;
         if (!landmarks.containsKey(type) || !landmarks.get(type).containsKey(pos)) return changed;
         landmarks.get(type).remove(pos);
         if (landmarks.get(type).isEmpty()) landmarks.remove(type);
-        dirty = true;
+        dirty();
         changed.put(type, pos);
         return changed;
     }
 
     public void removeLocal(World world, LandmarkType<?> type, BlockPos pos) {
+        if (Surveyor.CONFIG.landmarks == SurveyorConfig.SystemMode.FROZEN) return;
         if (!landmarks.containsKey(type) || !landmarks.get(type).containsKey(pos)) return;
         Multimap<LandmarkType<?>, BlockPos> changed = landmarks.get(type).get(pos).remove(HashMultimap.create(), world, this);
         handleChanged(world, changed, true, null);
     }
 
     public void remove(World world, LandmarkType<?> type, BlockPos pos) {
+        if (Surveyor.CONFIG.landmarks == SurveyorConfig.SystemMode.FROZEN) return;
         if (!landmarks.containsKey(type) || !landmarks.get(type).containsKey(pos)) return;
         Multimap<LandmarkType<?>, BlockPos> changed = landmarks.get(type).get(pos).remove(HashMultimap.create(), world, this);
         handleChanged(world, changed, false, null);
     }
 
     public void remove(ServerPlayerEntity sender, ServerWorld world, LandmarkType<?> type, BlockPos pos) {
+        if (Surveyor.CONFIG.landmarks == SurveyorConfig.SystemMode.FROZEN) return;
         if (!landmarks.containsKey(type) || !landmarks.get(type).containsKey(pos)) return;
         Multimap<LandmarkType<?>, BlockPos> changed = landmarks.get(type).get(pos).remove(HashMultimap.create(), world, this);
         handleChanged(world, changed, false, sender);
     }
 
     public void removeAll(World world, Class<?> clazz, BlockPos pos) {
+        if (Surveyor.CONFIG.landmarks == SurveyorConfig.SystemMode.FROZEN) return;
         Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
         landmarks.forEach((type, map) -> {
             if (map.containsKey(pos)) {
@@ -150,7 +160,7 @@ public class WorldLandmarks {
     }
 
     public int save(World world, File folder) {
-        if (dirty) {
+        if (isDirty()) {
             File landmarksFile = new File(folder, "landmarks.dat");
             try {
                 NbtIo.writeCompressed(Landmarks.writeNbt(landmarks, new NbtCompound()), landmarksFile);
@@ -177,6 +187,7 @@ public class WorldLandmarks {
     }
 
     public Multimap<LandmarkType<?>, BlockPos> readBuf(World world, PacketByteBuf buf, @Nullable ServerPlayerEntity sender) {
+        if (Surveyor.CONFIG.landmarks == SurveyorConfig.SystemMode.FROZEN) return HashMultimap.create();
         Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks = buf.readMap(
             b -> Landmarks.getType(b.readIdentifier()),
             b -> b.readMap(PacketByteBuf::readBlockPos, b2 -> Landmarks.CODEC.decode(NbtOps.INSTANCE, b2.readNbt()).getOrThrow(false, Surveyor.LOGGER::error).getFirst().values().stream().findFirst().orElseThrow().values().stream().findFirst().orElseThrow())
@@ -196,5 +207,13 @@ public class WorldLandmarks {
             (b, k) -> b.writeIdentifier(k.id()),
             (b, m) -> b.writeMap(m, PacketByteBuf::writeBlockPos, (b2, landmark) -> b2.writeNbt((NbtCompound) Landmarks.CODEC.encodeStart(NbtOps.INSTANCE, Map.of(landmark.type(), Map.of(landmark.pos(), landmark))).getOrThrow(false, Surveyor.LOGGER::error)))
         );
+    }
+
+    public boolean isDirty() {
+        return dirty && Surveyor.CONFIG.landmarks != SurveyorConfig.SystemMode.FROZEN;
+    }
+
+    private void dirty() {
+        dirty = true;
     }
 }

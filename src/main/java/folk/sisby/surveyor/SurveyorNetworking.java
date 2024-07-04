@@ -39,6 +39,7 @@ public class SurveyorNetworking {
     }
 
     private static void handleKnownTerrain(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownTerrainPacket packet) {
+        if (summary.terrain() == null) return;
         Map<ChunkPos, BitSet> serverBits = summary.terrain().bitSet(SurveyorExploration.ofShared(player));
         Map<ChunkPos, BitSet> clientBits = packet.regionBits();
         serverBits.forEach((rPos, set) -> {
@@ -48,12 +49,13 @@ public class SurveyorNetworking {
                 BitSet personalSet = personalExploration.limitTerrainBitset(world.getRegistryKey(), rPos, (BitSet) set.clone());
                 if (!personalSet.isEmpty()) new S2CUpdateRegionPacket(false, rPos, summary.terrain().getRegion(rPos), personalSet).send(player);
                 set.andNot(personalSet);
-                if (!set.isEmpty()) new S2CUpdateRegionPacket(true, rPos, summary.terrain().getRegion(rPos), set).send(player);
+                if (!set.isEmpty() && Surveyor.CONFIG.sync.terrainSharing != SurveyorConfig.ShareMode.DISABLED) new S2CUpdateRegionPacket(true, rPos, summary.terrain().getRegion(rPos), set).send(player);
             }
         });
     }
 
     private static void handleKnownStructures(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownStructuresPacket packet) {
+        if (summary.structures() == null) return;
         Multimap<RegistryKey<Structure>, ChunkPos> structures = summary.structures().keySet(SurveyorExploration.ofShared(player));
         packet.structureKeys().forEach(structures::remove);
         if (structures.isEmpty()) return;
@@ -61,20 +63,23 @@ public class SurveyorNetworking {
         Multimap<RegistryKey<Structure>, ChunkPos> personalStructures = personalExploration.limitStructureKeySet(world.getRegistryKey(), HashMultimap.create(structures));
         if (!personalStructures.isEmpty()) new S2CStructuresAddedPacket(false, personalStructures, summary.structures()).send(player);
         personalStructures.forEach(structures::remove);
-        if (!structures.isEmpty()) new S2CStructuresAddedPacket(true, structures, summary.structures()).send(player);
+        if (!structures.isEmpty() && Surveyor.CONFIG.sync.structureSharing != SurveyorConfig.ShareMode.DISABLED) new S2CStructuresAddedPacket(true, structures, summary.structures()).send(player);
     }
 
     private static void handleKnownLandmarks(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownLandmarksPacket packet) {
-        Multimap<LandmarkType<?>, BlockPos> landmarks = summary.landmarks().keySet(SurveyorExploration.ofShared(player));
+        if (summary.landmarks() == null) return;
+        Multimap<LandmarkType<?>, BlockPos> landmarks = summary.landmarks().keySet(Surveyor.CONFIG.sync.landmarkSharing != SurveyorConfig.ShareMode.DISABLED ? SurveyorExploration.ofShared(player) : SurveyorExploration.of(player));
         packet.landmarks().forEach(landmarks::remove);
         if (!landmarks.isEmpty()) new SyncLandmarksAddedPacket(landmarks, summary.landmarks()).send(player);
     }
 
     private static void handleLandmarksAdded(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, PacketByteBuf buf) {
+        if (summary.landmarks() == null) return;
         SyncLandmarksAddedPacket packet = SyncLandmarksAddedPacket.handle(buf, world, summary, player);
     }
 
     private static void handleLandmarksRemoved(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, SyncLandmarksRemovedPacket packet) {
+        if (summary.landmarks() == null) return;
         Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
         packet.landmarks().forEach((type, pos) -> {
             if (summary.landmarks().contains(type, pos) && (world.getServer().isHost(player.getGameProfile()) || player.getUuid().equals(summary.landmarks().get(type, pos).owner()))) summary.landmarks().removeForBatch(changed, type, pos);

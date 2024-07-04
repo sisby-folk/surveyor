@@ -55,19 +55,21 @@ public interface SurveyorExploration {
 
     Set<UUID> sharedPlayers();
 
-    default boolean exploredChunk(RegistryKey<World> worldKey, ChunkPos pos, boolean respectConfig) {
+    boolean personal();
+
+    default boolean exploredChunk(RegistryKey<World> worldKey, ChunkPos pos) {
         ChunkPos regionPos = new ChunkPos(pos.getRegionX(), pos.getRegionZ());
         Map<ChunkPos, BitSet> regions = terrain().get(worldKey);
-        return (Surveyor.CONFIG.shareAllTerrain && respectConfig) || regions != null && regions.containsKey(regionPos) && regions.get(regionPos).get(RegionSummary.bitForChunk(pos));
+        return (!personal() && Surveyor.CONFIG.sync.terrainSharing == SurveyorConfig.ShareMode.OMNISCIENT) || regions != null && regions.containsKey(regionPos) && regions.get(regionPos).get(RegionSummary.bitForChunk(pos));
     }
 
-    default boolean exploredStructure(RegistryKey<World> worldKey, RegistryKey<Structure> structure, ChunkPos pos, boolean respectConfig) {
+    default boolean exploredStructure(RegistryKey<World> worldKey, RegistryKey<Structure> structure, ChunkPos pos) {
         Map<RegistryKey<Structure>, LongSet> structures = structures().get(worldKey);
-        return (Surveyor.CONFIG.shareAllStructures && respectConfig) || structures != null && structures.containsKey(structure) && structures.get(structure).contains(pos.toLong());
+        return (!personal() && Surveyor.CONFIG.sync.structureSharing == SurveyorConfig.ShareMode.OMNISCIENT) || structures != null && structures.containsKey(structure) && structures.get(structure).contains(pos.toLong());
     }
 
-    default boolean exploredLandmark(RegistryKey<World> worldKey, Landmark<?> landmark, boolean respectConfig) {
-        return (Surveyor.CONFIG.shareAllLandmarks && respectConfig) || (landmark.owner() == null ? exploredChunk(worldKey, new ChunkPos(landmark.pos()), respectConfig) : sharedPlayers().contains(landmark.owner()));
+    default boolean exploredLandmark(RegistryKey<World> worldKey, Landmark<?> landmark) {
+        return landmark.owner() == null ? exploredChunk(worldKey, new ChunkPos(landmark.pos())) : sharedPlayers().contains(landmark.owner());
     }
 
     default int chunkCount() {
@@ -79,7 +81,7 @@ public interface SurveyorExploration {
     }
 
     default BitSet limitTerrainBitset(RegistryKey<World> worldKey, ChunkPos rPos, BitSet bitSet) {
-        if (Surveyor.CONFIG.shareAllTerrain) return bitSet;
+        if (!personal() && Surveyor.CONFIG.sync.terrainSharing == SurveyorConfig.ShareMode.OMNISCIENT) return bitSet;
         if (terrain().get(worldKey) == null || !terrain().get(worldKey).containsKey(rPos)) {
             bitSet.clear();
         } else {
@@ -89,7 +91,7 @@ public interface SurveyorExploration {
     }
 
     default Map<ChunkPos, BitSet> limitTerrainBitset(RegistryKey<World> worldKey, Map<ChunkPos, BitSet> bitSet) {
-        if (Surveyor.CONFIG.shareAllTerrain) return bitSet;
+        if (!personal() && Surveyor.CONFIG.sync.terrainSharing == SurveyorConfig.ShareMode.OMNISCIENT) return bitSet;
         Map<ChunkPos, BitSet> regions = terrain().get(worldKey);
         if (regions == null) {
             bitSet.clear();
@@ -100,7 +102,7 @@ public interface SurveyorExploration {
     }
 
     default Multimap<RegistryKey<Structure>, ChunkPos> limitStructureKeySet(RegistryKey<World> worldKey, Multimap<RegistryKey<Structure>, ChunkPos> keySet) {
-        if (Surveyor.CONFIG.shareAllStructures) return keySet;
+        if (!personal() && Surveyor.CONFIG.sync.structureSharing == SurveyorConfig.ShareMode.OMNISCIENT) return keySet;
         Map<RegistryKey<Structure>, LongSet> structures = structures().get(worldKey);
         if (structures == null) {
             keySet.clear();
@@ -112,10 +114,9 @@ public interface SurveyorExploration {
     }
 
     default Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> limitLandmarkMap(RegistryKey<World> worldKey, Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> asMap) {
-        if (Surveyor.CONFIG.shareAllLandmarks) return asMap;
         Multimap<LandmarkType<?>, BlockPos> toRemove = HashMultimap.create();
         asMap.forEach((type, map) -> map.forEach((pos, landmark) -> {
-            if (!exploredLandmark(worldKey, landmark, true)) toRemove.put(type, pos);
+            if (!exploredLandmark(worldKey, landmark)) toRemove.put(type, pos);
         }));
         toRemove.forEach((type, pos) -> {
             asMap.get(type).remove(pos);
@@ -125,10 +126,9 @@ public interface SurveyorExploration {
     }
 
     default Multimap<LandmarkType<?>, BlockPos> limitLandmarkKeySet(RegistryKey<World> worldKey, WorldLandmarks worldLandmarks, Multimap<LandmarkType<?>, BlockPos> keySet) {
-        if (Surveyor.CONFIG.shareAllLandmarks) return keySet;
         Multimap<LandmarkType<?>, BlockPos> toRemove = HashMultimap.create();
         keySet.forEach((type, pos) -> {
-            if (!exploredLandmark(worldKey, worldLandmarks.get(type, pos), true)) toRemove.put(type, pos);
+            if (!exploredLandmark(worldKey, worldLandmarks.get(type, pos))) toRemove.put(type, pos);
         });
         toRemove.forEach(keySet::remove);
         return keySet;
@@ -138,15 +138,19 @@ public interface SurveyorExploration {
         Set<ChunkPos> terrainKeys = bitSet.stream().mapToObj(i -> RegionSummary.chunkForBit(regionPos, i)).collect(Collectors.toSet());
         SurveyorClientEvents.Invoke.terrainUpdated(world, terrainKeys);
         Multimap<LandmarkType<?>, BlockPos> landmarkKeys = HashMultimap.create();
-        WorldSummary.of(world).landmarks().keySet(this).forEach((type, pos) -> {
-            if (terrainKeys.contains(new ChunkPos(pos)) && WorldSummary.of(world).landmarks().get(type, pos).owner() == null) landmarkKeys.put(type, pos);
+        WorldLandmarks summary = WorldSummary.of(world).landmarks();
+        if (summary == null) return;
+        summary.keySet(this).forEach((type, pos) -> {
+            if (terrainKeys.contains(new ChunkPos(pos)) && summary.get(type, pos).owner() == null) landmarkKeys.put(type, pos);
         });
         SurveyorClientEvents.Invoke.landmarksAdded(world, landmarkKeys);
     }
 
     default void updateClientForLandmarks(World world) {
-        Multimap<LandmarkType<?>, BlockPos> unexploredLandmarks = WorldSummary.of(world).landmarks().keySet(null);
-        Multimap<LandmarkType<?>, BlockPos> exploredLandmarks = WorldSummary.of(world).landmarks().keySet(this);
+        WorldLandmarks summary = WorldSummary.of(world).landmarks();
+        if (summary == null) return;
+        Multimap<LandmarkType<?>, BlockPos> unexploredLandmarks = summary.keySet(null);
+        Multimap<LandmarkType<?>, BlockPos> exploredLandmarks = summary.keySet(this);
         exploredLandmarks.forEach(unexploredLandmarks::remove);
         SurveyorClientEvents.Invoke.landmarksAdded(world, exploredLandmarks);
         SurveyorClientEvents.Invoke.landmarksRemoved(world, unexploredLandmarks);
@@ -165,8 +169,10 @@ public interface SurveyorExploration {
     default void updateClientForAddChunk(World world, ChunkPos chunkPos) {
         SurveyorClientEvents.Invoke.terrainUpdated(world, chunkPos);
         Multimap<LandmarkType<?>, BlockPos> landmarkKeys = HashMultimap.create();
-        WorldSummary.of(world).landmarks().keySet(this).forEach((type, pos) -> {
-            if (chunkPos.equals(new ChunkPos(pos)) && WorldSummary.of(world).landmarks().get(type, pos).owner() == null) landmarkKeys.put(type, pos);
+        WorldLandmarks summary = WorldSummary.of(world).landmarks();
+        if (summary == null) return;
+        summary.keySet(this).forEach((type, pos) -> {
+            if (chunkPos.equals(new ChunkPos(pos)) && summary.get(type, pos).owner() == null) landmarkKeys.put(type, pos);
         });
         SurveyorClientEvents.Invoke.landmarksAdded(world, landmarkKeys);
     }

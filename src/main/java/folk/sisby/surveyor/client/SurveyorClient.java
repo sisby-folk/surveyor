@@ -149,11 +149,11 @@ public class SurveyorClient implements ClientModInitializer {
             if (!SurveyorClientEvents.INITIALIZING_WORLD) return;
             if (MinecraftClient.getInstance().player != null && getExploration() != null) {
                 SurveyorClientEvents.INITIALIZING_WORLD = false;
-                if (WorldSummary.of(world).isClient()) {
+                if (WorldSummary.of(world).isClient() && Surveyor.CONFIG.sync.syncOnJoin) {
                     WorldSummary summary = WorldSummary.of(world);
-                    new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
-                    new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
-                    new C2SKnownLandmarksPacket(summary.landmarks().keySet(null)).send();
+                    if (summary.terrain() != null) new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
+                    if (summary.structures() != null) new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
+                    if (summary.landmarks() != null) new C2SKnownLandmarksPacket(summary.landmarks().keySet(null)).send();
                 }
                 SurveyorClientEvents.Invoke.worldLoad(MinecraftClient.getInstance().player.clientWorld, MinecraftClient.getInstance().player);
             }
@@ -213,6 +213,11 @@ public class SurveyorClient implements ClientModInitializer {
             sharedPlayers.add(getClientUuid());
             sharedPlayers.addAll(groupPlayers);
             return sharedPlayers;
+        }
+
+        @Override
+        public boolean personal() {
+            return true;
         }
 
         @Override
