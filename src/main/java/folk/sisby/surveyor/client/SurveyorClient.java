@@ -31,6 +31,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.WorldChunk;
 import net.minecraft.world.gen.structure.Structure;
 import org.apache.commons.io.FileUtils;
 
@@ -130,29 +131,41 @@ public class SurveyorClient implements ClientModInitializer {
         return integratedServer.getWorld(worldKey);
     }
 
+    private static final Set<WorldChunk> LOADING_CHUNKS = new HashSet<>();
+
     @Override
     public void onInitializeClient() {
         SurveyorClientNetworking.init();
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(ClientExploration::onLoad));
-        ClientPlayConnectionEvents.DISCONNECT.register(((handler, client) -> ClientExploration.onUnload()));
+        ClientPlayConnectionEvents.DISCONNECT.register(((handler, client) -> {
+            LOADING_CHUNKS.clear();
+            ClientExploration.onUnload();
+        }));
         ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
             if (WorldSummary.of(world).isClient()) {
-                WorldTerrainSummary.onChunkLoad(world, chunk);
-                ClientExploration.INSTANCE.addChunk(world.getRegistryKey(), chunk.getPos());
+                LOADING_CHUNKS.add(chunk);
             }
         });
         ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
             if (WorldSummary.of(world).isClient()) WorldTerrainSummary.onChunkUnload(world, chunk);
         });
         ClientTickEvents.END_WORLD_TICK.register((world -> {
+            if (MinecraftClient.getInstance().worldRenderer.getCompletedChunkCount() <= 10 || !MinecraftClient.getInstance().worldRenderer.isTerrainRenderComplete()) return;
+            for (WorldChunk chunk : new HashSet<>(LOADING_CHUNKS)) {
+                WorldTerrainSummary.onChunkLoad(world, chunk);
+                ClientExploration.INSTANCE.addChunk(world.getRegistryKey(), chunk.getPos());
+                LOADING_CHUNKS.remove(chunk);
+            }
+        }));
+        ClientTickEvents.END_WORLD_TICK.register((world -> {
             if (!SurveyorClientEvents.INITIALIZING_WORLD) return;
             if (MinecraftClient.getInstance().player != null && getExploration() != null) {
                 SurveyorClientEvents.INITIALIZING_WORLD = false;
-                if (WorldSummary.of(world).isClient()) {
+                if (WorldSummary.of(world).isClient() && Surveyor.CONFIG.sync.syncOnJoin) {
                     WorldSummary summary = WorldSummary.of(world);
-                    new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
-                    new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
-                    new C2SKnownLandmarksPacket(summary.landmarks().keySet(null)).send();
+                    if (summary.terrain() != null) new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
+                    if (summary.structures() != null) new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
+                    if (summary.landmarks() != null) new C2SKnownLandmarksPacket(summary.landmarks().keySet(null)).send();
                 }
                 SurveyorClientEvents.Invoke.worldLoad(MinecraftClient.getInstance().player.clientWorld, MinecraftClient.getInstance().player);
             }
@@ -162,6 +175,7 @@ public class SurveyorClient implements ClientModInitializer {
             if (exploration != null) SurveyorClientEvents.Invoke.landmarksAdded(world, exploration.limitLandmarkKeySet(world.getRegistryKey(), worldLandmarks, HashMultimap.create(landmarks)));
         }));
         SurveyorEvents.Register.landmarksRemoved(Identifier.of(Surveyor.ID, "client"), (world, summary, landmarks) -> SurveyorClientEvents.Invoke.landmarksRemoved(world, landmarks));
+        Surveyor.LOGGER.info("[Surveyor Client] is not a map mod either");
     }
 
     public record ClientExploration(Set<UUID> groupPlayers, Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures) implements SurveyorExploration {
@@ -212,6 +226,11 @@ public class SurveyorClient implements ClientModInitializer {
             sharedPlayers.add(getClientUuid());
             sharedPlayers.addAll(groupPlayers);
             return sharedPlayers;
+        }
+
+        @Override
+        public boolean personal() {
+            return true;
         }
 
         @Override

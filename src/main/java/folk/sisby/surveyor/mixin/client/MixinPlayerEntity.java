@@ -1,5 +1,6 @@
 package folk.sisby.surveyor.mixin.client;
 
+import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.WorldSummary;
 import folk.sisby.surveyor.client.SurveyorClient;
 import folk.sisby.surveyor.landmark.PlayerDeathLandmark;
@@ -16,12 +17,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MixinPlayerEntity {
     @Inject(method = "onDeath", at = @At("HEAD"))
     public void onClientDeath(DamageSource damageSource, CallbackInfo ci) {
+        if (!Surveyor.CONFIG.netherPortalLandmarks) return;
         PlayerEntity self = (PlayerEntity) (Object) this;
         if (self instanceof ServerPlayerEntity) return;
-        if (WorldSummary.of(self.getWorld()).isClient() && !SurveyorClient.serverSupported()) {
-            WorldSummary.of(self.getWorld()).landmarks().put(
+        WorldSummary summary = WorldSummary.of(self.getWorld());
+        if (summary.isClient() && !SurveyorClient.serverSupported()) {
+            if (summary.landmarks() == null) return;
+            summary.landmarks().put(
                 self.getWorld(),
-                new PlayerDeathLandmark(self.getBlockPos(), self.getUuid(), TextUtil.stripInteraction(self.getDamageTracker().getDeathMessage()), self.getWorld().getTimeOfDay(), self.getRandom().nextInt())
+                new PlayerDeathLandmark(self.getBlockPos(), SurveyorClient.getClientUuid(), TextUtil.stripInteraction(self.getDamageTracker().getDeathMessage()), self.getWorld().getTimeOfDay(), self.getRandom().nextInt())
             );
         }
     }

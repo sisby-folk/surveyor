@@ -4,6 +4,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import folk.sisby.surveyor.Surveyor;
+import folk.sisby.surveyor.SurveyorConfig;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.WorldSummary;
@@ -101,6 +102,7 @@ public class WorldStructureSummary {
     }
 
     public void put(ServerWorld world, StructureStart start) {
+        if (Surveyor.CONFIG.structures == SurveyorConfig.SystemMode.FROZEN) return;
         ChunkPos rPos = regionPosOf(start.getPos());
         regions.computeIfAbsent(rPos, k -> new RegionStructureSummary()).put(world, start);
         RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElseThrow();
@@ -112,16 +114,17 @@ public class WorldStructureSummary {
         List<TagKey<Structure>> tags = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getEntry(start.getStructure()).streamTags().toList();
         structureTypes.put(key, type.orElseThrow());
         structureTags.putAll(key, tags);
-        dirty = true;
+        dirty();
         SurveyorEvents.Invoke.structuresAdded(world, key, start.getPos());
     }
 
     public void put(World world, RegistryKey<Structure> key, ChunkPos pos, StructureStartSummary summary, RegistryKey<StructureType<?>> type, Collection<TagKey<Structure>> tagKeys) {
+        if (Surveyor.CONFIG.structures == SurveyorConfig.SystemMode.FROZEN) return;
         ChunkPos rPos = regionPosOf(pos);
         regions.computeIfAbsent(rPos, k -> new RegionStructureSummary()).put(key, pos, summary);
         structureTypes.put(key, type);
         structureTags.putAll(key, tagKeys);
-        dirty = true;
+        dirty();
         SurveyorEvents.Invoke.structuresAdded(world, key, pos);
     }
 
@@ -139,7 +142,7 @@ public class WorldStructureSummary {
 
     public int save(World world, File folder) {
         List<ChunkPos> savedRegions = new ArrayList<>();
-        if (dirty) {
+        if (isDirty()) {
             File structureFile = new File(folder, "structures.dat");
             try {
                 NbtIo.writeCompressed(writeNbt(new NbtCompound()), structureFile.toPath());
@@ -211,16 +214,17 @@ public class WorldStructureSummary {
     public static void onChunkLoad(ServerWorld world, WorldChunk chunk) {
         WorldStructureSummary structures = WorldSummary.of(world).structures();
         chunk.getStructureStarts().forEach((structure, start) -> {
-            if (!structures.contains(world, start)) structures.put(world, start);
+            if (structures != null && !structures.contains(world, start)) structures.put(world, start);
         });
     }
 
     public static void onStructurePlace(ServerWorld world, StructureStart start) {
         WorldStructureSummary structures = WorldSummary.of(world).structures();
-        if (!structures.contains(world, start)) structures.put(world, start);
+        if (structures != null && !structures.contains(world, start)) structures.put(world, start);
     }
 
     public Multimap<RegistryKey<Structure>, ChunkPos> readUpdatePacket(World world, S2CStructuresAddedPacket packet) {
+        if (Surveyor.CONFIG.structures == SurveyorConfig.SystemMode.FROZEN) return HashMultimap.create();
         packet.structures().forEach((key, map) -> map.forEach((pos, start) -> put(world, key, pos, start, packet.types().get(key), packet.tags().get(key))));
         return MapUtil.keyMultiMap(packet.structures());
     }
@@ -235,5 +239,13 @@ public class WorldStructureSummary {
             packetTags.putAll(key, getTags(key));
         }
         return new S2CStructuresAddedPacket(shared, packetStructures, packetTypes, packetTags);
+    }
+
+    public boolean isDirty() {
+        return (dirty || regions.values().stream().anyMatch(RegionStructureSummary::isDirty)) && Surveyor.CONFIG.structures != SurveyorConfig.SystemMode.FROZEN;
+    }
+
+    private void dirty() {
+        dirty = true;
     }
 }
