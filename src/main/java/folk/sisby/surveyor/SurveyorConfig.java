@@ -66,7 +66,7 @@ public class SurveyorConfig extends WrappedConfig {
         @IntegerRange(min = 1, max = 200)
         public int positionTicks = 1;
 
-        @Comment("Whether to sync missing data when joining a world")
+        @Comment("Whether to sync missing data when joining a world / changing groups")
         @Comment("Must be enabled on both client and server")
         public boolean syncOnJoin = true;
 
