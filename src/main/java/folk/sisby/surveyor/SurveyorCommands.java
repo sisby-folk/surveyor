@@ -8,18 +8,28 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.landmark.LandmarkType;
+import folk.sisby.surveyor.landmark.Landmarks;
+import folk.sisby.surveyor.landmark.SimplePointLandmark;
 import folk.sisby.surveyor.landmark.WorldLandmarks;
 import folk.sisby.surveyor.util.TextUtil;
 import net.minecraft.command.CommandRegistryAccess;
+import net.minecraft.command.CommandSource;
+import net.minecraft.command.argument.BlockPosArgumentType;
+import net.minecraft.command.argument.DefaultPosArgument;
+import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.DyeColor;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -38,14 +48,14 @@ public class SurveyorCommands {
         );
     }
 
-    private static int informGlobal(ServerSummary serverSummary, ServerPlayerEntity player, SurveyorExploration exploration, String ignored, Consumer<Text> feedback) {
+    private static int informGlobal(ServerSummary serverSummary, ServerPlayerEntity player, Consumer<Text> feedback) {
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("The server has global sharing enabled!").formatted(Formatting.YELLOW)));
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You can't leave or modify the global sharing group!").formatted(Formatting.YELLOW)));
         informGroup(player, serverSummary.groupPlayers(player.getUuid(), player.getServer()), feedback);
         return 0;
     }
 
-    private static int info(ServerSummary serverSummary, ServerPlayerEntity player, SurveyorExploration exploration, String ignored, Consumer<Text> feedback) {
+    private static int info(ServerSummary serverSummary, ServerPlayerEntity player, SurveyorExploration exploration, Consumer<Text> feedback) {
         Set<PlayerSummary> group = serverSummary.groupPlayers(player.getUuid(), player.getServer());
         SurveyorExploration groupExploration = SurveyorExploration.ofShared(player);
         Set<Landmark<?>> landmarks = new HashSet<>();
@@ -111,7 +121,7 @@ public class SurveyorCommands {
         return 1;
     }
 
-    private static int landmarkInfo(ServerSummary serverSummary, ServerPlayerEntity player, SurveyorExploration exploration, String ignored, Consumer<Text> feedback) {
+    private static int landmarkInfo(ServerSummary serverSummary, ServerPlayerEntity player, SurveyorExploration exploration, Consumer<Text> feedback) {
         Set<PlayerSummary> group = serverSummary.groupPlayers(player.getUuid(), player.getServer());
         SurveyorExploration groupExploration = SurveyorExploration.ofShared(player);
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("---Landmark Types---").formatted(Formatting.GRAY)));
@@ -151,7 +161,7 @@ public class SurveyorCommands {
         return 1;
     }
 
-    private static int share(ServerSummary serverSummary, ServerPlayerEntity player, SurveyorExploration exploration, String username, Consumer<Text> feedback) {
+    private static int share(ServerSummary serverSummary, ServerPlayerEntity player, Consumer<Text> feedback, String username) {
         ServerPlayerEntity sharePlayer = player.getServer().getPlayerManager().getPlayer(username);
         if (sharePlayer == null) {
             feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("Can't find an online player named ").formatted(Formatting.YELLOW)).append(Text.literal(username).formatted(Formatting.WHITE)).append(Text.literal(".").formatted(Formatting.YELLOW)));
@@ -199,7 +209,7 @@ public class SurveyorCommands {
         }
     }
 
-    private static int unshare(ServerSummary serverSummary, ServerPlayerEntity player, SurveyorExploration exploration, String ignored, Consumer<Text> feedback) {
+    private static int unshare(ServerSummary serverSummary, ServerPlayerEntity player, Consumer<Text> feedback) {
         int shareNumber = serverSummary.groupSize(player.getUuid()) - 1;
         if (shareNumber == 0) {
             feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You're not sharing map exploration with anyone!").formatted(Formatting.YELLOW)));
@@ -218,11 +228,79 @@ public class SurveyorCommands {
         }
     }
 
-    public interface SurveyorCommandExecutor {
-        int execute(ServerSummary serverSummary, ServerPlayerEntity player, SurveyorExploration exploration, String arg, Consumer<Text> feedback);
+    private static int getLandmarks(WorldSummary summary, ServerPlayerEntity player, SurveyorExploration exploration, Consumer<Text> feedback, Identifier type) {
+        if (summary.landmarks() == null) {
+            feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("The landmark system is dynamically disabled!").formatted(Formatting.YELLOW)));
+            return 0;
+        }
+        Map<BlockPos, ? extends Landmark<?>> landmarks = summary.landmarks().asMap(Landmarks.getType(type), player.hasPermissionLevel(2) ? null : exploration);
+        if (landmarks.isEmpty()) {
+            feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("There are no landmarks of that type in this world!").formatted(Formatting.YELLOW)));
+            return 0;
+        }
+        feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("---World %s Landmarks---".formatted(type)).formatted(Formatting.GRAY)));
+        for (Landmark<?> landmark : landmarks.values()) {
+            feedback.accept(
+                Text.literal("[").formatted(Formatting.AQUA)
+                    .append(Text.literal(landmark.pos().toShortString()).formatted(Formatting.WHITE))
+                    .append(Text.literal("]")).formatted(Formatting.AQUA)
+                    .append(Text.literal(" - ")).formatted(Formatting.LIGHT_PURPLE)
+                    .append(Text.literal("\"")).formatted(Formatting.GOLD)
+                    .append(landmark.name()).formatted(Formatting.WHITE)
+                    .append(Text.literal("\"")).formatted(Formatting.GOLD)
+
+            );
+        }
+        feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("---End %s Landmarks---".formatted(type)).formatted(Formatting.GRAY)));
+        return landmarks.size();
     }
 
-    public static int execute(CommandContext<ServerCommandSource> context, String arg, SurveyorCommandExecutor executor) {
+    private static int removeLandmark(WorldSummary summary, ServerPlayerEntity player, ServerWorld world, Consumer<Text> feedback, Identifier type, BlockPos pos) {
+        if (summary.landmarks() == null) {
+            feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("The landmark system is dynamically disabled!").formatted(Formatting.YELLOW)));
+            return 0;
+        }
+        if (!summary.landmarks().contains(Landmarks.getType(type), pos)) {
+            feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("No landmark exists of that type and position!").formatted(Formatting.YELLOW)));
+            return 0;
+        }
+        Landmark<?> landmark = summary.landmarks().get(Landmarks.getType(type), pos);
+        if ((landmark.owner() == null || landmark.owner() != player.getUuid()) && !player.hasPermissionLevel(2)) {
+            feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You don't have permission to delete that landmark!").formatted(Formatting.YELLOW)));
+            return 0;
+        }
+        summary.landmarks().remove(world, Landmarks.getType(type), pos);
+        feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("%s removed successfully!".formatted(landmark.owner() == null ? "Landmark" : "Waypoint")).formatted(Formatting.GREEN)));
+        return 1;
+    }
+
+    private static int addLandmark(WorldSummary summary, ServerPlayerEntity player, ServerWorld world, Consumer<Text> feedback, Identifier type, BlockPos pos, String name, boolean global) {
+        if (summary.landmarks() == null) {
+            feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("The landmark system is dynamically disabled!").formatted(Formatting.YELLOW)));
+            return 0;
+        }
+        if (!SimplePointLandmark.TYPE.id().equals(type)) {
+            feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You can't create a landmark of that type!").formatted(Formatting.YELLOW)));
+            return 0;
+        }
+        if (global && !player.hasPermissionLevel(2)) {
+            feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You don't have permission to add that landmark!").formatted(Formatting.YELLOW)));
+            return 0;
+        }
+        if (summary.landmarks().contains(Landmarks.getType(type), pos)) {
+            feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("A landmark exists of that type and position!").formatted(Formatting.YELLOW)));
+            return 0;
+        }
+        summary.landmarks().put(world, new SimplePointLandmark(pos, global ? null : player.getUuid(), DyeColor.WHITE, Text.of(name), new Identifier("")));
+        feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("%s added successfully!".formatted(global ? "Landmark" : "Waypoint")).formatted(Formatting.GREEN)));
+        return 1;
+    }
+
+    public interface SurveyorCommandExecutor<T> {
+        T execute(ServerSummary serverSummary, WorldSummary currentWorldSummary, ServerPlayerEntity player, ServerWorld world, SurveyorExploration exploration, Consumer<Text> feedback);
+    }
+
+    public static int execute(CommandContext<ServerCommandSource> context, SurveyorCommandExecutor<Integer> executor) {
         ServerPlayerEntity player;
         try {
             player = context.getSource().getPlayerOrThrow();
@@ -233,7 +311,7 @@ public class SurveyorCommands {
 
         SurveyorExploration exploration = SurveyorExploration.of(player);
         try {
-            return executor.execute(ServerSummary.of(player.getServer()), player, exploration, arg != null ? context.getArgument(arg, String.class) : null, t -> context.getSource().sendFeedback(() -> t, false));
+            return executor.execute(ServerSummary.of(player.getServer()), WorldSummary.of(context.getSource().getWorld()), player, context.getSource().getWorld(), exploration, t -> context.getSource().sendFeedback(() -> t, false));
         } catch (Exception e) {
             context.getSource().sendFeedback(() -> Text.literal("Command failed! Check log for details.").formatted(Formatting.RED), false);
             Surveyor.LOGGER.error("[Surveyor] Error while executing command: {}", context.getInput(), e);
@@ -244,25 +322,60 @@ public class SurveyorCommands {
     public static void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
         dispatcher.register(
             CommandManager.literal("surveyor")
-                .then(
-                    CommandManager.literal("share").then(
-                        CommandManager.argument("player", StringArgumentType.word()).suggests((c, b) -> {
-                                c.getSource().getServer().getPlayerManager().getPlayerList().stream().filter(p -> c.getSource().getPlayer() != p).map(p -> p.getGameProfile().getName()).forEach(b::suggest);
-                                return b.buildFuture();
-                            }).requires(c -> !Surveyor.CONFIG.sync.forceGlobal)
-                            .executes(c -> execute(c, "player", SurveyorCommands::share))
-                    ).requires(c -> Surveyor.CONFIG.sync.forceGlobal)
-                        .executes(c -> execute(c, null, SurveyorCommands::informGlobal))
-                )
-                .then(
+                .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.info(s, p, e, f)))
+                .then(Surveyor.CONFIG.sync.forceGlobal ?
+                    CommandManager.literal("share")
+                        .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.informGlobal(s, p, f))) :
+                    CommandManager.literal("share")
+                        .then(CommandManager.argument("player", StringArgumentType.word())
+                            .suggests((c, b) -> CommandSource.suggestMatching(c.getSource().getServer().getPlayerManager().getPlayerList().stream().filter(p -> c.getSource().getPlayer() != p).map(p -> p.getGameProfile().getName()), b))
+                            .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.share(s, p, f, c.getArgument("player", String.class))))
+                        )
+                ).then(Surveyor.CONFIG.sync.forceGlobal ?
                     CommandManager.literal("unshare")
-                        .executes(c -> execute(c, null, Surveyor.CONFIG.sync.forceGlobal ? SurveyorCommands::informGlobal : SurveyorCommands::unshare))
+                        .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.informGlobal(s, p, f))) :
+                    CommandManager.literal("unshare")
+                        .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.unshare(s, p, f)))
+                ).then(CommandManager.literal("landmarks")
+                    .requires(c -> Surveyor.CONFIG.landmarks != SurveyorConfig.SystemMode.DISABLED)
+                    .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.landmarkInfo(s, p, e, f)))
+                    .then(CommandManager.literal("get")
+                        .then(CommandManager.argument("type", IdentifierArgumentType.identifier())
+                            .suggests((c, b) -> CommandSource.suggestIdentifiers(Landmarks.keySet(), b))
+                            .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.getLandmarks(w, p, e, f, c.getArgument("type", Identifier.class))))
+                        )
+                    )
+                    .then(CommandManager.literal("remove")
+                        .requires(c -> Surveyor.CONFIG.landmarks != SurveyorConfig.SystemMode.FROZEN)
+                        .then(CommandManager.argument("type", IdentifierArgumentType.identifier())
+                            .suggests((c, b) -> CommandSource.suggestIdentifiers(Landmarks.keySet(), b))
+                            .then(CommandManager.argument("pos", BlockPosArgumentType.blockPos())
+                                .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.removeLandmark(w, p, sw, f, c.getArgument("type", Identifier.class), c.getArgument("pos", DefaultPosArgument.class).toAbsoluteBlockPos(c.getSource()))))
+                            )
+                        )
+                    ).then(CommandManager.literal("add")
+                        .requires(c -> Surveyor.CONFIG.landmarks != SurveyorConfig.SystemMode.FROZEN)
+                        .then(CommandManager.argument("type", IdentifierArgumentType.identifier())
+                            .suggests((c, b) -> CommandSource.suggestIdentifiers(List.of(SimplePointLandmark.TYPE.id()), b))
+                            .then(CommandManager.argument("pos", BlockPosArgumentType.blockPos())
+                                .then(CommandManager.argument("name", StringArgumentType.greedyString())
+                                    .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.addLandmark(w, p, sw, f, c.getArgument("type", Identifier.class), c.getArgument("pos", DefaultPosArgument.class).toAbsoluteBlockPos(c.getSource()), c.getArgument("name", String.class), false)))
+                                )
+                            )
+                        )
+                    ).then(CommandManager.literal("global")
+                        .requires(c -> Surveyor.CONFIG.landmarks != SurveyorConfig.SystemMode.FROZEN)
+                            .requires(c -> c.getPlayer() == null || c.getPlayer().hasPermissionLevel(2))
+                        .then(CommandManager.argument("type", IdentifierArgumentType.identifier())
+                            .suggests((c, b) -> CommandSource.suggestIdentifiers(List.of(SimplePointLandmark.TYPE.id()), b))
+                            .then(CommandManager.argument("pos", BlockPosArgumentType.blockPos())
+                                .then(CommandManager.argument("name", StringArgumentType.greedyString())
+                                    .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.addLandmark(w, p, sw, f, c.getArgument("type", Identifier.class), c.getArgument("pos", DefaultPosArgument.class).toAbsoluteBlockPos(c.getSource()), c.getArgument("name", String.class), true)))
+                                )
+                            )
+                        )
+                    )
                 )
-                .then(
-                    CommandManager.literal("landmarks")
-                        .executes(c -> execute(c, null, SurveyorCommands::landmarkInfo))
-                )
-                .executes(c -> execute(c, null, SurveyorCommands::info))
         );
     }
 }

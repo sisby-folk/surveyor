@@ -11,8 +11,10 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class Landmarks {
     public static final String KEY_LANDMARKS = "landmarks";
@@ -54,6 +56,10 @@ public class Landmarks {
 
     public static LandmarkType<?> getType(Identifier id) {
         return TYPES.get(id);
+    }
+
+    public static Set<Identifier> keySet() {
+        return new HashSet<>(TYPES.keySet());
     }
 
     public static void register(LandmarkType<?> type) {
