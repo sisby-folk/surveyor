@@ -291,7 +291,7 @@ public class SurveyorCommands {
             feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("A landmark exists of that type and position!").formatted(Formatting.YELLOW)));
             return 0;
         }
-        summary.landmarks().put(world, new SimplePointLandmark(pos, global ? null : Surveyor.getUuid(player), DyeColor.WHITE, Text.of(name), new Identifier("")));
+        summary.landmarks().put(world, new SimplePointLandmark(pos, global ? null : Surveyor.getUuid(player), DyeColor.WHITE, Text.of(name), Identifier.tryParse("")));
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("%s added successfully!".formatted(global ? "Landmark" : "Waypoint")).formatted(Formatting.GREEN)));
         return 1;
     }
