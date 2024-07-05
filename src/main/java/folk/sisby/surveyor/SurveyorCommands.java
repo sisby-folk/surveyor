@@ -6,14 +6,20 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import folk.sisby.surveyor.landmark.Landmark;
+import folk.sisby.surveyor.landmark.LandmarkType;
+import folk.sisby.surveyor.landmark.WorldLandmarks;
 import folk.sisby.surveyor.util.TextUtil;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.math.BlockPos;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -42,6 +48,17 @@ public class SurveyorCommands {
     private static int info(ServerSummary serverSummary, ServerPlayerEntity player, SurveyorExploration exploration, String ignored, Consumer<Text> feedback) {
         Set<PlayerSummary> group = serverSummary.groupPlayers(player.getUuid(), player.getServer());
         SurveyorExploration groupExploration = SurveyorExploration.ofShared(player);
+        Set<Landmark<?>> landmarks = new HashSet<>();
+        Set<Landmark<?>> waypoints = new HashSet<>();
+        Set<Landmark<?>> groupLandmarks = new HashSet<>();
+        Set<Landmark<?>> groupWaypoints = new HashSet<>();
+        for (ServerWorld world : player.getServer().getWorlds()) {
+            WorldLandmarks summary = WorldSummary.of(world).landmarks();
+            if (summary != null) {
+                summary.asMap(exploration).forEach((type, inner) -> inner.forEach((pos, landmark) -> (landmark.owner() == null ? landmarks : waypoints).add(landmark)));
+                summary.asMap(groupExploration).forEach((type, inner) -> inner.forEach((pos, landmark) -> (landmark.owner() == null ? groupLandmarks : groupWaypoints).add(landmark)));
+            }
+        }
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("---Map Exploration Summary---").formatted(Formatting.GRAY)));
         feedback.accept(
             Text.literal("You've explored ").formatted(Formatting.AQUA)
@@ -65,10 +82,72 @@ public class SurveyorCommands {
                             .append(Text.literal(" with friends)").formatted(Formatting.LIGHT_PURPLE))
                 )
         );
+        feedback.accept(
+            Text.literal("You've explored ").formatted(Formatting.GREEN)
+                .append(Text.literal("%d".formatted(landmarks.size())).formatted(Formatting.WHITE))
+                .append(Text.literal(" landmarks!").formatted(Formatting.GREEN))
+                .append(
+                    group.size() <= 1 ? Text.empty() :
+                        Text.literal(" (").formatted(Formatting.GREEN)
+                            .append(Text.literal("%d".formatted(groupLandmarks.size())).formatted(Formatting.WHITE))
+                            .append(Text.literal(" with friends)").formatted(Formatting.GREEN))
+                )
+        );
+        feedback.accept(
+            Text.literal("...and created ").formatted(Formatting.GREEN)
+                .append(Text.literal("%d".formatted(waypoints.size())).formatted(Formatting.WHITE))
+                .append(Text.literal(" waypoints!").formatted(Formatting.GREEN))
+                .append(
+                    group.size() <= 1 ? Text.empty() :
+                        Text.literal(" (").formatted(Formatting.GREEN)
+                            .append(Text.literal("%d".formatted(groupWaypoints.size())).formatted(Formatting.WHITE))
+                            .append(Text.literal(" with friends)").formatted(Formatting.GREEN))
+                )
+        );
         if (group.size() > 1) {
             informGroup(player, group, feedback);
         }
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("-------End Summary-------").formatted(Formatting.GRAY)));
+        return 1;
+    }
+
+    private static int landmarkInfo(ServerSummary serverSummary, ServerPlayerEntity player, SurveyorExploration exploration, String ignored, Consumer<Text> feedback) {
+        Set<PlayerSummary> group = serverSummary.groupPlayers(player.getUuid(), player.getServer());
+        SurveyorExploration groupExploration = SurveyorExploration.ofShared(player);
+        feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("---Landmark Types---").formatted(Formatting.GRAY)));
+        Set<LandmarkType<?>> waypoints = new HashSet<>();
+        Multimap<LandmarkType<?>, BlockPos> keys = HashMultimap.create();
+        Multimap<LandmarkType<?>, BlockPos> groupKeys = HashMultimap.create();
+        Multimap<LandmarkType<?>, BlockPos> personalKeys = HashMultimap.create();
+        for (ServerWorld world : player.getServer().getWorlds()) {
+            WorldLandmarks summary = WorldSummary.of(world).landmarks();
+            if (summary != null) {
+                waypoints.addAll(summary.asMap(null).values().stream().flatMap(e -> e.values().stream().filter(l -> l.owner() != null)).map(Landmark::type).toList());
+                keys.putAll(summary.keySet(null));
+                groupKeys.putAll(summary.keySet(groupExploration));
+                personalKeys.putAll(summary.keySet(exploration));
+            }
+        }
+        keys.asMap().forEach((type, list) -> {
+            feedback.accept(
+                Text.literal("%s".formatted(type.id())).formatted(Formatting.WHITE)
+                    .append(Text.literal(waypoints.contains(type) ? ": created " : ": explored ").formatted(Formatting.AQUA))
+                    .append(Text.literal("%d".formatted(personalKeys.get(type).size())).formatted(Formatting.WHITE))
+                    .append(
+                        group.size() <= 1 ? Text.empty() :
+                            Text.literal(" (").formatted(Formatting.LIGHT_PURPLE)
+                                .append(Text.literal("%d".formatted(groupKeys.get(type).size())).formatted(Formatting.WHITE))
+                                .append(Text.literal(" shared)").formatted(Formatting.LIGHT_PURPLE))
+                    )
+                    .append(
+                        !player.hasPermissionLevel(2) ? Text.empty() :
+                            Text.literal(" {of ").formatted(Formatting.GOLD)
+                                .append(Text.literal("%d".formatted(keys.get(type).size())).formatted(Formatting.WHITE))
+                                .append(Text.literal("}").formatted(Formatting.GOLD))
+                    )
+            );
+        });
+        feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("-------End Landmarks-------").formatted(Formatting.GRAY)));
         return 1;
     }
 
@@ -178,6 +257,10 @@ public class SurveyorCommands {
                 .then(
                     CommandManager.literal("unshare")
                         .executes(c -> execute(c, null, Surveyor.CONFIG.sync.forceGlobal ? SurveyorCommands::informGlobal : SurveyorCommands::unshare))
+                )
+                .then(
+                    CommandManager.literal("landmarks")
+                        .executes(c -> execute(c, null, SurveyorCommands::landmarkInfo))
                 )
                 .executes(c -> execute(c, null, SurveyorCommands::info))
         );
