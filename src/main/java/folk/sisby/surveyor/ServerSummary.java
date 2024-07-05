@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public final class ServerSummary {
     public static ServerSummary of(MinecraftServer server) {
@@ -95,9 +96,12 @@ public final class ServerSummary {
     }
 
     public void save(MinecraftServer server, boolean force, boolean suppressLogs) {
-        if (!suppressLogs) Surveyor.LOGGER.info("[Surveyor] Saving server data");
+        if (!isDirty() && StreamSupport.stream(server.getWorlds().spliterator(), false).map(WorldSummary::of).noneMatch(WorldSummary::isDirty)) return;
+        if (!suppressLogs) Surveyor.LOGGER.info("[Surveyor] Saving server data...");
         for (ServerWorld world : server.getWorlds()) {
-            if (!world.savingDisabled || force) WorldSummary.of(world).save(world, Surveyor.getSavePath(world.getRegistryKey(), server), suppressLogs);
+            if (!world.savingDisabled || force) {
+                WorldSummary.of(world).save(world, Surveyor.getSavePath(world.getRegistryKey(), server), suppressLogs);
+            }
         }
         File folder = Surveyor.getSavePath(World.OVERWORLD, server);
         if (isDirty()) {
@@ -109,7 +113,7 @@ public final class ServerSummary {
                 Surveyor.LOGGER.error("[Surveyor] Error writing sharing file.", e);
             }
         }
-        if (!suppressLogs) Surveyor.LOGGER.info("[Surveyor] Finished saving server data");
+        if (!suppressLogs) Surveyor.LOGGER.info("[Surveyor] Finished saving server data.");
     }
 
     private NbtCompound writeNbt(NbtCompound nbt) {

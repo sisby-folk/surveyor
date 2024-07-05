@@ -97,5 +97,6 @@ public class Surveyor implements ModInitializer {
                 checkStructureExploration(world, player, BlockPos.ofFloored(RaycastUtil.playerViewRaycast(player, PlayerSummary.of(player).viewDistance()).getPos()));
             }
         }));
+        LOGGER.info("[Surveyor] is not a map mod");
     }
 }

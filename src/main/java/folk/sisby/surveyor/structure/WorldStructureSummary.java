@@ -271,7 +271,7 @@ public class WorldStructureSummary {
     }
 
     public boolean isDirty() {
-        return dirty && Surveyor.CONFIG.structures != SurveyorConfig.SystemMode.FROZEN;
+        return (dirty || regions.values().stream().anyMatch(RegionStructureSummary::isDirty)) && Surveyor.CONFIG.structures != SurveyorConfig.SystemMode.FROZEN;
     }
 
     private void dirty() {

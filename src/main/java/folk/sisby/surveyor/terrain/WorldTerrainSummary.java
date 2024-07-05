@@ -112,6 +112,10 @@ public class WorldTerrainSummary {
         return savedRegions.size();
     }
 
+    public boolean isDirty() {
+        return regions.values().stream().anyMatch(RegionSummary::isDirty);
+    }
+
     public static WorldTerrainSummary load(World world, File folder) {
         Map<ChunkPos, RegionSummary> regions = new HashMap<>();
         ChunkUtil.getRegionNbt(folder, "c").forEach((pos, nbt) -> regions.put(pos, RegionSummary.readNbt(nbt, world.getRegistryManager(), pos)));

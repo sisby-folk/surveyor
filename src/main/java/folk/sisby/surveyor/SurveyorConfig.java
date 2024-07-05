@@ -46,15 +46,15 @@ public class SurveyorConfig extends WrappedConfig {
         @Comment("Disables /surveyor share and /surveyor unshare")
         public boolean forceGlobal = false;
 
-        @Comment("[Server] Sends clients group-explored terrain")
+        @Comment("Sends clients group-explored terrain")
         @Comment("OMNISCIENT - all terrain is sent to all players")
         public ShareMode terrainSharing = ShareMode.ENABLED;
 
-        @Comment("[Server] Sends clients group-explored structures")
+        @Comment("Sends clients group-explored structures")
         @Comment("OMNISCIENT - all structures are sent to all players")
         public ShareMode structureSharing = ShareMode.ENABLED;
 
-        @Comment("[Server] Sends clients group-owned landmarks (waypoints)")
+        @Comment("Sends clients group-owned landmarks (waypoints)")
         @Comment("OMNISCIENT - all unowned landmarks are sent to all players")
         public ShareMode landmarkSharing = ShareMode.ENABLED;
 
