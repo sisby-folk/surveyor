@@ -39,7 +39,7 @@ public interface SurveyorExploration {
     }
 
     static SurveyorExploration ofShared(ServerPlayerEntity player) {
-        return ofShared(player.getUuid(), player.getServer());
+        return ofShared(Surveyor.getUuid(player), player.getServer());
     }
 
     static SurveyorExploration ofShared(UUID player, MinecraftServer server) {

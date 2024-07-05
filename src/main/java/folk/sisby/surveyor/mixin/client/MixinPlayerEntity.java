@@ -25,7 +25,7 @@ public class MixinPlayerEntity {
             if (summary.landmarks() == null) return;
             summary.landmarks().put(
                 self.getWorld(),
-                new PlayerDeathLandmark(self.getBlockPos(), self.getUuid(), TextUtil.stripInteraction(self.getDamageTracker().getDeathMessage()), self.getWorld().getTimeOfDay(), self.getRandom().nextInt())
+                new PlayerDeathLandmark(self.getBlockPos(), SurveyorClient.getClientUuid(), TextUtil.stripInteraction(self.getDamageTracker().getDeathMessage()), self.getWorld().getTimeOfDay(), self.getRandom().nextInt())
             );
         }
     }

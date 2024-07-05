@@ -51,12 +51,12 @@ public class SurveyorCommands {
     private static int informGlobal(ServerSummary serverSummary, ServerPlayerEntity player, Consumer<Text> feedback) {
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("The server has global sharing enabled!").formatted(Formatting.YELLOW)));
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You can't leave or modify the global sharing group!").formatted(Formatting.YELLOW)));
-        informGroup(player, serverSummary.groupPlayers(player.getUuid(), player.getServer()), feedback);
+        informGroup(player, serverSummary.groupPlayers(Surveyor.getUuid(player), player.getServer()), feedback);
         return 0;
     }
 
     private static int info(ServerSummary serverSummary, ServerPlayerEntity player, SurveyorExploration exploration, Consumer<Text> feedback) {
-        Set<PlayerSummary> group = serverSummary.groupPlayers(player.getUuid(), player.getServer());
+        Set<PlayerSummary> group = serverSummary.groupPlayers(Surveyor.getUuid(player), player.getServer());
         SurveyorExploration groupExploration = SurveyorExploration.ofShared(player);
         Set<Landmark<?>> landmarks = new HashSet<>();
         Set<Landmark<?>> waypoints = new HashSet<>();
@@ -122,7 +122,7 @@ public class SurveyorCommands {
     }
 
     private static int landmarkInfo(ServerSummary serverSummary, ServerPlayerEntity player, SurveyorExploration exploration, Consumer<Text> feedback) {
-        Set<PlayerSummary> group = serverSummary.groupPlayers(player.getUuid(), player.getServer());
+        Set<PlayerSummary> group = serverSummary.groupPlayers(Surveyor.getUuid(player), player.getServer());
         SurveyorExploration groupExploration = SurveyorExploration.ofShared(player);
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("---Landmark Types---").formatted(Formatting.GRAY)));
         Set<LandmarkType<?>> waypoints = new HashSet<>();
@@ -171,35 +171,35 @@ public class SurveyorCommands {
             feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You can't share map exploration with yourself!").formatted(Formatting.YELLOW)));
             return 0;
         }
-        if (requests.containsEntry(player.getUuid(), sharePlayer.getUuid())) { // Accept Request
-            if (serverSummary.groupSize(player.getUuid()) > 1 && serverSummary.groupSize(sharePlayer.getUuid()) > 1) {
+        if (requests.containsEntry(Surveyor.getUuid(player), Surveyor.getUuid(sharePlayer))) { // Accept Request
+            if (serverSummary.groupSize(Surveyor.getUuid(player)) > 1 && serverSummary.groupSize(Surveyor.getUuid(sharePlayer)) > 1) {
                 feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You're in a group! leave your group first with:").formatted(Formatting.YELLOW)));
                 feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("/surveyor unshare").formatted(Formatting.GOLD)));
                 return 0;
             }
-            requests.removeAll(player.getUuid()); // clear all other requests
-            ServerSummary.of(player.getServer()).joinGroup(player.getUuid(), sharePlayer.getUuid(), player.getServer());
-            feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You're now sharing map exploration with ").formatted(Formatting.GREEN)).append(Text.literal("%d".formatted(serverSummary.groupSize(player.getUuid()) - 1)).formatted(Formatting.WHITE)).append(Text.literal((serverSummary.groupSize(player.getUuid()) - 1) > 1 ? " players:" : " player:").formatted(Formatting.GREEN)));
-            feedback.accept(TextUtil.highlightStrings(serverSummary.groupPlayers(player.getUuid(), player.getServer()).stream().map(PlayerSummary::username).filter(u -> !u.equals(player.getGameProfile().getName())).toList(), s -> Formatting.WHITE).formatted(Formatting.GREEN));
-            for (ServerPlayerEntity friend : serverSummary.groupOtherServerPlayers(player.getUuid(), player.getServer())) {
+            requests.removeAll(Surveyor.getUuid(player)); // clear all other requests
+            ServerSummary.of(player.getServer()).joinGroup(Surveyor.getUuid(player), Surveyor.getUuid(sharePlayer), player.getServer());
+            feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You're now sharing map exploration with ").formatted(Formatting.GREEN)).append(Text.literal("%d".formatted(serverSummary.groupSize(Surveyor.getUuid(player)) - 1)).formatted(Formatting.WHITE)).append(Text.literal((serverSummary.groupSize(Surveyor.getUuid(player)) - 1) > 1 ? " players:" : " player:").formatted(Formatting.GREEN)));
+            feedback.accept(TextUtil.highlightStrings(serverSummary.groupPlayers(Surveyor.getUuid(player), player.getServer()).stream().map(PlayerSummary::username).filter(u -> !u.equals(player.getGameProfile().getName())).toList(), s -> Formatting.WHITE).formatted(Formatting.GREEN));
+            for (ServerPlayerEntity friend : serverSummary.groupOtherServerPlayers(Surveyor.getUuid(player), player.getServer())) {
                 friend.sendMessage(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(player.getDisplayName().copy().formatted(Formatting.WHITE)).append(Text.literal(" is now sharing their map with you.").formatted(Formatting.AQUA)));
-                friend.sendMessage(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You're now sharing map exploration with ").formatted(Formatting.AQUA)).append(Text.literal("%d".formatted(serverSummary.groupSize(player.getUuid()) - 1)).formatted(Formatting.WHITE)).append(Text.literal((serverSummary.groupSize(player.getUuid()) - 1) > 1 ? " players:" : " player:").formatted(Formatting.AQUA)));
-                friend.sendMessage(TextUtil.highlightStrings(serverSummary.groupPlayers(player.getUuid(), player.getServer()).stream().map(PlayerSummary::username).filter(u -> !u.equals(friend.getGameProfile().getName())).toList(), s -> Formatting.WHITE).formatted(Formatting.AQUA));
+                friend.sendMessage(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You're now sharing map exploration with ").formatted(Formatting.AQUA)).append(Text.literal("%d".formatted(serverSummary.groupSize(Surveyor.getUuid(player)) - 1)).formatted(Formatting.WHITE)).append(Text.literal((serverSummary.groupSize(Surveyor.getUuid(player)) - 1) > 1 ? " players:" : " player:").formatted(Formatting.AQUA)));
+                friend.sendMessage(TextUtil.highlightStrings(serverSummary.groupPlayers(Surveyor.getUuid(player), player.getServer()).stream().map(PlayerSummary::username).filter(u -> !u.equals(friend.getGameProfile().getName())).toList(), s -> Formatting.WHITE).formatted(Formatting.AQUA));
             }
             return 1;
-        } else if (!requests.containsEntry(sharePlayer.getUuid(), player.getUuid())) { // Make Request
-            requests.put(sharePlayer.getUuid(), player.getUuid());
+        } else if (!requests.containsEntry(Surveyor.getUuid(sharePlayer), Surveyor.getUuid(player))) { // Make Request
+            requests.put(Surveyor.getUuid(sharePlayer), Surveyor.getUuid(player));
             feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("Share request sent to ").formatted(Formatting.GREEN)).append(sharePlayer.getDisplayName().copy().formatted(Formatting.WHITE)).append(Text.literal(".").formatted(Formatting.GREEN)));
             sharePlayer.sendMessage(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(player.getDisplayName().copy().formatted(Formatting.WHITE)).append(Text.literal(" wants to share map exploration!").formatted(Formatting.AQUA)));
-            if (serverSummary.groupSize(player.getUuid()) <= 1 && serverSummary.groupSize(sharePlayer.getUuid()) <= 1) { // Creating a group
+            if (serverSummary.groupSize(Surveyor.getUuid(player)) <= 1 && serverSummary.groupSize(Surveyor.getUuid(sharePlayer)) <= 1) { // Creating a group
                 feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("If accepted, you'll share your map exploration.").formatted(Formatting.GREEN)));
                 sharePlayer.sendMessage(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("To share your explored map area, enter:").formatted(Formatting.AQUA)));
-            } else if (serverSummary.groupSize(player.getUuid()) <= 1) { // Joining their group
-                feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("If accepted, you'll share with their group of ").formatted(Formatting.GREEN)).append(Text.literal("%d".formatted(serverSummary.groupSize(sharePlayer.getUuid()))).formatted(Formatting.WHITE)).append(Text.literal(".").formatted(Formatting.GREEN)));
-                sharePlayer.sendMessage(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("To share your group of ").append(Text.literal("%d".formatted(serverSummary.groupSize(sharePlayer.getUuid()))).formatted(Formatting.WHITE)).formatted(Formatting.AQUA)).append(Text.literal(", enter:").formatted(Formatting.AQUA)));
+            } else if (serverSummary.groupSize(Surveyor.getUuid(player)) <= 1) { // Joining their group
+                feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("If accepted, you'll share with their group of ").formatted(Formatting.GREEN)).append(Text.literal("%d".formatted(serverSummary.groupSize(Surveyor.getUuid(sharePlayer)))).formatted(Formatting.WHITE)).append(Text.literal(".").formatted(Formatting.GREEN)));
+                sharePlayer.sendMessage(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("To share your group of ").append(Text.literal("%d".formatted(serverSummary.groupSize(Surveyor.getUuid(sharePlayer)))).formatted(Formatting.WHITE)).formatted(Formatting.AQUA)).append(Text.literal(", enter:").formatted(Formatting.AQUA)));
             } else { // Sharing your group
-                feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("If accepted, they'll share with your group of ").formatted(Formatting.GREEN)).append(Text.literal("%d".formatted(serverSummary.groupSize(player.getUuid()))).formatted(Formatting.WHITE)).append(Text.literal(".").formatted(Formatting.GREEN)));
-                sharePlayer.sendMessage(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("To share with their group of ").append(Text.literal("%d".formatted(serverSummary.groupSize(player.getUuid()))).formatted(Formatting.WHITE)).formatted(Formatting.AQUA)).append(Text.literal(", enter:").formatted(Formatting.AQUA)));
+                feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("If accepted, they'll share with your group of ").formatted(Formatting.GREEN)).append(Text.literal("%d".formatted(serverSummary.groupSize(Surveyor.getUuid(player)))).formatted(Formatting.WHITE)).append(Text.literal(".").formatted(Formatting.GREEN)));
+                sharePlayer.sendMessage(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("To share with their group of ").append(Text.literal("%d".formatted(serverSummary.groupSize(Surveyor.getUuid(player)))).formatted(Formatting.WHITE)).formatted(Formatting.AQUA)).append(Text.literal(", enter:").formatted(Formatting.AQUA)));
             }
             sharePlayer.sendMessage(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("/surveyor share %s".formatted(player.getGameProfile().getName())).formatted(Formatting.GOLD)));
             return 1;
@@ -210,13 +210,13 @@ public class SurveyorCommands {
     }
 
     private static int unshare(ServerSummary serverSummary, ServerPlayerEntity player, Consumer<Text> feedback) {
-        int shareNumber = serverSummary.groupSize(player.getUuid()) - 1;
+        int shareNumber = serverSummary.groupSize(Surveyor.getUuid(player)) - 1;
         if (shareNumber == 0) {
             feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You're not sharing map exploration with anyone!").formatted(Formatting.YELLOW)));
             return 0;
         } else {
-            Set<ServerPlayerEntity> friends = serverSummary.groupOtherServerPlayers(player.getUuid(), player.getServer());
-            ServerSummary.of(player.getServer()).leaveGroup(player.getUuid(), player.getServer());
+            Set<ServerPlayerEntity> friends = serverSummary.groupOtherServerPlayers(Surveyor.getUuid(player), player.getServer());
+            ServerSummary.of(player.getServer()).leaveGroup(Surveyor.getUuid(player), player.getServer());
             feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("Stopped sharing map exploration with ").formatted(Formatting.GREEN)).append(Text.literal("%d".formatted(shareNumber)).formatted(Formatting.WHITE)).append(Text.literal(shareNumber > 1 ? " players." : " player.").formatted(Formatting.GREEN)));
             for (ServerPlayerEntity friend : friends) {
                 int groupSize = serverSummary.groupSize(friend.getUuid()) - 1;
@@ -265,7 +265,7 @@ public class SurveyorCommands {
             return 0;
         }
         Landmark<?> landmark = summary.landmarks().get(Landmarks.getType(type), pos);
-        if ((landmark.owner() == null || landmark.owner() != player.getUuid()) && !player.hasPermissionLevel(2)) {
+        if ((landmark.owner() == null || landmark.owner() != Surveyor.getUuid(player)) && !player.hasPermissionLevel(2)) {
             feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You don't have permission to delete that landmark!").formatted(Formatting.YELLOW)));
             return 0;
         }
@@ -291,7 +291,7 @@ public class SurveyorCommands {
             feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("A landmark exists of that type and position!").formatted(Formatting.YELLOW)));
             return 0;
         }
-        summary.landmarks().put(world, new SimplePointLandmark(pos, global ? null : player.getUuid(), DyeColor.WHITE, Text.of(name), new Identifier("")));
+        summary.landmarks().put(world, new SimplePointLandmark(pos, global ? null : Surveyor.getUuid(player), DyeColor.WHITE, Text.of(name), new Identifier("")));
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("%s added successfully!".formatted(global ? "Landmark" : "Waypoint")).formatted(Formatting.GREEN)));
         return 1;
     }

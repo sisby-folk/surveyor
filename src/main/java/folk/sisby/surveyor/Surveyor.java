@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class Surveyor implements ModInitializer {
@@ -79,6 +80,10 @@ public class Surveyor implements ModInitializer {
                 }
             });
         }
+    }
+
+    public static UUID getUuid(ServerPlayerEntity player) {
+        return player.getServer() != null && player.getServer().isHost(player.getGameProfile()) ? ServerSummary.HOST : player.getUuid();
     }
 
     @Override

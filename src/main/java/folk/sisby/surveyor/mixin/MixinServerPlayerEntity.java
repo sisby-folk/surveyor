@@ -36,14 +36,14 @@ public class MixinServerPlayerEntity implements SurveyorPlayer {
     public void writeSurveyorData(NbtCompound nbt, CallbackInfo ci) {
         ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
         surveyor$summary.writeNbt(nbt);
-        ServerSummary.of(self.getServer()).updatePlayer(self.getUuid(), nbt, false, self.getServer());
+        ServerSummary.of(self.getServer()).updatePlayer(Surveyor.getUuid(self), nbt, false, self.getServer());
     }
 
     @Inject(method = "readCustomDataFromNbt", at = @At("TAIL"))
     public void readSurveyorData(NbtCompound nbt, CallbackInfo ci) {
         ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
         surveyor$summary.read(nbt);
-        ServerSummary.of(self.getServer()).updatePlayer(self.getUuid(), nbt, true, self.getServer());
+        ServerSummary.of(self.getServer()).updatePlayer(Surveyor.getUuid(self), nbt, true, self.getServer());
     }
 
     @Inject(method = "setClientSettings", at = @At("HEAD"))
@@ -59,7 +59,7 @@ public class MixinServerPlayerEntity implements SurveyorPlayer {
         if (summary == null) return;
         summary.put(
             self.getServerWorld(),
-            new PlayerDeathLandmark(self.getBlockPos(), self.getUuid(), TextUtil.stripInteraction(self.getDamageTracker().getDeathMessage()), self.getServerWorld().getTimeOfDay(), self.getRandom().nextInt())
+            new PlayerDeathLandmark(self.getBlockPos(), Surveyor.getUuid(self), TextUtil.stripInteraction(self.getDamageTracker().getDeathMessage()), self.getServerWorld().getTimeOfDay(), self.getRandom().nextInt())
         );
     }
 

@@ -82,7 +82,7 @@ public class SurveyorNetworking {
         if (summary.landmarks() == null) return;
         Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
         packet.landmarks().forEach((type, pos) -> {
-            if (summary.landmarks().contains(type, pos) && (world.getServer().isHost(player.getGameProfile()) || player.getUuid().equals(summary.landmarks().get(type, pos).owner()))) summary.landmarks().removeForBatch(changed, type, pos);
+            if (summary.landmarks().contains(type, pos) && Surveyor.getUuid(player).equals(summary.landmarks().get(type, pos).owner())) summary.landmarks().removeForBatch(changed, type, pos);
         });
         if (!changed.isEmpty()) summary.landmarks().handleChanged(world, changed, false, player);
     }

@@ -1,5 +1,6 @@
 package folk.sisby.surveyor;
 
+import com.mojang.authlib.GameProfile;
 import folk.sisby.surveyor.packet.S2CGroupChangedPacket;
 import folk.sisby.surveyor.packet.S2CGroupUpdatedPacket;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
@@ -35,6 +36,7 @@ public final class ServerSummary {
     }
 
     public static final String KEY_GROUPS = "groups";
+    public static final UUID HOST = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     private final Map<UUID, PlayerSummary> offlineSummaries;
     private final Map<UUID, Set<UUID>> shareGroups;
@@ -71,21 +73,36 @@ public final class ServerSummary {
         File playerFolder = server.getSavePath(WorldSavePath.ROOT).resolve("playerdata").toFile();
 
         Map<UUID, PlayerSummary> offlineSummaries = new ConcurrentHashMap<>();
+
+        NbtCompound hostData = server.getSaveProperties().getPlayerData();
+        UUID hostProfile = Optional.ofNullable(server.getHostProfile()).map(GameProfile::getId).orElse(null);
+        if (hostData != null) {
+            if (hostProfile != null) hostData.putString(PlayerSummary.KEY_USERNAME, server.getHostProfile().getName());
+            offlineSummaries.put(ServerSummary.HOST, new PlayerSummary.OfflinePlayerSummary(ServerSummary.HOST, hostData, false));
+        }
+
         for (File file : Optional.ofNullable(playerFolder.listFiles((dir, name) -> name.endsWith(".dat"))).orElse(new File[0])) {
             UUID uuid;
             try {
                 uuid = UUID.fromString(file.getName().substring(0, file.getName().length() - ".dat".length()));
+                if (uuid.equals(hostProfile)) continue;
             } catch (IllegalArgumentException ex) {
                 continue;
             }
             if (shareGroups != null && !shareGroups.containsKey(uuid)) continue;
-            File playerFile = playerFolder.toPath().resolve(uuid.toString() + ".dat").toFile();
+            File playerFile = playerFolder.toPath().resolve(uuid + ".dat").toFile();
             try {
                 NbtCompound playerNbt = NbtIo.readCompressed(playerFile);
                 offlineSummaries.put(uuid, new PlayerSummary.OfflinePlayerSummary(uuid, playerNbt, false));
             } catch (IOException e) {
-                Surveyor.LOGGER.error("[Surveyor] Error loading offline player data for {}, removing from share groups...", uuid, e);
-                if (shareGroups != null) {
+                Surveyor.LOGGER.error("[Surveyor] Error loading offline player data for {}!", uuid, e);
+            }
+        }
+
+        if (shareGroups != null) {
+            for (UUID uuid : shareGroups.keySet()) {
+                if (!offlineSummaries.containsKey(uuid)) {
+                    Surveyor.LOGGER.warn("[Surveyor] Player data was missing for shared player {}! Removing from groups...", uuid);
                     shareGroups.get(uuid).remove(uuid);
                     shareGroups.remove(uuid);
                 }
@@ -215,18 +232,18 @@ public final class ServerSummary {
 
     public static void onPlayerJoin(ServerPlayNetworkHandler handler, PacketSender sender, MinecraftServer server) {
         ServerSummary serverSummary = ServerSummary.of(server);
-        if (serverSummary.groupSize(handler.player.getUuid()) > 1) {
-            SurveyorExploration groupExploration = serverSummary.groupExploration(handler.player.getUuid(), server);
-            new S2CGroupChangedPacket(serverSummary.getGroupSummaries(handler.player.getUuid(), server), groupExploration.terrain().getOrDefault(handler.player.getWorld().getRegistryKey(), new HashMap<>()), groupExploration.structures().getOrDefault(handler.player.getWorld().getRegistryKey(), new HashMap<>())).send(handler.getPlayer());
+        if (serverSummary.groupSize(Surveyor.getUuid(handler.player)) > 1) {
+            SurveyorExploration groupExploration = serverSummary.groupExploration(Surveyor.getUuid(handler.player), server);
+            new S2CGroupChangedPacket(serverSummary.getGroupSummaries(Surveyor.getUuid(handler.player), server), groupExploration.terrain().getOrDefault(handler.player.getWorld().getRegistryKey(), new HashMap<>()), groupExploration.structures().getOrDefault(handler.player.getWorld().getRegistryKey(), new HashMap<>())).send(handler.getPlayer());
         }
     }
 
     public static void onTick(MinecraftServer server) {
         if (Surveyor.CONFIG.sync.positionSharing == SurveyorConfig.ShareMode.DISABLED || (server.getTicks() % Surveyor.CONFIG.sync.positionTicks) != 0) return;
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-            Map<UUID, PlayerSummary> group = Surveyor.CONFIG.sync.positionSharing == SurveyorConfig.ShareMode.DISABLED ? ServerSummary.of(server).getOfflineSummaries(server) : ServerSummary.of(server).getGroupSummaries(player.getUuid(), server);
-            PlayerSummary playerSummary = group.get(player.getUuid());
-            group.entrySet().removeIf(e -> e.getKey().equals(player.getUuid()));
+            Map<UUID, PlayerSummary> group = Surveyor.CONFIG.sync.positionSharing == SurveyorConfig.ShareMode.DISABLED ? ServerSummary.of(server).getOfflineSummaries(server) : ServerSummary.of(server).getGroupSummaries(Surveyor.getUuid(player), server);
+            PlayerSummary playerSummary = group.get(Surveyor.getUuid(player));
+            group.entrySet().removeIf(e -> e.getKey().equals(Surveyor.getUuid(player)));
             group.entrySet().removeIf(e -> !e.getValue().online());
             group.entrySet().removeIf(e -> !e.getValue().dimension().equals(playerSummary.dimension()));
             group.entrySet().removeIf(e -> {
