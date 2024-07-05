@@ -31,6 +31,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Uuids;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.WorldChunk;
 import net.minecraft.world.gen.structure.Structure;
 import org.apache.commons.io.FileUtils;
 
@@ -131,20 +132,32 @@ public class SurveyorClient implements ClientModInitializer {
         return integratedServer.getWorld(worldKey);
     }
 
+    private static final Set<WorldChunk> LOADING_CHUNKS = new HashSet<>();
+
     @Override
     public void onInitializeClient() {
         SurveyorClientNetworking.init();
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(ClientExploration::onLoad));
-        ClientPlayConnectionEvents.DISCONNECT.register(((handler, client) -> ClientExploration.onUnload()));
+        ClientPlayConnectionEvents.DISCONNECT.register(((handler, client) -> {
+            LOADING_CHUNKS.clear();
+            ClientExploration.onUnload();
+        }));
         ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
             if (WorldSummary.of(world).isClient()) {
-                WorldTerrainSummary.onChunkLoad(world, chunk);
-                ClientExploration.INSTANCE.addChunk(world.getRegistryKey(), chunk.getPos());
+                LOADING_CHUNKS.add(chunk);
             }
         });
         ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
             if (WorldSummary.of(world).isClient()) WorldTerrainSummary.onChunkUnload(world, chunk);
         });
+        ClientTickEvents.END_WORLD_TICK.register((world -> {
+            for (WorldChunk chunk : new HashSet<>(LOADING_CHUNKS)) {
+                if (MinecraftClient.getInstance().worldRenderer.getCompletedChunkCount() <= 10 || !MinecraftClient.getInstance().worldRenderer.isTerrainRenderComplete()) continue;
+                WorldTerrainSummary.onChunkLoad(world, chunk);
+                ClientExploration.INSTANCE.addChunk(world.getRegistryKey(), chunk.getPos());
+                LOADING_CHUNKS.remove(chunk);
+            }
+        }));
         ClientTickEvents.END_WORLD_TICK.register((world -> {
             if (!SurveyorClientEvents.INITIALIZING_WORLD) return;
             if (MinecraftClient.getInstance().player != null && getExploration() != null) {
