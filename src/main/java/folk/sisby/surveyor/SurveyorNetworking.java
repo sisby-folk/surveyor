@@ -39,7 +39,7 @@ public class SurveyorNetworking {
     }
 
     private static void handleKnownTerrain(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownTerrainPacket packet) {
-        if (summary.terrain() == null) return;
+        if (summary.terrain() == null || !Surveyor.CONFIG.sync.syncOnJoin) return;
         Map<ChunkPos, BitSet> serverBits = summary.terrain().bitSet(SurveyorExploration.ofShared(player));
         Map<ChunkPos, BitSet> clientBits = packet.regionBits();
         serverBits.forEach((rPos, set) -> {
@@ -55,7 +55,7 @@ public class SurveyorNetworking {
     }
 
     private static void handleKnownStructures(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownStructuresPacket packet) {
-        if (summary.structures() == null) return;
+        if (summary.structures() == null || !Surveyor.CONFIG.sync.syncOnJoin) return;
         Multimap<RegistryKey<Structure>, ChunkPos> structures = summary.structures().keySet(SurveyorExploration.ofShared(player));
         packet.structureKeys().forEach(structures::remove);
         if (structures.isEmpty()) return;
@@ -67,7 +67,7 @@ public class SurveyorNetworking {
     }
 
     private static void handleKnownLandmarks(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownLandmarksPacket packet) {
-        if (summary.landmarks() == null) return;
+        if (summary.landmarks() == null || !Surveyor.CONFIG.sync.syncOnJoin) return;
         Multimap<LandmarkType<?>, BlockPos> landmarks = summary.landmarks().keySet(Surveyor.CONFIG.sync.landmarkSharing != SurveyorConfig.ShareMode.DISABLED ? SurveyorExploration.ofShared(player) : SurveyorExploration.of(player));
         packet.landmarks().forEach(landmarks::remove);
         if (!landmarks.isEmpty()) new SyncLandmarksAddedPacket(landmarks, summary.landmarks()).send(player);
