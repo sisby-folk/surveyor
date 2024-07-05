@@ -69,8 +69,12 @@ public class SurveyorNetworking {
     private static void handleKnownLandmarks(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownLandmarksPacket packet) {
         if (summary.landmarks() == null || !Surveyor.CONFIG.sync.syncOnJoin) return;
         Multimap<LandmarkType<?>, BlockPos> landmarks = summary.landmarks().keySet(Surveyor.CONFIG.sync.landmarkSharing != SurveyorConfig.ShareMode.DISABLED ? SurveyorExploration.ofShared(player) : SurveyorExploration.of(player));
-        packet.landmarks().forEach(landmarks::remove);
-        if (!landmarks.isEmpty()) new SyncLandmarksAddedPacket(landmarks, summary.landmarks()).send(player);
+        Multimap<LandmarkType<?>, BlockPos> addLandmarks = HashMultimap.create(landmarks);
+        packet.landmarks().forEach(addLandmarks::remove);
+        if (!addLandmarks.isEmpty()) new SyncLandmarksAddedPacket(addLandmarks, summary.landmarks()).send(player);
+        Multimap<LandmarkType<?>, BlockPos> removeLandmarks = HashMultimap.create(packet.landmarks());
+        landmarks.forEach(removeLandmarks::remove);
+        if (!removeLandmarks.isEmpty()) new SyncLandmarksRemovedPacket(removeLandmarks).send(player);
     }
 
     private static void handleLandmarksAdded(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, PacketByteBuf buf) {

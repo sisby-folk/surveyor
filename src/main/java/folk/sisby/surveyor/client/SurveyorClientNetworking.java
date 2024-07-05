@@ -85,7 +85,11 @@ public class SurveyorClientNetworking {
     private static void handleLandmarksRemoved(ClientWorld world, WorldSummary summary, SyncLandmarksRemovedPacket packet) {
         if (summary.landmarks() == null) return;
         Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
-        packet.landmarks().forEach((type, pos) -> summary.landmarks().removeForBatch(changed, type, pos));
+        packet.landmarks().forEach((type, pos) -> {
+            if (!Surveyor.CONFIG.sync.privateWaypoints || !summary.landmarks().contains(type, pos) || !SurveyorClient.getClientUuid().equals(summary.landmarks().get(type, pos).owner())) {
+                summary.landmarks().removeForBatch(changed, type, pos);
+            }
+        });
         summary.landmarks().handleChanged(world, changed, true, null);
     }
 
