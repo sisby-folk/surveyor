@@ -8,6 +8,7 @@ import folk.sisby.surveyor.SurveyorConfig;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.WorldSummary;
+import folk.sisby.surveyor.packet.S2CStructuresAddedPacket;
 import folk.sisby.surveyor.terrain.RegionSummary;
 import folk.sisby.surveyor.util.ChunkUtil;
 import folk.sisby.surveyor.util.MapUtil;
@@ -16,7 +17,6 @@ import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
@@ -38,7 +38,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -223,28 +222,13 @@ public class WorldStructureSummary {
         if (structures != null && !structures.contains(world, start)) structures.put(world, start);
     }
 
-    public Multimap<RegistryKey<Structure>, ChunkPos> readBuf(World world, PacketByteBuf buf) {
+    public Multimap<RegistryKey<Structure>, ChunkPos> readUpdatePacket(World world, S2CStructuresAddedPacket packet) {
         if (Surveyor.CONFIG.structures == SurveyorConfig.SystemMode.FROZEN) return HashMultimap.create();
-        Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> packetStructures = buf.readMap(
-            b -> b.readRegistryKey(RegistryKeys.STRUCTURE),
-            b -> b.readMap(
-                PacketByteBuf::readChunkPos,
-                b2 -> new StructureStartSummary(b2.readList(b3 -> WorldStructureSummary.readStructurePieceNbt(Objects.requireNonNull(b3.readNbt()))))
-            )
-        );
-        Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> packetTypes = buf.readMap(
-            b -> b.readRegistryKey(RegistryKeys.STRUCTURE),
-            b -> b.readRegistryKey(RegistryKeys.STRUCTURE_TYPE)
-        );
-        Multimap<RegistryKey<Structure>, TagKey<Structure>> packetTags = MapUtil.asMultiMap(buf.readMap(
-            b -> b.readRegistryKey(RegistryKeys.STRUCTURE),
-            b -> b.readList(b2 -> TagKey.of(RegistryKeys.STRUCTURE, b2.readIdentifier()))
-        ));
-        packetStructures.forEach((key, map) -> map.forEach((pos, start) -> put(world, key, pos, start, packetTypes.get(key), packetTags.get(key))));
-        return MapUtil.keyMultiMap(packetStructures);
+        packet.structures().forEach((key, map) -> map.forEach((pos, start) -> put(world, key, pos, start, packet.types().get(key), packet.tags().get(key))));
+        return MapUtil.keyMultiMap(packet.structures());
     }
 
-    public void writeBuf(PacketByteBuf buf, Multimap<RegistryKey<Structure>, ChunkPos> keySet) {
+    public S2CStructuresAddedPacket createUpdatePacket(boolean shared, Multimap<RegistryKey<Structure>, ChunkPos> keySet) {
         Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> packetStructures = new HashMap<>();
         Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> packetTypes = new HashMap<>();
         Multimap<RegistryKey<Structure>, TagKey<Structure>> packetTags = HashMultimap.create();
@@ -253,21 +237,7 @@ public class WorldStructureSummary {
             packetTypes.put(key, getType(key));
             packetTags.putAll(key, getTags(key));
         }
-        buf.writeMap(packetStructures,
-            PacketByteBuf::writeRegistryKey,
-            (b, posMap) -> b.writeMap(posMap,
-                PacketByteBuf::writeChunkPos,
-                (b2, summary) -> b2.writeCollection(summary.getChildren(), (b3, piece) -> b3.writeNbt(piece.toNbt()))
-            )
-        );
-        buf.writeMap(packetTypes,
-            PacketByteBuf::writeRegistryKey,
-            PacketByteBuf::writeRegistryKey
-        );
-        buf.writeMap(packetTags.asMap(),
-            PacketByteBuf::writeRegistryKey,
-            (b, c) -> b.writeCollection(c, (b2, t) -> b2.writeIdentifier(t.id()))
-        );
+        return new S2CStructuresAddedPacket(shared, packetStructures, packetTypes, packetTags);
     }
 
     public boolean isDirty() {

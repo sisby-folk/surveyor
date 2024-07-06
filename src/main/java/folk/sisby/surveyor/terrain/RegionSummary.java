@@ -2,6 +2,7 @@ package folk.sisby.surveyor.terrain;
 
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorConfig;
+import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
 import folk.sisby.surveyor.util.RegistryPalette;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import net.minecraft.block.Block;
@@ -10,7 +11,6 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
@@ -174,36 +174,29 @@ public class RegionSummary {
         return nbt;
     }
 
-    public BitSet readBuf(PacketByteBuf buf) {
+    public BitSet readUpdatePacket(DynamicRegistryManager manager, S2CUpdateRegionPacket packet) {
         if (Surveyor.CONFIG.terrain == SurveyorConfig.SystemMode.FROZEN) return new BitSet();
-        int[] rawBiomes = buf.readList(PacketByteBuf::readVarInt).stream().mapToInt(i -> i).toArray();
         Map<Integer, Integer> biomeRemap = new Int2IntArrayMap();
-        for (int i = 0; i < rawBiomes.length; i++) {
-            biomeRemap.put(i, biomePalette.findOrAdd(rawBiomes[i]));
+        for (int i = 0; i < packet.biomePalette().size(); i++) {
+            biomeRemap.put(i, biomePalette.findOrAdd(packet.biomePalette().get(i)));
         }
-        int[] rawBlocks = buf.readList(PacketByteBuf::readVarInt).stream().mapToInt(i -> i).toArray();
+
         Map<Integer, Integer> blockRemap = new Int2IntArrayMap();
-        for (int i = 0; i < rawBlocks.length; i++) {
-            blockRemap.put(i, blockPalette.findOrAdd(rawBlocks[i]));
+        for (int i = 0; i < packet.blockPalette().size(); i++) {
+            blockRemap.put(i, blockPalette.findOrAdd(packet.blockPalette().get(i)));
         }
-        BitSet set = buf.readBitSet();
-        int[] indices = set.stream().toArray();
-        ArrayList<ChunkSummary> summaries = buf.readCollection(ArrayList::new, ChunkSummary::new);
-        for (int i = 0; i < summaries.size(); i++) {
-            ChunkSummary summary = summaries.get(i);
+        int[] indices = packet.set().stream().toArray();
+        for (int i = 0; i < packet.chunks().size(); i++) {
+            ChunkSummary summary = packet.chunks().get(i);
             summary.remap(biomeRemap, blockRemap);
             this.chunks[xForBit(indices[i])][zForBit(indices[i])] = summary;
         }
         dirty();
-        return set;
+        return packet.set();
     }
 
-    public PacketByteBuf writeBuf(PacketByteBuf buf, BitSet set) {
-        buf.writeCollection(mapIterable(biomePalette, i -> i), PacketByteBuf::writeVarInt);
-        buf.writeCollection(mapIterable(blockPalette, i -> i), PacketByteBuf::writeVarInt);
-        buf.writeBitSet(set);
-        buf.writeCollection(set.stream().mapToObj(i -> chunks[xForBit(i)][zForBit(i)]).toList(), (b, summary) -> summary.writeBuf(b));
-        return buf;
+    public S2CUpdateRegionPacket createUpdatePacket(boolean shared, ChunkPos rPos, BitSet set) {
+        return new S2CUpdateRegionPacket(shared, rPos, mapIterable(biomePalette, i -> i), mapIterable(blockPalette, i -> i), set, set.stream().mapToObj(i -> chunks[xForBit(i)][zForBit(i)]).toList());
     }
 
     public RegistryPalette<Biome>.ValueView getBiomePalette() {

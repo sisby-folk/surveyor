@@ -4,6 +4,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
@@ -18,5 +19,17 @@ public class MapUtil {
         Multimap<K, V> map = HashMultimap.create();
         asMap.forEach((key, innerMap) -> map.putAll(key, new HashSet<>(innerMap.keySet())));
         return map;
+    }
+
+    public static <K1, K2, V> Map<K1, Map<K2, V>> splitByKeyMap(Map<K1, Map<K2, V>> map, Multimap<K1, K2> keySet) {
+        Map<K1, Map<K2, V>> outMap = new HashMap<>();
+        keySet.forEach((k1, k2) -> outMap.computeIfAbsent(k1, k -> new HashMap<>()).put(k2, map.get(k1).get(k2)));
+        return outMap;
+    }
+
+    public static <K, V> Map<K, V> splitByKeySet(Map<K, V> map, Collection<K> keySet) {
+        Map<K, V> outMap = new HashMap<>();
+        keySet.forEach(k -> outMap.put(k, map.get(k)));
+        return outMap;
     }
 }
