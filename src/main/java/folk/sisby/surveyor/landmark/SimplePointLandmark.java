@@ -12,7 +12,7 @@ import net.minecraft.util.math.BlockPos;
 import java.util.UUID;
 
 public record SimplePointLandmark(BlockPos pos, UUID owner, DyeColor color, Text name, Identifier texture) implements Landmark<SimplePointLandmark> {
-    public static LandmarkType<SimplePointLandmark> TYPE = new SimpleLandmarkType<>(
+    public static final LandmarkType<SimplePointLandmark> TYPE = new SimpleLandmarkType<>(
             new Identifier(Surveyor.ID, "point"),
             pos -> RecordCodecBuilder.create(instance -> instance.group(
                     Uuids.CODEC.fieldOf("owner").orElse(null).forGetter(Landmark::owner),

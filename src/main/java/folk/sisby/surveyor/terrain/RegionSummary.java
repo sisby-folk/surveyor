@@ -42,7 +42,7 @@ public class RegionSummary {
 
     protected final RegistryPalette<Biome> biomePalette;
     protected final RegistryPalette<Block> blockPalette;
-    protected ChunkSummary[][] chunks = new ChunkSummary[REGION_SIZE][REGION_SIZE];
+    protected final ChunkSummary[][] chunks = new ChunkSummary[REGION_SIZE][REGION_SIZE];
 
     protected boolean dirty = false;
 

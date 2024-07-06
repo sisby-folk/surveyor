@@ -28,6 +28,7 @@ public record SyncLandmarksAddedPacket(Multimap<LandmarkType<?>, BlockPos> keySe
     }
 
     public static SyncLandmarksAddedPacket handle(PacketByteBuf buf, World world, WorldSummary summary, ServerPlayerEntity sender) {
+        if (summary.landmarks() == null) return new SyncLandmarksAddedPacket(HashMultimap.create(), null);
         Multimap<LandmarkType<?>, BlockPos> keySet = summary.landmarks().readBuf(world, buf, sender);
         return new SyncLandmarksAddedPacket(
             keySet,

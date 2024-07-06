@@ -20,6 +20,7 @@ public record S2CUpdateRegionPacket(boolean shared, ChunkPos regionPos, RegionSu
     public static S2CUpdateRegionPacket handle(PacketByteBuf buf, WorldSummary summary) {
         boolean shared = buf.readBoolean();
         ChunkPos regionPos = buf.readChunkPos();
+        if (summary.terrain() == null) return new S2CUpdateRegionPacket(shared, regionPos, null, new BitSet());
         RegionSummary region = summary.terrain().getRegion(regionPos);
         BitSet chunks = region.readBuf(buf);
         return new S2CUpdateRegionPacket(

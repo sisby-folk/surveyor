@@ -29,6 +29,7 @@ public record S2CStructuresAddedPacket(boolean shared, Multimap<RegistryKey<Stru
 
     public static S2CStructuresAddedPacket handle(PacketByteBuf buf, World world, WorldSummary summary) {
         boolean shared = buf.readBoolean();
+        if (summary.structures() == null) return new S2CStructuresAddedPacket(shared, HashMultimap.create(), null);
         Multimap<RegistryKey<Structure>, ChunkPos> keySet = summary.structures().readBuf(world, buf);
         return new S2CStructuresAddedPacket(
             shared,
