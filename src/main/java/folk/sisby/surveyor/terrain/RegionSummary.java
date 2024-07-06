@@ -3,8 +3,6 @@ package folk.sisby.surveyor.terrain;
 import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.config.SystemMode;
-import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
-import folk.sisby.surveyor.SurveyorConfig;
 import folk.sisby.surveyor.util.RegistryPalette;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import net.minecraft.block.Block;

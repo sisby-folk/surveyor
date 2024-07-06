@@ -5,7 +5,6 @@ import folk.sisby.surveyor.client.SurveyorClient;
 import folk.sisby.surveyor.client.SurveyorClientEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.DownloadingTerrainScreen;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.world.ClientWorld;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -25,13 +24,5 @@ public class MixinMinecraftClient {
     @Inject(method = "joinWorld", at = @At("TAIL"))
     void loadOnJoinWorld(ClientWorld world, DownloadingTerrainScreen.WorldEntryReason worldEntryReason, CallbackInfo ci) {
         SurveyorClientEvents.INITIALIZING_WORLD = true;
-    }
-
-    @Inject(method = "disconnect(Lnet/minecraft/client/gui/screen/Screen;)V", at = @At("HEAD"))
-    void saveSummaryOnDisconnect(Screen screen, CallbackInfo ci) {
-        MinecraftClient self = (MinecraftClient) (Object) this;
-        if (self.world != null && WorldSummary.of(self.world).isClient()) {
-            WorldSummary.of(self.world).save(self.world, SurveyorClient.getWorldSavePath(self.world), false);
-        }
     }
 }
