@@ -1,6 +1,7 @@
 package folk.sisby.surveyor;
 
 import com.google.common.collect.Multimap;
+import folk.sisby.surveyor.config.SurveyorConfig;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.terrain.WorldTerrainSummary;
 import folk.sisby.surveyor.util.MapUtil;

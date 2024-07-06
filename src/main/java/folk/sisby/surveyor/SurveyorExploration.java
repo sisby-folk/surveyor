@@ -3,6 +3,7 @@ package folk.sisby.surveyor;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.client.SurveyorClientEvents;
+import folk.sisby.surveyor.config.NetworkMode;
 import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.landmark.WorldLandmarks;
@@ -60,12 +61,12 @@ public interface SurveyorExploration {
     default boolean exploredChunk(RegistryKey<World> worldKey, ChunkPos pos) {
         ChunkPos regionPos = new ChunkPos(pos.getRegionX(), pos.getRegionZ());
         Map<ChunkPos, BitSet> regions = terrain().get(worldKey);
-        return (!personal() && Surveyor.CONFIG.sync.terrainSharing == SurveyorConfig.ShareMode.OMNISCIENT) || regions != null && regions.containsKey(regionPos) && regions.get(regionPos).get(RegionSummary.bitForChunk(pos));
+        return (!personal() && Surveyor.CONFIG.networking.terrain.atLeast(NetworkMode.SERVER)) || regions != null && regions.containsKey(regionPos) && regions.get(regionPos).get(RegionSummary.bitForChunk(pos));
     }
 
     default boolean exploredStructure(RegistryKey<World> worldKey, RegistryKey<Structure> structure, ChunkPos pos) {
         Map<RegistryKey<Structure>, LongSet> structures = structures().get(worldKey);
-        return (!personal() && Surveyor.CONFIG.sync.structureSharing == SurveyorConfig.ShareMode.OMNISCIENT) || structures != null && structures.containsKey(structure) && structures.get(structure).contains(pos.toLong());
+        return (!personal() && Surveyor.CONFIG.networking.structures.atLeast(NetworkMode.SERVER)) || structures != null && structures.containsKey(structure) && structures.get(structure).contains(pos.toLong());
     }
 
     default boolean exploredLandmark(RegistryKey<World> worldKey, Landmark<?> landmark) {
@@ -81,7 +82,7 @@ public interface SurveyorExploration {
     }
 
     default BitSet limitTerrainBitset(RegistryKey<World> worldKey, ChunkPos rPos, BitSet bitSet) {
-        if (!personal() && Surveyor.CONFIG.sync.terrainSharing == SurveyorConfig.ShareMode.OMNISCIENT) return bitSet;
+        if (!personal()  && Surveyor.CONFIG.networking.terrain.atLeast(NetworkMode.SERVER)) return bitSet;
         if (terrain().get(worldKey) == null || !terrain().get(worldKey).containsKey(rPos)) {
             bitSet.clear();
         } else {
@@ -91,7 +92,7 @@ public interface SurveyorExploration {
     }
 
     default Map<ChunkPos, BitSet> limitTerrainBitset(RegistryKey<World> worldKey, Map<ChunkPos, BitSet> bitSet) {
-        if (!personal() && Surveyor.CONFIG.sync.terrainSharing == SurveyorConfig.ShareMode.OMNISCIENT) return bitSet;
+        if (!personal() && Surveyor.CONFIG.networking.terrain.atLeast(NetworkMode.SERVER)) return bitSet;
         Map<ChunkPos, BitSet> regions = terrain().get(worldKey);
         if (regions == null) {
             bitSet.clear();
@@ -102,7 +103,7 @@ public interface SurveyorExploration {
     }
 
     default Multimap<RegistryKey<Structure>, ChunkPos> limitStructureKeySet(RegistryKey<World> worldKey, Multimap<RegistryKey<Structure>, ChunkPos> keySet) {
-        if (!personal() && Surveyor.CONFIG.sync.structureSharing == SurveyorConfig.ShareMode.OMNISCIENT) return keySet;
+        if (!personal() && Surveyor.CONFIG.networking.structures.atLeast(NetworkMode.SERVER)) return keySet;
         Map<RegistryKey<Structure>, LongSet> structures = structures().get(worldKey);
         if (structures == null) {
             keySet.clear();

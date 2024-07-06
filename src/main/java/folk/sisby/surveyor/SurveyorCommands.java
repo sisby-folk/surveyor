@@ -6,6 +6,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import folk.sisby.surveyor.config.SystemMode;
 import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.landmark.Landmarks;
@@ -217,10 +218,10 @@ public class SurveyorCommands {
             ServerSummary.of(player.getServer()).leaveGroup(Surveyor.getUuid(player), player.getServer());
             feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("Stopped sharing map exploration with ").formatted(Formatting.GREEN)).append(Text.literal("%d".formatted(shareNumber)).formatted(Formatting.WHITE)).append(Text.literal(shareNumber > 1 ? " players." : " player.").formatted(Formatting.GREEN)));
             for (ServerPlayerEntity friend : friends) {
-                int groupSize = serverSummary.groupSize(friend.getUuid()) - 1;
+                int groupSize = serverSummary.groupSize(Surveyor.getUuid(friend)) - 1;
                 friend.sendMessage(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(player.getDisplayName().copy().formatted(Formatting.WHITE)).append(Text.literal(" is no longer sharing with you.").formatted(Formatting.AQUA)));
                 friend.sendMessage(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("You're now sharing map exploration with ").formatted(Formatting.AQUA)).append(Text.literal("%d".formatted(groupSize)).formatted(Formatting.WHITE)).append(Text.literal(groupSize == 0 ? " players." : groupSize > 1 ? " players:" : " player:").formatted(Formatting.AQUA)));
-                if (groupSize > 0) friend.sendMessage(TextUtil.highlightStrings(serverSummary.groupPlayers(friend.getUuid(), friend.getServer()).stream().map(PlayerSummary::username).filter(u -> !u.equals(friend.getGameProfile().getName())).toList(), s -> Formatting.WHITE).formatted(Formatting.AQUA));
+                if (groupSize > 0) friend.sendMessage(TextUtil.highlightStrings(serverSummary.groupPlayers(Surveyor.getUuid(friend), friend.getServer()).stream().map(PlayerSummary::username).filter(u -> !u.equals(friend.getGameProfile().getName())).toList(), s -> Formatting.WHITE).formatted(Formatting.AQUA));
             }
             return 1;
         }
@@ -321,7 +322,7 @@ public class SurveyorCommands {
         dispatcher.register(
             CommandManager.literal("surveyor")
                 .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.info(s, p, e, f)))
-                .then(Surveyor.CONFIG.sync.forceGlobal ?
+                .then(Surveyor.CONFIG.networking.globalSharing ?
                     CommandManager.literal("share")
                         .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.informGlobal(s, p, f))) :
                     CommandManager.literal("share")
@@ -329,13 +330,13 @@ public class SurveyorCommands {
                             .suggests((c, b) -> CommandSource.suggestMatching(c.getSource().getServer().getPlayerManager().getPlayerList().stream().filter(p -> c.getSource().getPlayer() != p).map(p -> p.getGameProfile().getName()), b))
                             .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.share(s, p, f, c.getArgument("player", String.class))))
                         )
-                ).then(Surveyor.CONFIG.sync.forceGlobal ?
+                ).then(Surveyor.CONFIG.networking.globalSharing ?
                     CommandManager.literal("unshare")
                         .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.informGlobal(s, p, f))) :
                     CommandManager.literal("unshare")
                         .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.unshare(s, p, f)))
                 ).then(CommandManager.literal("landmarks")
-                    .requires(c -> Surveyor.CONFIG.landmarks != SurveyorConfig.SystemMode.DISABLED)
+                    .requires(c -> Surveyor.CONFIG.landmarks != SystemMode.DISABLED)
                     .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.landmarkInfo(s, p, e, f)))
                     .then(CommandManager.literal("get")
                         .then(CommandManager.argument("type", IdentifierArgumentType.identifier())
@@ -344,7 +345,7 @@ public class SurveyorCommands {
                         )
                     )
                     .then(CommandManager.literal("remove")
-                        .requires(c -> Surveyor.CONFIG.landmarks != SurveyorConfig.SystemMode.FROZEN)
+                        .requires(c -> Surveyor.CONFIG.landmarks != SystemMode.FROZEN)
                         .then(CommandManager.argument("type", IdentifierArgumentType.identifier())
                             .suggests((c, b) -> CommandSource.suggestIdentifiers(Landmarks.keySet(), b))
                             .then(CommandManager.argument("pos", BlockPosArgumentType.blockPos())
@@ -352,7 +353,7 @@ public class SurveyorCommands {
                             )
                         )
                     ).then(CommandManager.literal("add")
-                        .requires(c -> Surveyor.CONFIG.landmarks != SurveyorConfig.SystemMode.FROZEN)
+                        .requires(c -> Surveyor.CONFIG.landmarks != SystemMode.FROZEN)
                         .then(CommandManager.argument("type", IdentifierArgumentType.identifier())
                             .suggests((c, b) -> CommandSource.suggestIdentifiers(List.of(SimplePointLandmark.TYPE.id()), b))
                             .then(CommandManager.argument("pos", BlockPosArgumentType.blockPos())
@@ -362,7 +363,7 @@ public class SurveyorCommands {
                             )
                         )
                     ).then(CommandManager.literal("global")
-                        .requires(c -> Surveyor.CONFIG.landmarks != SurveyorConfig.SystemMode.FROZEN)
+                        .requires(c -> Surveyor.CONFIG.landmarks != SystemMode.FROZEN)
                             .requires(c -> c.getPlayer() == null || c.getPlayer().hasPermissionLevel(2))
                         .then(CommandManager.argument("type", IdentifierArgumentType.identifier())
                             .suggests((c, b) -> CommandSource.suggestIdentifiers(List.of(SimplePointLandmark.TYPE.id()), b))

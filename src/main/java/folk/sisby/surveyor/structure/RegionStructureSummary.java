@@ -2,7 +2,7 @@ package folk.sisby.surveyor.structure;
 
 import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.Surveyor;
-import folk.sisby.surveyor.SurveyorConfig;
+import folk.sisby.surveyor.config.SystemMode;
 import folk.sisby.surveyor.util.MapUtil;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -136,7 +136,7 @@ public class RegionStructureSummary {
     }
 
     public boolean isDirty() {
-        return dirty && Surveyor.CONFIG.structures != SurveyorConfig.SystemMode.FROZEN;
+        return dirty && Surveyor.CONFIG.structures != SystemMode.FROZEN;
     }
 
     private void dirty() {

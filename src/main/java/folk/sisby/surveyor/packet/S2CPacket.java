@@ -1,5 +1,8 @@
 package folk.sisby.surveyor.packet;
 
+import folk.sisby.surveyor.ServerSummary;
+import folk.sisby.surveyor.Surveyor;
+import folk.sisby.surveyor.config.NetworkMode;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
@@ -31,6 +34,14 @@ public interface S2CPacket extends SurveyorPacket {
     default void send(ServerPlayerEntity sender, ServerWorld world) {
         List<ServerPlayerEntity> players = new ArrayList<>(world.getPlayers());
         players.remove(sender);
+        send(players);
+    }
+
+    default void send(ServerPlayerEntity sender, ServerWorld world, NetworkMode mode) {
+        if (mode.atMost(NetworkMode.SOLO)) return;
+        List<ServerPlayerEntity> players = new ArrayList<>(world.getPlayers());
+        players.remove(sender);
+        if (mode.atMost(NetworkMode.GROUP)) ServerSummary.of(world.getServer()).groupOtherServerPlayers(Surveyor.getUuid(sender), world.getServer()).forEach(players::remove);
         send(players);
     }
 

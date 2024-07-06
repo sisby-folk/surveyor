@@ -1,13 +1,12 @@
 package folk.sisby.surveyor.client;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.SurveyorNetworking;
 import folk.sisby.surveyor.WorldSummary;
-import folk.sisby.surveyor.landmark.LandmarkType;
+import folk.sisby.surveyor.config.NetworkMode;
 import folk.sisby.surveyor.packet.C2SKnownLandmarksPacket;
 import folk.sisby.surveyor.packet.C2SKnownStructuresPacket;
 import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
@@ -24,7 +23,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.gen.structure.Structure;
 
@@ -69,10 +67,10 @@ public class SurveyorClientNetworking {
         SurveyorClient.getSharedExploration().replaceTerrain(world.getRegistryKey(), packet.regionBits());
         SurveyorClient.getSharedExploration().replaceStructures(world.getRegistryKey(), packet.structureKeys());
         SurveyorClient.getExploration().updateClientForLandmarks(world);
-        if (summary != null && Surveyor.CONFIG.sync.syncOnJoin) {
-            if (summary.terrain() != null) new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
-            if (summary.structures() != null) new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
-            if (summary.landmarks() != null) new C2SKnownLandmarksPacket(summary.landmarks().keySet(null)).send();
+        if (summary != null) {
+            if (summary.terrain() != null && Surveyor.CONFIG.networking.terrain.atLeast(NetworkMode.SOLO)) new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
+            if (summary.structures() != null && Surveyor.CONFIG.networking.structures.atLeast(NetworkMode.SOLO)) new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
+            if (summary.landmarks() != null && Surveyor.CONFIG.networking.landmarks.atLeast(NetworkMode.SOLO)) new C2SKnownLandmarksPacket(summary.landmarks().keySet(null)).send();
         }
     }
 
@@ -87,13 +85,7 @@ public class SurveyorClientNetworking {
 
     private static void handleLandmarksRemoved(ClientWorld world, WorldSummary summary, SyncLandmarksRemovedPacket packet) {
         if (summary.landmarks() == null) return;
-        Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
-        packet.landmarks().forEach((type, pos) -> {
-            if (!Surveyor.CONFIG.sync.privateWaypoints || !summary.landmarks().contains(type, pos) || !SurveyorClient.getClientUuid().equals(summary.landmarks().get(type, pos).owner())) {
-                summary.landmarks().removeForBatch(changed, type, pos);
-            }
-        });
-        summary.landmarks().handleChanged(world, changed, true, null);
+        summary.landmarks().readUpdatePacket(world, packet, null);
     }
 
     private static <T extends S2CPacket> void handleClient(PacketByteBuf buf, Function<PacketByteBuf, T> reader, ClientPacketHandler<T> handler) {
