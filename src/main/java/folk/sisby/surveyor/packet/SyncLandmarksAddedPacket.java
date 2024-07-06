@@ -35,7 +35,7 @@ public record SyncLandmarksAddedPacket(Map<LandmarkType<?>, Map<BlockPos, Landma
         if (buf.readableBytes() < MAX_PAYLOAD_SIZE) {
             payloads.add(this);
         } else {
-            var keySet = MapUtil.keyMultiMap(landmarks);
+            Multimap<LandmarkType<?>, BlockPos> keySet = MapUtil.keyMultiMap(landmarks);
             if (keySet.size() == 1) {
                 Surveyor.LOGGER.error("Couldn't create a landmark update packet for {} at {} - an individual landmark would be too large to send!", keySet.keys().stream().findFirst().orElseThrow().id(), keySet.values().stream().findFirst().orElseThrow());
                 return List.of();

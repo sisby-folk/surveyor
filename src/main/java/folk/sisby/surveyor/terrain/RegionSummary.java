@@ -3,6 +3,7 @@ package folk.sisby.surveyor.terrain;
 import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorConfig;
+import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
 import folk.sisby.surveyor.SurveyorConfig;
 import folk.sisby.surveyor.util.RegistryPalette;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
@@ -43,7 +44,7 @@ public class RegionSummary {
 
     protected final RegistryPalette<Biome> biomePalette;
     protected final RegistryPalette<Block> blockPalette;
-    protected ChunkSummary[][] chunks = new ChunkSummary[REGION_SIZE][REGION_SIZE];
+    protected final ChunkSummary[][] chunks = new ChunkSummary[REGION_SIZE][REGION_SIZE];
 
     protected boolean dirty = false;
 

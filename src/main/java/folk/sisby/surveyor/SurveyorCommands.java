@@ -138,25 +138,23 @@ public class SurveyorCommands {
                 personalKeys.putAll(summary.keySet(exploration));
             }
         }
-        keys.asMap().forEach((type, list) -> {
-            feedback.accept(
-                Text.literal("%s".formatted(type.id())).formatted(Formatting.WHITE)
-                    .append(Text.literal(waypoints.contains(type) ? ": created " : ": explored ").formatted(Formatting.AQUA))
-                    .append(Text.literal("%d".formatted(personalKeys.get(type).size())).formatted(Formatting.WHITE))
-                    .append(
-                        group.size() <= 1 ? Text.empty() :
-                            Text.literal(" (").formatted(Formatting.LIGHT_PURPLE)
-                                .append(Text.literal("%d".formatted(groupKeys.get(type).size())).formatted(Formatting.WHITE))
-                                .append(Text.literal(" shared)").formatted(Formatting.LIGHT_PURPLE))
-                    )
-                    .append(
-                        !player.hasPermissionLevel(2) ? Text.empty() :
-                            Text.literal(" {of ").formatted(Formatting.GOLD)
-                                .append(Text.literal("%d".formatted(keys.get(type).size())).formatted(Formatting.WHITE))
-                                .append(Text.literal("}").formatted(Formatting.GOLD))
-                    )
-            );
-        });
+        keys.asMap().forEach((type, list) -> feedback.accept(
+            Text.literal("%s".formatted(type.id())).formatted(Formatting.WHITE)
+                .append(Text.literal(waypoints.contains(type) ? ": created " : ": explored ").formatted(Formatting.AQUA))
+                .append(Text.literal("%d".formatted(personalKeys.get(type).size())).formatted(Formatting.WHITE))
+                .append(
+                    group.size() <= 1 ? Text.empty() :
+                        Text.literal(" (").formatted(Formatting.LIGHT_PURPLE)
+                            .append(Text.literal("%d".formatted(groupKeys.get(type).size())).formatted(Formatting.WHITE))
+                            .append(Text.literal(" shared)").formatted(Formatting.LIGHT_PURPLE))
+                )
+                .append(
+                    !player.hasPermissionLevel(2) ? Text.empty() :
+                        Text.literal(" {of ").formatted(Formatting.GOLD)
+                            .append(Text.literal("%d".formatted(keys.get(type).size())).formatted(Formatting.WHITE))
+                            .append(Text.literal("}").formatted(Formatting.GOLD))
+                )
+        ));
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("-------End Landmarks-------").formatted(Formatting.GRAY)));
         return 1;
     }

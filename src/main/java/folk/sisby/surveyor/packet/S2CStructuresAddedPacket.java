@@ -12,6 +12,7 @@ import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ChunkPos;
@@ -21,6 +22,7 @@ import net.minecraft.world.gen.structure.StructureType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public record S2CStructuresAddedPacket(boolean shared, Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> structures, Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>> types, Multimap<RegistryKey<Structure>, TagKey<Structure>> tags) implements S2CPacket {
     public static final CustomPayload.Id<S2CStructuresAddedPacket> ID = new CustomPayload.Id<>(Identifier.of(Surveyor.ID, "s2c_structures_added"));
@@ -48,7 +50,7 @@ public record S2CStructuresAddedPacket(boolean shared, Map<RegistryKey<Structure
         if (buf.readableBytes() < MAX_PAYLOAD_SIZE) {
             payloads.add(this);
         } else {
-            var keySet = MapUtil.keyMultiMap(structures);
+            Multimap<RegistryKey<Structure>, ChunkPos> keySet = MapUtil.keyMultiMap(structures);
             if (keySet.size() == 1) {
                 Surveyor.LOGGER.error("Couldn't create a structure update packet for {} at {} - an individual structure would be too large to send!", keySet.keys().stream().findFirst().orElseThrow().getValue(), keySet.values().stream().findFirst().orElseThrow());
                 return List.of();

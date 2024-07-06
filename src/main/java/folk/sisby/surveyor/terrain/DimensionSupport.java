@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 public class DimensionSupport {
-    public static Map<RegistryKey<World>, int[]> cache = new HashMap<>();
+    public static final Map<RegistryKey<World>, int[]> cache = new HashMap<>();
 
     private static int[] getSummaryLayersInternal(World world) {
         List<Integer> layers = new ArrayList<>();
@@ -26,7 +26,7 @@ public class DimensionSupport {
         }
         if (dimension.minY() < 0) { // Layer At Y=0 (assume special layer change)
             int newLayer = 0;
-            if (newLayer > dimension.minY() && newLayer < dimension.minY() + dimension.height()) layers.add(newLayer);
+            if (newLayer < dimension.minY() + dimension.height()) layers.add(newLayer);
         }
         if (world.getDimensionEntry().getKey().orElseThrow() == DimensionTypes.THE_NETHER) {
             layers.add(70); // Mid outcrops

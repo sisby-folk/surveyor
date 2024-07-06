@@ -1,5 +1,6 @@
 package folk.sisby.surveyor.client;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.WorldSummary;
@@ -36,9 +37,9 @@ public class SurveyorClientEvents {
             if (worldLoad.isEmpty()) return;
             SurveyorExploration exploration = SurveyorClient.getExploration();
             WorldSummary summary = WorldSummary.of(world);
-            Map<ChunkPos, BitSet> terrain = summary.terrain().bitSet(exploration);
-            Multimap<RegistryKey<Structure>, ChunkPos> structures = summary.structures().keySet(exploration);
-            Multimap<LandmarkType<?>, BlockPos> landmarks = summary.landmarks().keySet(exploration);
+            Map<ChunkPos, BitSet> terrain = summary.terrain() == null ? new HashMap<>() : summary.terrain().bitSet(exploration);
+            Multimap<RegistryKey<Structure>, ChunkPos> structures = summary.structures() == null ? HashMultimap.create() : summary.structures().keySet(exploration);
+            Multimap<LandmarkType<?>, BlockPos> landmarks = summary.landmarks() == null ? HashMultimap.create() : summary.landmarks().keySet(exploration);
             worldLoad.forEach((id, handler) -> handler.onWorldLoad(world, summary, player, terrain, structures, landmarks));
         }
 

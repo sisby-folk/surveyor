@@ -41,6 +41,13 @@ public class SurveyorClientNetworking {
         ClientPlayNetworking.registerGlobalReceiver(SyncLandmarksRemovedPacket.ID, (packet, context) -> handleClient(packet, context, SurveyorClientNetworking::handleLandmarksRemoved));
     }
 
+    private static void handleTerrainAdded(ClientWorld world, WorldSummary summary, S2CUpdateRegionPacket packet) {
+        if (summary.terrain() == null) return;
+        summary.terrain().getRegion(packet.regionPos()).readUpdatePacket(world.getRegistryManager(), packet);
+        (packet.shared() ? SurveyorClient.getSharedExploration() : SurveyorClient.getPersonalExploration()).mergeRegion(world.getRegistryKey(), packet.regionPos(), packet.set());
+        SurveyorEvents.Invoke.terrainUpdated(world, packet.set().stream().mapToObj(i -> RegionSummary.chunkForBit(packet.regionPos(), i)).toList());
+    }
+
     private static void handleStructuresAdded(ClientWorld world, WorldSummary summary, S2CStructuresAddedPacket packet) {
         if (summary.structures() == null) return;
         Multimap<RegistryKey<Structure>, ChunkPos> keySet = summary.structures().readUpdatePacket(world, packet);
@@ -48,13 +55,6 @@ public class SurveyorClientNetworking {
             SurveyorExploration exploration = (packet.shared() ? SurveyorClient.getSharedExploration() : SurveyorClient.getPersonalExploration());
             keySet.forEach((key, pos) -> exploration.addStructure(world.getRegistryKey(), key, pos));
         }
-    }
-
-    private static void handleTerrainAdded(ClientWorld world, WorldSummary summary, S2CUpdateRegionPacket packet) {
-        if (summary.terrain() == null) return;
-        summary.terrain().getRegion(packet.regionPos()).readUpdatePacket(world.getRegistryManager(), packet);
-        (packet.shared() ? SurveyorClient.getSharedExploration() : SurveyorClient.getPersonalExploration()).mergeRegion(world.getRegistryKey(), packet.regionPos(), packet.set());
-        SurveyorEvents.Invoke.terrainUpdated(world, packet.set().stream().mapToObj(i -> RegionSummary.chunkForBit(packet.regionPos(), i)).toList());
     }
 
     private static void handleGroupChanged(ClientWorld world, WorldSummary summary, S2CGroupChangedPacket packet) {
