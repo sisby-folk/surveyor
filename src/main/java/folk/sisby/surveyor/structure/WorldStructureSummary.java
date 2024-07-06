@@ -4,10 +4,10 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import folk.sisby.surveyor.Surveyor;
-import folk.sisby.surveyor.SurveyorConfig;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.WorldSummary;
+import folk.sisby.surveyor.config.SystemMode;
 import folk.sisby.surveyor.packet.S2CStructuresAddedPacket;
 import folk.sisby.surveyor.terrain.RegionSummary;
 import folk.sisby.surveyor.util.ChunkUtil;
@@ -102,7 +102,7 @@ public class WorldStructureSummary {
     }
 
     public void put(ServerWorld world, StructureStart start) {
-        if (Surveyor.CONFIG.structures == SurveyorConfig.SystemMode.FROZEN) return;
+        if (Surveyor.CONFIG.structures == SystemMode.FROZEN) return;
         ChunkPos rPos = regionPosOf(start.getPos());
         regions.computeIfAbsent(rPos, k -> new RegionStructureSummary()).put(world, start);
         RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElseThrow();
@@ -119,7 +119,7 @@ public class WorldStructureSummary {
     }
 
     public void put(World world, RegistryKey<Structure> key, ChunkPos pos, StructureStartSummary summary, RegistryKey<StructureType<?>> type, Collection<TagKey<Structure>> tagKeys) {
-        if (Surveyor.CONFIG.structures == SurveyorConfig.SystemMode.FROZEN) return;
+        if (Surveyor.CONFIG.structures == SystemMode.FROZEN) return;
         ChunkPos rPos = regionPosOf(pos);
         regions.computeIfAbsent(rPos, k -> new RegionStructureSummary()).put(key, pos, summary);
         structureTypes.put(key, type);
@@ -224,7 +224,7 @@ public class WorldStructureSummary {
     }
 
     public Multimap<RegistryKey<Structure>, ChunkPos> readUpdatePacket(World world, S2CStructuresAddedPacket packet) {
-        if (Surveyor.CONFIG.structures == SurveyorConfig.SystemMode.FROZEN) return HashMultimap.create();
+        if (Surveyor.CONFIG.structures == SystemMode.FROZEN) return HashMultimap.create();
         packet.structures().forEach((key, map) -> map.forEach((pos, start) -> put(world, key, pos, start, packet.types().get(key), packet.tags().get(key))));
         return MapUtil.keyMultiMap(packet.structures());
     }
@@ -242,7 +242,7 @@ public class WorldStructureSummary {
     }
 
     public boolean isDirty() {
-        return (dirty || regions.values().stream().anyMatch(RegionStructureSummary::isDirty)) && Surveyor.CONFIG.structures != SurveyorConfig.SystemMode.FROZEN;
+        return (dirty || regions.values().stream().anyMatch(RegionStructureSummary::isDirty)) && Surveyor.CONFIG.structures != SystemMode.FROZEN;
     }
 
     private void dirty() {

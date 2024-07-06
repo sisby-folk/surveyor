@@ -2,6 +2,7 @@ package folk.sisby.surveyor;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import folk.sisby.surveyor.config.NetworkMode;
 import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.packet.C2SKnownLandmarksPacket;
 import folk.sisby.surveyor.packet.C2SKnownStructuresPacket;
@@ -53,7 +54,7 @@ public class SurveyorNetworking {
     }
 
     private static void handleKnownTerrain(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownTerrainPacket packet) {
-        if (summary.terrain() == null || !Surveyor.CONFIG.sync.syncOnJoin) return;
+        if (summary.terrain() == null || Surveyor.CONFIG.networking.terrain.atMost(NetworkMode.NONE)) return;
         Map<ChunkPos, BitSet> serverBits = summary.terrain().bitSet(SurveyorExploration.ofShared(player));
         Map<ChunkPos, BitSet> clientBits = packet.regionBits();
         serverBits.forEach((rPos, set) -> {
@@ -63,13 +64,13 @@ public class SurveyorNetworking {
                 BitSet personalSet = personalExploration.limitTerrainBitset(world.getRegistryKey(), rPos, (BitSet) set.clone());
                 if (!personalSet.isEmpty()) S2CUpdateRegionPacket.of(false, rPos, summary.terrain().getRegion(rPos), personalSet).send(player);
                 set.andNot(personalSet);
-                if (!set.isEmpty() && Surveyor.CONFIG.sync.terrainSharing != SurveyorConfig.ShareMode.DISABLED) S2CUpdateRegionPacket.of(true, rPos, summary.terrain().getRegion(rPos), set).send(player);
+                if (!set.isEmpty() && Surveyor.CONFIG.networking.terrain.atLeast(NetworkMode.GROUP)) S2CUpdateRegionPacket.of(true, rPos, summary.terrain().getRegion(rPos), set).send(player);
             }
         });
     }
 
     private static void handleKnownStructures(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownStructuresPacket packet) {
-        if (summary.structures() == null || !Surveyor.CONFIG.sync.syncOnJoin) return;
+        if (summary.structures() == null || Surveyor.CONFIG.networking.structures.atMost(NetworkMode.NONE)) return;
         Multimap<RegistryKey<Structure>, ChunkPos> structures = summary.structures().keySet(SurveyorExploration.ofShared(player));
         packet.structureKeys().forEach(structures::remove);
         if (structures.isEmpty()) return;
@@ -77,12 +78,12 @@ public class SurveyorNetworking {
         Multimap<RegistryKey<Structure>, ChunkPos> personalStructures = personalExploration.limitStructureKeySet(world.getRegistryKey(), HashMultimap.create(structures));
         if (!personalStructures.isEmpty()) S2CStructuresAddedPacket.of(false, personalStructures, summary.structures()).send(player);
         personalStructures.forEach(structures::remove);
-        if (!structures.isEmpty() && Surveyor.CONFIG.sync.structureSharing != SurveyorConfig.ShareMode.DISABLED) S2CStructuresAddedPacket.of(true, structures, summary.structures()).send(player);
+        if (!structures.isEmpty() && Surveyor.CONFIG.networking.structures.atLeast(NetworkMode.GROUP)) S2CStructuresAddedPacket.of(true, structures, summary.structures()).send(player);
     }
 
     private static void handleKnownLandmarks(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, C2SKnownLandmarksPacket packet) {
-        if (summary.landmarks() == null || !Surveyor.CONFIG.sync.syncOnJoin) return;
-        Multimap<LandmarkType<?>, BlockPos> landmarks = summary.landmarks().keySet(Surveyor.CONFIG.sync.landmarkSharing != SurveyorConfig.ShareMode.DISABLED ? SurveyorExploration.ofShared(player) : SurveyorExploration.of(player));
+        if (summary.landmarks() == null || Surveyor.CONFIG.networking.landmarks.atMost(NetworkMode.NONE)) return;
+        Multimap<LandmarkType<?>, BlockPos> landmarks = summary.landmarks().keySet(Surveyor.CONFIG.networking.landmarks.atLeast(NetworkMode.GROUP) ? SurveyorExploration.ofShared(player) : SurveyorExploration.of(player));
         Multimap<LandmarkType<?>, BlockPos> addLandmarks = HashMultimap.create(landmarks);
         packet.landmarks().forEach(addLandmarks::remove);
         if (!addLandmarks.isEmpty()) SyncLandmarksAddedPacket.of(addLandmarks, summary.landmarks()).send(player);

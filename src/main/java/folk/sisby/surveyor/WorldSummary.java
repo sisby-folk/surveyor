@@ -1,5 +1,6 @@
 package folk.sisby.surveyor;
 
+import folk.sisby.surveyor.config.SystemMode;
 import folk.sisby.surveyor.landmark.WorldLandmarks;
 import folk.sisby.surveyor.structure.WorldStructureSummary;
 import folk.sisby.surveyor.terrain.WorldTerrainSummary;
@@ -18,9 +19,9 @@ public record WorldSummary(@Nullable WorldTerrainSummary terrain, @Nullable Worl
     }
     
     public static WorldSummary load(World world, File folder, boolean isClient) {
-        boolean disableTerrain = (Surveyor.CONFIG.terrain == SurveyorConfig.SystemMode.DISABLED || Surveyor.CONFIG.terrain == SurveyorConfig.SystemMode.DYNAMIC && !ENABLE_TERRAIN && (isClient || world.getServer().isSingleplayer()));
-        boolean disableStructures = (Surveyor.CONFIG.structures == SurveyorConfig.SystemMode.DISABLED || Surveyor.CONFIG.structures == SurveyorConfig.SystemMode.DYNAMIC && !ENABLE_STRUCTURES && (isClient || world.getServer().isSingleplayer()));
-        boolean disableLandmarks = (Surveyor.CONFIG.landmarks == SurveyorConfig.SystemMode.DISABLED || Surveyor.CONFIG.landmarks == SurveyorConfig.SystemMode.DYNAMIC && !ENABLE_LANDMARKS && (isClient || world.getServer().isSingleplayer()));
+        boolean disableTerrain = (Surveyor.CONFIG.terrain == SystemMode.DISABLED || Surveyor.CONFIG.terrain == SystemMode.DYNAMIC && !ENABLE_TERRAIN && (isClient || world.getServer().isSingleplayer()));
+        boolean disableStructures = (Surveyor.CONFIG.structures == SystemMode.DISABLED || Surveyor.CONFIG.structures == SystemMode.DYNAMIC && !ENABLE_STRUCTURES && (isClient || world.getServer().isSingleplayer()));
+        boolean disableLandmarks = (Surveyor.CONFIG.landmarks == SystemMode.DISABLED || Surveyor.CONFIG.landmarks == SystemMode.DYNAMIC && !ENABLE_LANDMARKS && (isClient || world.getServer().isSingleplayer()));
         if (disableTerrain && disableStructures && disableLandmarks) return new WorldSummary(null, null, null, isClient);
         Surveyor.LOGGER.info("[Surveyor] Loading data for {}", world.getRegistryKey().getValue());
         folder.mkdirs();

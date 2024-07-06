@@ -1,6 +1,7 @@
 package folk.sisby.surveyor;
 
 import com.mojang.authlib.GameProfile;
+import folk.sisby.surveyor.config.NetworkMode;
 import folk.sisby.surveyor.packet.S2CGroupChangedPacket;
 import folk.sisby.surveyor.packet.S2CGroupUpdatedPacket;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
@@ -69,7 +70,7 @@ public final class ServerSummary {
     }
 
     public static ServerSummary load(MinecraftServer server) {
-        Map<UUID, Set<UUID>> shareGroups = Surveyor.CONFIG.sync.forceGlobal ? null : loadShareGroups(server);
+        Map<UUID, Set<UUID>> shareGroups = Surveyor.CONFIG.networking.globalSharing ? null : loadShareGroups(server);
 
         File playerFolder = server.getSavePath(WorldSavePath.ROOT).resolve("playerdata").toFile();
 
@@ -202,7 +203,7 @@ public final class ServerSummary {
         getGroup(player).remove(player); // Shares set instance with group members.
         SurveyorExploration groupExploration = groupExploration(player, server);
         for (ServerPlayerEntity friend : groupOtherServerPlayers(player, server)) {
-            new S2CGroupChangedPacket(getGroupSummaries(friend.getUuid(), server), groupExploration.terrain().getOrDefault(friend.getWorld().getRegistryKey(), new HashMap<>()), groupExploration.structures().getOrDefault(friend.getWorld().getRegistryKey(), new HashMap<>())).send(friend);
+            new S2CGroupChangedPacket(getGroupSummaries(Surveyor.getUuid(friend), server), groupExploration.terrain().getOrDefault(friend.getWorld().getRegistryKey(), new HashMap<>()), groupExploration.structures().getOrDefault(friend.getWorld().getRegistryKey(), new HashMap<>())).send(friend);
         }
         shareGroups.put(player, new HashSet<>());
         getGroup(player).add(player);
@@ -240,9 +241,9 @@ public final class ServerSummary {
     }
 
     public static void onTick(MinecraftServer server) {
-        if (Surveyor.CONFIG.sync.positionSharing == SurveyorConfig.ShareMode.DISABLED || (server.getTicks() % Surveyor.CONFIG.sync.positionTicks) != 0) return;
+        if (Surveyor.CONFIG.networking.positions.atMost(NetworkMode.SOLO) || (server.getTicks() % Surveyor.CONFIG.networking.positionTicks) != 0) return;
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-            Map<UUID, PlayerSummary> group = Surveyor.CONFIG.sync.positionSharing == SurveyorConfig.ShareMode.DISABLED ? ServerSummary.of(server).getOfflineSummaries(server) : ServerSummary.of(server).getGroupSummaries(Surveyor.getUuid(player), server);
+            Map<UUID, PlayerSummary> group = Surveyor.CONFIG.networking.positions.atLeast(NetworkMode.SERVER) ? ServerSummary.of(server).getOfflineSummaries(server) : ServerSummary.of(server).getGroupSummaries(Surveyor.getUuid(player), server);
             PlayerSummary playerSummary = group.get(Surveyor.getUuid(player));
             group.entrySet().removeIf(e -> e.getKey().equals(Surveyor.getUuid(player)));
             group.entrySet().removeIf(e -> !e.getValue().online());

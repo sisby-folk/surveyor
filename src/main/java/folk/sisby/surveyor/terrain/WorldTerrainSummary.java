@@ -1,10 +1,10 @@
 package folk.sisby.surveyor.terrain;
 
 import folk.sisby.surveyor.Surveyor;
-import folk.sisby.surveyor.SurveyorConfig;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.WorldSummary;
+import folk.sisby.surveyor.config.SystemMode;
 import folk.sisby.surveyor.util.ChunkUtil;
 import folk.sisby.surveyor.util.RegistryPalette;
 import net.minecraft.block.Block;
@@ -90,7 +90,7 @@ public class WorldTerrainSummary {
     }
 
     public void put(World world, WorldChunk chunk) {
-        if (Surveyor.CONFIG.terrain == SurveyorConfig.SystemMode.FROZEN) return;
+        if (Surveyor.CONFIG.terrain == SystemMode.FROZEN) return;
         regions.computeIfAbsent(regionPosOf(chunk.getPos()), k -> new RegionSummary(registryManager)).putChunk(world, chunk);
         SurveyorEvents.Invoke.terrainUpdated(world, chunk.getPos());
     }

@@ -8,6 +8,7 @@ import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
 import folk.sisby.surveyor.WorldSummary;
+import folk.sisby.surveyor.config.NetworkMode;
 import folk.sisby.surveyor.packet.C2SKnownLandmarksPacket;
 import folk.sisby.surveyor.packet.C2SKnownStructuresPacket;
 import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
@@ -158,11 +159,11 @@ public class SurveyorClient implements ClientModInitializer {
             if (!SurveyorClientEvents.INITIALIZING_WORLD) return;
             if (MinecraftClient.getInstance().player != null && getExploration() != null) {
                 SurveyorClientEvents.INITIALIZING_WORLD = false;
-                if (WorldSummary.of(world).isClient() && Surveyor.CONFIG.sync.syncOnJoin) {
+                if (WorldSummary.of(world).isClient()) {
                     WorldSummary summary = WorldSummary.of(world);
-                    if (summary.terrain() != null) new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
-                    if (summary.structures() != null) new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
-                    if (summary.landmarks() != null) new C2SKnownLandmarksPacket(summary.landmarks().keySet(null)).send();
+                    if (summary.terrain() != null && Surveyor.CONFIG.networking.terrain.atLeast(NetworkMode.SOLO)) new C2SKnownTerrainPacket(summary.terrain().bitSet(null)).send();
+                    if (summary.structures() != null && Surveyor.CONFIG.networking.structures.atLeast(NetworkMode.SOLO)) new C2SKnownStructuresPacket(summary.structures().keySet(null)).send();
+                    if (summary.landmarks() != null && Surveyor.CONFIG.networking.landmarks.atLeast(NetworkMode.SOLO)) new C2SKnownLandmarksPacket(summary.landmarks().keySet(null)).send();
                 }
                 SurveyorClientEvents.Invoke.worldLoad(MinecraftClient.getInstance().player.clientWorld, MinecraftClient.getInstance().player);
             }

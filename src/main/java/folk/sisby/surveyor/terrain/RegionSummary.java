@@ -2,7 +2,7 @@ package folk.sisby.surveyor.terrain;
 
 import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
 import folk.sisby.surveyor.Surveyor;
-import folk.sisby.surveyor.SurveyorConfig;
+import folk.sisby.surveyor.config.SystemMode;
 import folk.sisby.surveyor.packet.S2CUpdateRegionPacket;
 import folk.sisby.surveyor.SurveyorConfig;
 import folk.sisby.surveyor.util.RegistryPalette;
@@ -112,7 +112,7 @@ public class RegionSummary {
     }
 
     public void putChunk(World world, WorldChunk chunk) {
-        if (Surveyor.CONFIG.terrain == SurveyorConfig.SystemMode.FROZEN) return;
+        if (Surveyor.CONFIG.terrain == SystemMode.FROZEN) return;
         chunks[regionRelative(chunk.getPos().x)][regionRelative(chunk.getPos().z)] = new ChunkSummary(world, chunk, DimensionSupport.getSummaryLayers(world), biomePalette, blockPalette, !(world instanceof ServerWorld));
         dirty();
     }
@@ -177,7 +177,7 @@ public class RegionSummary {
     }
 
     public BitSet readUpdatePacket(DynamicRegistryManager manager, S2CUpdateRegionPacket packet) {
-        if (Surveyor.CONFIG.terrain == SurveyorConfig.SystemMode.FROZEN) return new BitSet();
+        if (Surveyor.CONFIG.terrain == SystemMode.FROZEN) return new BitSet();
         Map<Integer, Integer> biomeRemap = new Int2IntArrayMap();
         for (int i = 0; i < packet.biomePalette().size(); i++) {
             biomeRemap.put(i, biomePalette.findOrAdd(packet.biomePalette().get(i)));
@@ -210,7 +210,7 @@ public class RegionSummary {
     }
 
     public boolean isDirty() {
-        return dirty && Surveyor.CONFIG.terrain != SurveyorConfig.SystemMode.FROZEN;
+        return dirty && Surveyor.CONFIG.terrain != SystemMode.FROZEN;
     }
 
     private void dirty() {
