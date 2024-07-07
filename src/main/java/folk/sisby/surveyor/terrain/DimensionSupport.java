@@ -14,23 +14,21 @@ import java.util.Map;
 public class DimensionSupport {
     public static final Map<RegistryKey<World>, int[]> cache = new HashMap<>();
 
+    private static void softAdd(DimensionType dimension, List<Integer> layers, int y) {
+        if (dimension.minY() < y && y < dimension.minY() + dimension.height()) layers.add(y);
+    }
+
     private static int[] getSummaryLayersInternal(World world) {
         List<Integer> layers = new ArrayList<>();
         DimensionType dimension = world.getDimension();
         layers.add(dimension.minY() + dimension.height() - 1); // Layer at Max Y
-        if (dimension.logicalHeight() != dimension.height()) layers.add(dimension.minY() + dimension.logicalHeight() - 2); // Layer below Playable Limit
-        if (dimension.minY() + dimension.height() > 256) layers.add(256); // Layer At Y=256 (assume special layer change)
-        if (dimension.hasSkyLight()) {  // Layer below sea level (assume caves underneath)
-            int newLayer = world.getSeaLevel() - 2;
-            if (newLayer > dimension.minY() && newLayer < dimension.minY() + dimension.height()) layers.add(newLayer);
-        }
-        if (dimension.minY() < 0) { // Layer At Y=0 (assume special layer change)
-            int newLayer = 0;
-            if (newLayer < dimension.minY() + dimension.height()) layers.add(newLayer);
-        }
+        if (dimension.logicalHeight() != dimension.height()) softAdd(dimension, layers, dimension.minY() + dimension.logicalHeight() - 2); // Layer below Playable Limit
+        if (dimension.minY() + dimension.height() > 256) softAdd(dimension, layers, 256); // Layer At Y=256 (assume special layer change)
+        if (dimension.hasSkyLight()) softAdd(dimension, layers, world.getSeaLevel() - 2);  // Layer below sea level (assume caves underneath)
+        if (dimension.minY() < 0) softAdd(dimension, layers, 0); // Layer At Y=0 (assume special layer change)
         if (world.getDimensionEntry().getKey().orElseThrow() == DimensionTypes.THE_NETHER) {
-            layers.add(70); // Mid outcrops
-            layers.add(40); // Lava Shores
+            softAdd(dimension, layers, 70); // Mid outcrops
+            softAdd(dimension, layers, 40); // Lava Shores
         }
         layers.add(dimension.minY()); // End Layers at Min Y
         layers.sort(Comparator.<Integer>comparingInt(i -> i).reversed());
