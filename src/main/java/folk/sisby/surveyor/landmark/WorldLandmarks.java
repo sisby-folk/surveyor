@@ -10,6 +10,7 @@ import folk.sisby.surveyor.config.NetworkMode;
 import folk.sisby.surveyor.config.SystemMode;
 import folk.sisby.surveyor.packet.SyncLandmarksAddedPacket;
 import folk.sisby.surveyor.packet.SyncLandmarksRemovedPacket;
+import folk.sisby.surveyor.util.MapUtil;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.registry.RegistryKey;
@@ -70,97 +71,103 @@ public class WorldLandmarks {
         return outMap;
     }
 
-    public void handleChanged(World world, Multimap<LandmarkType<?>, BlockPos> changed, boolean local, @Nullable ServerPlayerEntity sender) {
-        Multimap<LandmarkType<?>, BlockPos> landmarksAddedChanged = HashMultimap.create();
-        Multimap<LandmarkType<?>, BlockPos> landmarksRemoved = HashMultimap.create();
-        changed.forEach((type, pos) -> {
+    public void handleChanged(World world, Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> changed, boolean local, @Nullable ServerPlayerEntity sender) {
+        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarksAddedChanged = new HashMap<>();
+        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarksRemoved = new HashMap<>();
+        changed.forEach((type, map) -> map.forEach((pos, mark) -> {
             if (contains(type, pos)) {
-                landmarksAddedChanged.put(type, pos);
+                landmarksAddedChanged.computeIfAbsent(type, t -> new HashMap<>()).put(pos, mark);
             } else {
-                landmarksRemoved.put(type, pos);
+                landmarksRemoved.computeIfAbsent(type, t -> new HashMap<>()).put(pos, mark);
             }
-        });
-        if (!landmarksRemoved.isEmpty()) SurveyorEvents.Invoke.landmarksRemoved(world, landmarksRemoved);
-        if (!landmarksAddedChanged.isEmpty()) SurveyorEvents.Invoke.landmarksAdded(world, landmarksAddedChanged);
+        }));
+        if (!landmarksRemoved.isEmpty()) SurveyorEvents.Invoke.landmarksRemoved(world, MapUtil.keyMultiMap(landmarksRemoved));
+        if (!landmarksAddedChanged.isEmpty()) SurveyorEvents.Invoke.landmarksAdded(world, MapUtil.keyMultiMap(landmarksAddedChanged));
         if (!local) {
-            Multimap<LandmarkType<?>, BlockPos> waypointsRemoved = HashMultimap.create();
-            Multimap<LandmarkType<?>, BlockPos> waypointsAddedChanged = HashMultimap.create();
-            landmarksRemoved.forEach((type, pos) -> {
-                if (get(type, pos).owner() != null) waypointsRemoved.put(type, pos);
-            });
-            waypointsRemoved.forEach(landmarksRemoved::remove);
-            landmarksAddedChanged.forEach((type, pos) -> {
-                if (get(type, pos).owner() != null) waypointsAddedChanged.put(type, pos);
-            });
-            waypointsAddedChanged.forEach(landmarksAddedChanged::remove);
+            Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> waypointsRemoved = new HashMap<>();
+            Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> waypointsAddedChanged = new HashMap<>();
+            landmarksRemoved.forEach((type, map) -> map.forEach((pos, mark) -> {
+                if (mark.owner() != null) waypointsRemoved.computeIfAbsent(type, t -> new HashMap<>()).put(pos, mark);
+            }));
+            waypointsRemoved.forEach((type, map) -> map.forEach((pos, mark) -> {
+                landmarksRemoved.get(type).remove(pos);
+                if (landmarksRemoved.get(type).isEmpty()) landmarksRemoved.remove(type);
+            }));
+            landmarksAddedChanged.forEach((type, map) -> map.forEach((pos, mark) -> {
+                if (get(type, pos).owner() != null) waypointsAddedChanged.computeIfAbsent(type, t -> new HashMap<>()).put(pos, mark);
+            }));
+            waypointsAddedChanged.forEach((type, map) -> map.forEach((pos, mark) -> {
+                landmarksAddedChanged.get(type).remove(pos);
+                if (landmarksAddedChanged.get(type).isEmpty()) landmarksAddedChanged.remove(type);
+            }));
 
-            if (!landmarksRemoved.isEmpty()) new SyncLandmarksRemovedPacket(landmarksRemoved).send(sender, world, Surveyor.CONFIG.networking.landmarks);
-            if (!landmarksAddedChanged.isEmpty()) SyncLandmarksAddedPacket.of(landmarksAddedChanged, this).send(sender, world, Surveyor.CONFIG.networking.landmarks);
-            if (!waypointsRemoved.isEmpty()) new SyncLandmarksRemovedPacket(waypointsRemoved).send(sender, world, Surveyor.CONFIG.networking.waypoints);
-            if (!waypointsAddedChanged.isEmpty()) SyncLandmarksAddedPacket.of(waypointsAddedChanged, this).send(sender, world, Surveyor.CONFIG.networking.waypoints);
+            if (!landmarksRemoved.isEmpty()) new SyncLandmarksRemovedPacket(MapUtil.keyMultiMap(landmarksRemoved)).send(sender, world, Surveyor.CONFIG.networking.landmarks);
+            if (!landmarksAddedChanged.isEmpty()) new SyncLandmarksAddedPacket(landmarksAddedChanged).send(sender, world, Surveyor.CONFIG.networking.landmarks);
+            if (!waypointsRemoved.isEmpty()) new SyncLandmarksRemovedPacket(MapUtil.keyMultiMap(waypointsRemoved)).send(sender, world, Surveyor.CONFIG.networking.waypoints);
+            if (!waypointsAddedChanged.isEmpty()) new SyncLandmarksAddedPacket(waypointsAddedChanged).send(sender, world, Surveyor.CONFIG.networking.waypoints);
         }
     }
 
-    public Multimap<LandmarkType<?>, BlockPos> putForBatch(Multimap<LandmarkType<?>, BlockPos> changed, Landmark<?> landmark) {
+    public Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> putForBatch(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> changed, Landmark<?> landmark) {
         if (Surveyor.CONFIG.landmarks == SystemMode.FROZEN) return changed;
         landmarks.computeIfAbsent(landmark.type(), t -> new ConcurrentHashMap<>()).put(landmark.pos(), landmark);
         dirty();
-        changed.put(landmark.type(), landmark.pos());
+        changed.computeIfAbsent(landmark.type(), t -> new HashMap<>()).put(landmark.pos(), landmark);
         return changed;
     }
 
     public void putLocal(World world, Landmark<?> landmark) {
         if (Surveyor.CONFIG.landmarks == SystemMode.FROZEN) return;
-        Multimap<LandmarkType<?>, BlockPos> changed = landmark.put(HashMultimap.create(), world, this);
+        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> changed = landmark.put(new HashMap<>(), world, this);
         handleChanged(world, changed, true, null);
     }
 
     public void put(World world, Landmark<?> landmark) {
         if (Surveyor.CONFIG.landmarks == SystemMode.FROZEN) return;
-        Multimap<LandmarkType<?>, BlockPos> changed = landmark.put(HashMultimap.create(), world, this);
+        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> changed = landmark.put(new HashMap<>(), world, this);
         handleChanged(world, changed, false, null);
     }
 
     public void put(ServerPlayerEntity sender, ServerWorld world, Landmark<?> landmark) {
         if (Surveyor.CONFIG.landmarks == SystemMode.FROZEN) return;
-        Multimap<LandmarkType<?>, BlockPos> changed = landmark.put(HashMultimap.create(), world, this);
+        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> changed = landmark.put(new HashMap<>(), world, this);
         handleChanged(world, changed, false, sender);
     }
 
-    public Multimap<LandmarkType<?>, BlockPos> removeForBatch(Multimap<LandmarkType<?>, BlockPos> changed, LandmarkType<?> type, BlockPos pos) {
+    public Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> removeForBatch(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> changed, LandmarkType<?> type, BlockPos pos) {
         if (Surveyor.CONFIG.landmarks == SystemMode.FROZEN) return changed;
         if (!landmarks.containsKey(type) || !landmarks.get(type).containsKey(pos)) return changed;
-        landmarks.get(type).remove(pos);
+        Landmark<?> landmark = landmarks.get(type).remove(pos);
         if (landmarks.get(type).isEmpty()) landmarks.remove(type);
         dirty();
-        changed.put(type, pos);
+        changed.computeIfAbsent(type, t -> new HashMap<>()).put(pos, landmark);
         return changed;
     }
 
     public void removeLocal(World world, LandmarkType<?> type, BlockPos pos) {
         if (Surveyor.CONFIG.landmarks == SystemMode.FROZEN) return;
         if (!landmarks.containsKey(type) || !landmarks.get(type).containsKey(pos)) return;
-        Multimap<LandmarkType<?>, BlockPos> changed = landmarks.get(type).get(pos).remove(HashMultimap.create(), world, this);
+        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> changed = landmarks.get(type).get(pos).remove(new HashMap<>(), world, this);
         handleChanged(world, changed, true, null);
     }
 
     public void remove(World world, LandmarkType<?> type, BlockPos pos) {
         if (Surveyor.CONFIG.landmarks == SystemMode.FROZEN) return;
         if (!landmarks.containsKey(type) || !landmarks.get(type).containsKey(pos)) return;
-        Multimap<LandmarkType<?>, BlockPos> changed = landmarks.get(type).get(pos).remove(HashMultimap.create(), world, this);
+        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> changed = landmarks.get(type).get(pos).remove(new HashMap<>(), world, this);
         handleChanged(world, changed, false, null);
     }
 
     public void remove(ServerPlayerEntity sender, ServerWorld world, LandmarkType<?> type, BlockPos pos) {
         if (Surveyor.CONFIG.landmarks == SystemMode.FROZEN) return;
         if (!landmarks.containsKey(type) || !landmarks.get(type).containsKey(pos)) return;
-        Multimap<LandmarkType<?>, BlockPos> changed = landmarks.get(type).get(pos).remove(HashMultimap.create(), world, this);
+        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> changed = landmarks.get(type).get(pos).remove(new HashMap<>(), world, this);
         handleChanged(world, changed, false, sender);
     }
 
     public void removeAll(World world, Class<?> clazz, BlockPos pos) {
         if (Surveyor.CONFIG.landmarks == SystemMode.FROZEN) return;
-        Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
+        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> changed = new HashMap<>();
         landmarks.forEach((type, map) -> {
             if (map.containsKey(pos)) {
                 Landmark<?> landmark = map.get(pos);
@@ -211,7 +218,7 @@ public class WorldLandmarks {
     }
 
     public void readUpdatePacket(World world, SyncLandmarksAddedPacket packet, @Nullable ServerPlayerEntity sender) {
-        Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
+        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> changed = new HashMap<>();
         packet.landmarks().forEach((type, map) -> map.forEach((pos, landmark) -> {
             boolean waypoint = get(type, pos).owner() != null;
             boolean owned = sender == null || Surveyor.getUuid(sender).equals(get(type, pos).owner());
@@ -223,7 +230,7 @@ public class WorldLandmarks {
     }
 
     public void readUpdatePacket(World world, SyncLandmarksRemovedPacket packet, @Nullable ServerPlayerEntity sender) {
-        Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
+        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> changed = new HashMap<>();
         packet.landmarks().forEach((type, pos) -> {
             boolean waypoint = get(type, pos).owner() != null;
             boolean owned = sender == null || Surveyor.getUuid(sender).equals(get(type, pos).owner());
