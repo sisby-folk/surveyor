@@ -1,6 +1,5 @@
 package folk.sisby.surveyor.landmark;
 
-import com.google.common.collect.Multimap;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -9,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 public interface HasAxisBlockBoxMergeable extends HasAxis, HasBlockBox {
-    private static Multimap<LandmarkType<?>, BlockPos> tryMergeOnce(Multimap<LandmarkType<?>, BlockPos> changed, World world, WorldLandmarks landmarks) {
+    private static Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> tryMergeOnce(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> changed, World world, WorldLandmarks landmarks) {
         Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> mergeableLandmarks = landmarks.asMap(null);
 
         for (Map<BlockPos, Landmark<?>> posMap : mergeableLandmarks.values()) {
@@ -34,13 +33,13 @@ public interface HasAxisBlockBoxMergeable extends HasAxis, HasBlockBox {
         return changed;
     }
 
-    default Multimap<LandmarkType<?>, BlockPos> tryMerge(Multimap<LandmarkType<?>, BlockPos> changed, World world, WorldLandmarks landmarks) {
+    default Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> tryMerge(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> changed, World world, WorldLandmarks landmarks) {
         int oldSize;
         int newSize;
         do {
-            oldSize = changed.size();
+            oldSize = changed.values().stream().mapToInt(Map::size).sum();
             tryMergeOnce(changed, world, landmarks);
-            newSize = changed.size();
+            newSize = changed.values().stream().mapToInt(Map::size).sum();
         } while (newSize > oldSize);
         return changed;
     }

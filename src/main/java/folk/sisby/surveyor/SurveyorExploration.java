@@ -129,7 +129,7 @@ public interface SurveyorExploration {
     default Multimap<LandmarkType<?>, BlockPos> limitLandmarkKeySet(RegistryKey<World> worldKey, WorldLandmarks worldLandmarks, Multimap<LandmarkType<?>, BlockPos> keySet) {
         Multimap<LandmarkType<?>, BlockPos> toRemove = HashMultimap.create();
         keySet.forEach((type, pos) -> {
-            if (!exploredLandmark(worldKey, worldLandmarks.get(type, pos))) toRemove.put(type, pos);
+            if (!worldLandmarks.contains(type, pos) || !exploredLandmark(worldKey, worldLandmarks.get(type, pos))) toRemove.put(type, pos);
         });
         toRemove.forEach(keySet::remove);
         return keySet;
@@ -141,9 +141,9 @@ public interface SurveyorExploration {
         Multimap<LandmarkType<?>, BlockPos> landmarkKeys = HashMultimap.create();
         WorldLandmarks summary = WorldSummary.of(world).landmarks();
         if (summary == null) return;
-        summary.keySet(this).forEach((type, pos) -> {
-            if (terrainKeys.contains(new ChunkPos(pos)) && summary.get(type, pos).owner() == null) landmarkKeys.put(type, pos);
-        });
+        summary.asMap(this).forEach((type, map) -> map.forEach((pos, mark) -> {
+            if (terrainKeys.contains(new ChunkPos(pos)) && mark.owner() == null) landmarkKeys.put(type, pos);
+        }));
         SurveyorClientEvents.Invoke.landmarksAdded(world, landmarkKeys);
     }
 
@@ -172,9 +172,9 @@ public interface SurveyorExploration {
         Multimap<LandmarkType<?>, BlockPos> landmarkKeys = HashMultimap.create();
         WorldLandmarks summary = WorldSummary.of(world).landmarks();
         if (summary == null) return;
-        summary.keySet(this).forEach((type, pos) -> {
-            if (chunkPos.equals(new ChunkPos(pos)) && summary.get(type, pos).owner() == null) landmarkKeys.put(type, pos);
-        });
+        summary.asMap(this).forEach((type, map) -> map.forEach((pos, mark) -> {
+            if (chunkPos.equals(new ChunkPos(pos)) && mark.owner() == null) landmarkKeys.put(type, pos);
+        }));
         SurveyorClientEvents.Invoke.landmarksAdded(world, landmarkKeys);
     }
 

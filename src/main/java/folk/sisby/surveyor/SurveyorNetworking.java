@@ -3,6 +3,7 @@ package folk.sisby.surveyor;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import folk.sisby.surveyor.config.NetworkMode;
+import folk.sisby.surveyor.landmark.Landmark;
 import folk.sisby.surveyor.landmark.LandmarkType;
 import folk.sisby.surveyor.packet.C2SKnownLandmarksPacket;
 import folk.sisby.surveyor.packet.C2SKnownStructuresPacket;
@@ -24,6 +25,7 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.gen.structure.Structure;
 
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -99,7 +101,7 @@ public class SurveyorNetworking {
 
     private static void handleLandmarksRemoved(ServerPlayerEntity player, ServerWorld world, WorldSummary summary, SyncLandmarksRemovedPacket packet) {
         if (summary.landmarks() == null) return;
-        Multimap<LandmarkType<?>, BlockPos> changed = HashMultimap.create();
+        Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> changed = new HashMap<>();
         packet.landmarks().forEach((type, pos) -> {
             if (summary.landmarks().contains(type, pos) && Surveyor.getUuid(player).equals(summary.landmarks().get(type, pos).owner())) summary.landmarks().removeForBatch(changed, type, pos);
         });
