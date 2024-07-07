@@ -1,6 +1,7 @@
 package folk.sisby.surveyor.client;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.mojang.authlib.GameProfile;
 import folk.sisby.surveyor.PlayerSummary;
 import folk.sisby.surveyor.ServerSummary;
@@ -129,7 +130,7 @@ public class SurveyorClient implements ClientModInitializer {
         return integratedServer.getWorld(worldKey);
     }
 
-    private static final Set<WorldChunk> LOADING_CHUNKS = new HashSet<>();
+    private static final Multimap<RegistryKey<World>, WorldChunk> LOADING_CHUNKS = HashMultimap.create();
 
     @Override
     public void onInitializeClient() {
@@ -141,7 +142,7 @@ public class SurveyorClient implements ClientModInitializer {
         }));
         ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
             if (WorldSummary.of(world).isClient()) {
-                LOADING_CHUNKS.add(chunk);
+                LOADING_CHUNKS.put(world.getRegistryKey(), chunk);
             }
         });
         ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
@@ -149,10 +150,10 @@ public class SurveyorClient implements ClientModInitializer {
         });
         ClientTickEvents.END_WORLD_TICK.register((world -> {
             if (MinecraftClient.getInstance().worldRenderer.getCompletedChunkCount() <= 10 || !MinecraftClient.getInstance().worldRenderer.isTerrainRenderComplete()) return;
-            for (WorldChunk chunk : new HashSet<>(LOADING_CHUNKS)) {
+            for (WorldChunk chunk : new HashSet<>(LOADING_CHUNKS.get(world.getRegistryKey()))) {
                 WorldTerrainSummary.onChunkLoad(world, chunk);
                 ClientExploration.INSTANCE.addChunk(world.getRegistryKey(), chunk.getPos());
-                LOADING_CHUNKS.remove(chunk);
+                LOADING_CHUNKS.remove(world.getRegistryKey(), chunk);
             }
         }));
         ClientTickEvents.END_WORLD_TICK.register((world -> {
