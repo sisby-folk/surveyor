@@ -141,7 +141,7 @@ public final class ServerSummary {
     }
 
     public PlayerSummary getPlayer(UUID uuid, MinecraftServer server) {
-        ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
+        ServerPlayerEntity player = Surveyor.getPlayer(server, uuid);
         if (player != null) {
             return PlayerSummary.of(player);
         } else {
@@ -207,7 +207,7 @@ public final class ServerSummary {
         }
         shareGroups.put(player, new HashSet<>());
         getGroup(player).add(player);
-        ServerPlayerEntity serverPlayer = server.getPlayerManager().getPlayer(player);
+        ServerPlayerEntity serverPlayer = Surveyor.getPlayer(server, player);
         if (serverPlayer != null) new S2CGroupChangedPacket(getGroupSummaries(player, server), new HashMap<>(), new HashMap<>()).send(serverPlayer);
         dirty();
     }
@@ -225,7 +225,7 @@ public final class ServerSummary {
     }
 
     public Set<ServerPlayerEntity> groupServerPlayers(UUID player, MinecraftServer server) {
-        return getGroup(player).stream().map(server.getPlayerManager()::getPlayer).filter(Objects::nonNull).collect(Collectors.toSet());
+        return getGroup(player).stream().map(uuid -> Surveyor.getPlayer(server, player)).filter(Objects::nonNull).collect(Collectors.toSet());
     }
 
     public Set<ServerPlayerEntity> groupOtherServerPlayers(UUID player, MinecraftServer server) {
