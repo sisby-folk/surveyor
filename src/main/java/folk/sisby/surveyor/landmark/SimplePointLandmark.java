@@ -9,17 +9,22 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Uuids;
 import net.minecraft.util.math.BlockPos;
 
+import java.util.Optional;
 import java.util.UUID;
 
-public record SimplePointLandmark(BlockPos pos, UUID owner, DyeColor color, Text name, Identifier texture) implements Landmark<SimplePointLandmark> {
+public record SimplePointLandmark(BlockPos pos, Optional<UUID> optionalOwner, Optional<DyeColor> optionalColor, Optional<Text> optionalName, Optional<Identifier> optionalTexture) implements VariableLandmark<SimplePointLandmark> {
+    public SimplePointLandmark(BlockPos pos, UUID owner, DyeColor color, Text name, Identifier texture) {
+        this(pos, Optional.ofNullable(owner), Optional.ofNullable(color), Optional.ofNullable(name), Optional.ofNullable(texture));
+    }
+
     public static final LandmarkType<SimplePointLandmark> TYPE = new SimpleLandmarkType<>(
             Identifier.of(Surveyor.ID, "point"),
-            pos -> RecordCodecBuilder.create(instance -> instance.group(
-                    Uuids.CODEC.fieldOf("owner").orElse(null).forGetter(Landmark::owner),
-                    DyeColor.CODEC.fieldOf("color").orElse(null).forGetter(Landmark::color),
-                    TextCodecs.CODEC.fieldOf("name").orElse(null).forGetter(Landmark::name),
-                    Identifier.CODEC.fieldOf("texture").orElse(null).forGetter(Landmark::texture)
-            ).apply(instance, (owner, color, name, texture) -> new SimplePointLandmark(pos, owner, color, name, texture)))
+        pos -> RecordCodecBuilder.create(instance -> instance.group(
+            Uuids.CODEC.optionalFieldOf("owner").forGetter(VariableLandmark::optionalOwner),
+            DyeColor.CODEC.optionalFieldOf("color").orElse(null).forGetter(VariableLandmark::optionalColor),
+            TextCodecs.CODEC.optionalFieldOf("name").orElse(null).forGetter(VariableLandmark::optionalName),
+            Identifier.CODEC.optionalFieldOf("texture").orElse(null).forGetter(VariableLandmark::optionalTexture)
+        ).apply(instance, (owner, color, name, texture) -> new SimplePointLandmark(pos, owner, color, name, texture)))
     );
 
     @Override

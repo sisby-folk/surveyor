@@ -244,7 +244,7 @@ public class SurveyorCommands {
                 Text.literal("[").formatted(Formatting.AQUA)
                     .append(Text.literal(landmark.pos().toShortString()).formatted(Formatting.WHITE))
                     .append(Text.literal("]").formatted(Formatting.AQUA))
-                    .append(Text.literal(" - ").formatted(Formatting.LIGHT_PURPLE))
+                    .append(Text.literal(" - ").formatted(landmark.owner() != null ? Formatting.GREEN : Formatting.RED))
                     .append(Text.literal("\"").formatted(Formatting.GOLD))
                     .append(landmark.name() == null ? Text.of("") : landmark.name().copy().styled(s -> s.withColor(landmark.color() != null ? landmark.color().getFireworkColor() : Formatting.WHITE.getColorValue())))
                     .append(Text.literal("\"").formatted(Formatting.GOLD))
