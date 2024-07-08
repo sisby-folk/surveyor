@@ -28,6 +28,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -242,12 +243,11 @@ public class SurveyorCommands {
             feedback.accept(
                 Text.literal("[").formatted(Formatting.AQUA)
                     .append(Text.literal(landmark.pos().toShortString()).formatted(Formatting.WHITE))
-                    .append(Text.literal("]")).formatted(Formatting.AQUA)
-                    .append(Text.literal(" - ")).formatted(Formatting.LIGHT_PURPLE)
-                    .append(Text.literal("\"")).formatted(Formatting.GOLD)
-                    .append(landmark.name()).formatted(Formatting.WHITE)
-                    .append(Text.literal("\"")).formatted(Formatting.GOLD)
-
+                    .append(Text.literal("]").formatted(Formatting.AQUA))
+                    .append(Text.literal(" - ").formatted(Formatting.LIGHT_PURPLE))
+                    .append(Text.literal("\"").formatted(Formatting.GOLD))
+                    .append(landmark.name() == null ? Text.of("") : landmark.name().copy().styled(s -> s.withColor(landmark.color() != null ? landmark.color().getFireworkColor() : Formatting.WHITE.getColorValue())))
+                    .append(Text.literal("\"").formatted(Formatting.GOLD))
             );
         }
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("---End %s Landmarks---".formatted(type)).formatted(Formatting.GRAY)));
@@ -273,7 +273,7 @@ public class SurveyorCommands {
         return 1;
     }
 
-    private static int addLandmark(WorldSummary summary, ServerPlayerEntity player, ServerWorld world, Consumer<Text> feedback, Identifier type, BlockPos pos, String name, boolean global) {
+    private static int addLandmark(WorldSummary summary, ServerPlayerEntity player, ServerWorld world, Consumer<Text> feedback, Identifier type, BlockPos pos, DyeColor color, String name, boolean global) {
         if (summary.landmarks() == null) {
             feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("The landmark system is dynamically disabled!").formatted(Formatting.YELLOW)));
             return 0;
@@ -290,7 +290,7 @@ public class SurveyorCommands {
             feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("A landmark exists of that type and position!").formatted(Formatting.YELLOW)));
             return 0;
         }
-        summary.landmarks().put(world, new SimplePointLandmark(pos, global ? null : Surveyor.getUuid(player), DyeColor.WHITE, Text.of(name), Identifier.tryParse("")));
+        summary.landmarks().put(world, new SimplePointLandmark(pos, global ? null : Surveyor.getUuid(player), color, Text.of(name), Identifier.tryParse("")));
         feedback.accept(Text.literal("[Surveyor] ").formatted(Formatting.DARK_RED).append(Text.literal("%s added successfully!".formatted(global ? "Landmark" : "Waypoint")).formatted(Formatting.GREEN)));
         return 1;
     }
@@ -357,19 +357,25 @@ public class SurveyorCommands {
                         .then(CommandManager.argument("type", IdentifierArgumentType.identifier())
                             .suggests((c, b) -> CommandSource.suggestIdentifiers(List.of(SimplePointLandmark.TYPE.id()), b))
                             .then(CommandManager.argument("pos", BlockPosArgumentType.blockPos())
-                                .then(CommandManager.argument("name", StringArgumentType.greedyString())
-                                    .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.addLandmark(w, p, sw, f, c.getArgument("type", Identifier.class), c.getArgument("pos", DefaultPosArgument.class).toAbsoluteBlockPos(c.getSource()), c.getArgument("name", String.class), false)))
+                                .then(CommandManager.argument("color", StringArgumentType.word())
+                                    .suggests((c, b) -> CommandSource.suggestMatching(Arrays.stream(DyeColor.values()).map(DyeColor::getName), b))
+                                    .then(CommandManager.argument("name", StringArgumentType.greedyString())
+                                        .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.addLandmark(w, p, sw, f, c.getArgument("type", Identifier.class), c.getArgument("pos", DefaultPosArgument.class).toAbsoluteBlockPos(c.getSource()), DyeColor.byName(c.getArgument("color", String.class), DyeColor.WHITE), c.getArgument("name", String.class), false)))
+                                    )
                                 )
                             )
                         )
                     ).then(CommandManager.literal("global")
                         .requires(c -> Surveyor.CONFIG.landmarks != SystemMode.FROZEN)
-                            .requires(c -> c.getPlayer() == null || c.getPlayer().hasPermissionLevel(2))
+                        .requires(c -> c.getPlayer() == null || c.getPlayer().hasPermissionLevel(2))
                         .then(CommandManager.argument("type", IdentifierArgumentType.identifier())
                             .suggests((c, b) -> CommandSource.suggestIdentifiers(List.of(SimplePointLandmark.TYPE.id()), b))
                             .then(CommandManager.argument("pos", BlockPosArgumentType.blockPos())
-                                .then(CommandManager.argument("name", StringArgumentType.greedyString())
-                                    .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.addLandmark(w, p, sw, f, c.getArgument("type", Identifier.class), c.getArgument("pos", DefaultPosArgument.class).toAbsoluteBlockPos(c.getSource()), c.getArgument("name", String.class), true)))
+                                .then(CommandManager.argument("color", StringArgumentType.word())
+                                    .suggests((c, b) -> CommandSource.suggestMatching(Arrays.stream(DyeColor.values()).map(DyeColor::getName), b))
+                                    .then(CommandManager.argument("name", StringArgumentType.greedyString())
+                                        .executes(c -> execute(c, (s, w, p, sw, e, f) -> SurveyorCommands.addLandmark(w, p, sw, f, c.getArgument("type", Identifier.class), c.getArgument("pos", DefaultPosArgument.class).toAbsoluteBlockPos(c.getSource()), DyeColor.byName(c.getArgument("color", String.class), DyeColor.WHITE), c.getArgument("name", String.class), true)))
+                                    )
                                 )
                             )
                         )
