@@ -87,6 +87,10 @@ public class Surveyor implements ModInitializer {
         return player.getServer() != null && player.getServer().isHost(player.getGameProfile()) ? ServerSummary.HOST : player.getUuid();
     }
 
+    public static ServerPlayerEntity getPlayer(MinecraftServer server, UUID uuid) {
+        return server.getPlayerManager().getPlayer(uuid == ServerSummary.HOST && server.getHostProfile() != null ? server.getHostProfile().getId() : uuid);
+    }
+
     @Override
     public void onInitialize() {
         SurveyorNetworking.init();
