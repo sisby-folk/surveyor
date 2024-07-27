@@ -72,7 +72,7 @@ public final class ServerSummary {
     public static ServerSummary load(MinecraftServer server) {
         Map<UUID, Set<UUID>> shareGroups = Surveyor.CONFIG.networking.globalSharing ? null : loadShareGroups(server);
 
-        File playerFolder = server.getSavePath(WorldSavePath.ROOT).resolve("playerdata").toFile();
+        File playerFolder = server.getSavePath(WorldSavePath.PLAYERDATA).toFile();
 
         Map<UUID, PlayerSummary> offlineSummaries = new ConcurrentHashMap<>();
 
@@ -92,9 +92,8 @@ public final class ServerSummary {
                 continue;
             }
             if (shareGroups != null && !shareGroups.containsKey(uuid)) continue;
-            File playerFile = playerFolder.toPath().resolve(uuid + ".dat").toFile();
             try {
-                NbtCompound playerNbt = NbtIo.readCompressed(playerFile.toPath(), NbtSizeTracker.ofUnlimitedBytes());
+                NbtCompound playerNbt = NbtIo.readCompressed(file.toPath(), NbtSizeTracker.ofUnlimitedBytes());
                 offlineSummaries.put(uuid, new PlayerSummary.OfflinePlayerSummary(uuid, playerNbt, false));
             } catch (IOException e) {
                 Surveyor.LOGGER.error("[Surveyor] Error loading offline player data for {}!", uuid, e);
@@ -157,11 +156,8 @@ public final class ServerSummary {
     public void updatePlayer(UUID uuid, NbtCompound nbt, boolean online, MinecraftServer server) {
         PlayerSummary newSummary = new PlayerSummary.OfflinePlayerSummary(uuid, nbt, online);
         offlineSummaries.put(uuid, newSummary);
-        if (!online) {
-            for (ServerPlayerEntity friend : groupOtherServerPlayers(uuid, server)) {
-                if (!friend.getWorld().getRegistryKey().equals(newSummary.dimension())) continue;
-                S2CGroupUpdatedPacket.of(uuid, newSummary).send(friend);
-            }
+        for (ServerPlayerEntity friend : groupOtherServerPlayers(uuid, server)) {
+            S2CGroupUpdatedPacket.of(uuid, newSummary).send(friend);
         }
     }
 

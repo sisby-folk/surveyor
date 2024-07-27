@@ -16,6 +16,7 @@ import folk.sisby.surveyor.packet.C2SKnownTerrainPacket;
 import folk.sisby.surveyor.terrain.WorldTerrainSummary;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -134,6 +135,7 @@ public class SurveyorClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         SurveyorClientNetworking.init();
+        ClientCommandRegistrationCallback.EVENT.register(SurveyorClientCommands::registerCommands);
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(ClientExploration::onLoad));
         ClientPlayConnectionEvents.DISCONNECT.register(((handler, client) -> {
             LOADING_CHUNKS.clear();
