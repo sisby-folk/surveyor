@@ -41,9 +41,7 @@ public class MixinServerPlayerEntity implements SurveyorPlayer {
 
     @Inject(method = "readCustomDataFromNbt", at = @At("TAIL"))
     public void readSurveyorData(NbtCompound nbt, CallbackInfo ci) {
-        ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
         surveyor$summary.read(nbt);
-        ServerSummary.of(self.getServer()).updatePlayer(Surveyor.getUuid(self), nbt, true, self.getServer());
     }
 
     @Inject(method = "onDeath", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/damage/DamageTracker;update()V"))
