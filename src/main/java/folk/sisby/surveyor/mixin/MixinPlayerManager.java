@@ -15,7 +15,7 @@ import java.util.Optional;
 @Mixin(PlayerManager.class)
 public class MixinPlayerManager {
     @Inject(method = "loadPlayerData", at = @At("RETURN"))
-    public void loadPlayerSummary(ServerPlayerEntity player, CallbackInfoReturnable<NbtCompound> cir) {
-        ServerSummary.of(player.getServer()).updatePlayer(Surveyor.getUuid(player), Optional.ofNullable(cir.getReturnValue()).orElse(new NbtCompound()), true, player.getServer());
+    public void loadPlayerSummary(ServerPlayerEntity player, CallbackInfoReturnable<Optional<NbtCompound>> cir) {
+        ServerSummary.of(player.getServer()).updatePlayer(Surveyor.getUuid(player), cir.getReturnValue().orElse(new NbtCompound()), true, player.getServer());
     }
 }
