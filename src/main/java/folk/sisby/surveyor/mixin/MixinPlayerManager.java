@@ -10,10 +10,12 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.Optional;
+
 @Mixin(PlayerManager.class)
 public class MixinPlayerManager {
     @Inject(method = "loadPlayerData", at = @At("RETURN"))
     public void loadPlayerSummary(ServerPlayerEntity player, CallbackInfoReturnable<NbtCompound> cir) {
-        ServerSummary.of(player.getServer()).updatePlayer(Surveyor.getUuid(player), cir.getReturnValue(), true, player.getServer());
+        ServerSummary.of(player.getServer()).updatePlayer(Surveyor.getUuid(player), Optional.ofNullable(cir.getReturnValue()).orElse(new NbtCompound()), true, player.getServer());
     }
 }
