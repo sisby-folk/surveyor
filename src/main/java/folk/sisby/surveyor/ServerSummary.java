@@ -230,6 +230,7 @@ public final class ServerSummary {
 
     public static void onPlayerJoin(ServerPlayNetworkHandler handler, PacketSender sender, MinecraftServer server) {
         ServerSummary serverSummary = ServerSummary.of(server);
+        serverSummary.updatePlayer(Surveyor.getUuid(handler.getPlayer()), handler.getPlayer().writeNbt(new NbtCompound()), true, server);
         if (serverSummary.groupSize(Surveyor.getUuid(handler.player)) > 1) {
             SurveyorExploration groupExploration = serverSummary.groupExploration(Surveyor.getUuid(handler.player), server);
             new S2CGroupChangedPacket(serverSummary.getGroupSummaries(Surveyor.getUuid(handler.player), server), groupExploration.terrain().getOrDefault(handler.player.getWorld().getRegistryKey(), new HashMap<>()), groupExploration.structures().getOrDefault(handler.player.getWorld().getRegistryKey(), new HashMap<>())).send(handler.getPlayer());
