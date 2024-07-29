@@ -229,7 +229,6 @@ public interface PlayerSummary {
             @Override
             public void addChunk(RegistryKey<World> worldKey, ChunkPos pos) {
                 SurveyorExploration.super.addChunk(worldKey, pos);
-                if (Surveyor.CONFIG.networking.terrain.atMost(NetworkMode.NONE)) return;
                 if (player.getServer().isHost(player.getGameProfile())) updateClientForAddChunk(player.getServerWorld(), pos);
                 if (Surveyor.CONFIG.networking.terrain.atMost(NetworkMode.SOLO)) return;
                 for (ServerPlayerEntity friend : ServerSummary.of(player.getServer()).groupOtherServerPlayers(Surveyor.getUuid(player), player.getServer())) {
