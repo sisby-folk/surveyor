@@ -229,10 +229,17 @@ public final class ServerSummary {
 
     public static void onPlayerJoin(ServerPlayNetworkHandler handler, PacketSender sender, MinecraftServer server) {
         ServerSummary serverSummary = ServerSummary.of(server);
-        serverSummary.updatePlayer(Surveyor.getUuid(handler.getPlayer()), handler.getPlayer().writeNbt(new NbtCompound()), true, server);
-        if (serverSummary.groupSize(Surveyor.getUuid(handler.player)) > 1) {
-            SurveyorExploration groupExploration = serverSummary.groupExploration(Surveyor.getUuid(handler.player), server);
-            new S2CGroupChangedPacket(serverSummary.getGroupSummaries(Surveyor.getUuid(handler.player), server), groupExploration.terrain().getOrDefault(handler.player.getWorld().getRegistryKey(), new HashMap<>()), groupExploration.structures().getOrDefault(handler.player.getWorld().getRegistryKey(), new HashMap<>())).send(handler.getPlayer());
+        UUID uuid = Surveyor.getUuid(handler.player);
+        boolean known = serverSummary.offlineSummaries.containsKey(uuid);
+        serverSummary.updatePlayer(uuid, handler.player.writeNbt(new NbtCompound()), true, server);
+        if (serverSummary.groupSize(uuid) > 1) {
+            SurveyorExploration groupExploration = serverSummary.groupExploration(uuid, server);
+            new S2CGroupChangedPacket(serverSummary.getGroupSummaries(uuid, server), groupExploration.terrain().getOrDefault(handler.player.getWorld().getRegistryKey(), new HashMap<>()), groupExploration.structures().getOrDefault(handler.player.getWorld().getRegistryKey(), new HashMap<>())).send(handler.player);
+            if (!known && Surveyor.CONFIG.networking.globalSharing) {
+                for (ServerPlayerEntity friend : serverSummary.groupOtherServerPlayers(uuid, server)) {
+                    new S2CGroupChangedPacket(serverSummary.getGroupSummaries(uuid, server), groupExploration.terrain().getOrDefault(friend.getWorld().getRegistryKey(), new HashMap<>()), groupExploration.structures().getOrDefault(friend.getWorld().getRegistryKey(), new HashMap<>())).send(friend);
+                }
+            }
         }
     }
 
