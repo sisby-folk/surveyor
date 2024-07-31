@@ -12,8 +12,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientConnectionState;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.network.ServerInfo;
-import net.minecraft.client.util.telemetry.WorldSession;
 import net.minecraft.network.ClientConnection;
 import net.minecraft.network.packet.s2c.play.DeathMessageS2CPacket;
 import org.spongepowered.asm.mixin.Mixin;
@@ -50,7 +48,7 @@ public abstract class MixinClientPlayNetworkHandler implements SurveyorNetworkHa
             if (summary.landmarks() == null) return;
             summary.landmarks().put(
                 player.getWorld(),
-                new PlayerDeathLandmark(player.getBlockPos(), SurveyorClient.getClientUuid(), TextUtil.stripInteraction(packet.getMessage()), player.getWorld().getTimeOfDay(), player.getRandom().nextInt())
+                new PlayerDeathLandmark(player.getBlockPos(), SurveyorClient.getClientUuid(), TextUtil.stripInteraction(packet.message()), player.getWorld().getTimeOfDay(), player.getRandom().nextInt())
             );
         }
     }
