@@ -13,8 +13,7 @@
   "client": [
     "client.MixinClientPlayNetworkHandler",
     "client.MixinClientWorld",
-    "client.MixinMinecraftClient",
-    "client.MixinPlayerEntity"
+    "client.MixinMinecraftClient"
   ],
   "injectors": {
     "defaultRequire": 1
