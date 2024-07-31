@@ -36,7 +36,9 @@ public class MapUtil {
 
     public static <K, V> Map<K, V> splitByKeySet(Map<K, V> map, Collection<K> keySet) {
         Map<K, V> outMap = new HashMap<>();
-        keySet.forEach(k -> outMap.put(k, map.get(k)));
+        keySet.forEach(k -> {
+            if (map.containsKey(k)) outMap.put(k, map.get(k));
+        });
         return outMap;
     }
 }
