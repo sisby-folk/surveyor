@@ -22,9 +22,9 @@ Used in <a href="https://modrinth.com/mod/antique-atlas-4">Antique Atlas 4</a> a
 * `/surveyor unshare` - stop sharing map exploration (leave your "sharing group")
 * `/surveyor landmarks` - view a cross-world landmark breakdown by type.
 * `/surveyor landmarks get [type]` - lists each landmark of that type in the current world.
-* `/surveyor remove [type] [pos]` (op for unowned) removes a landmark from the world.
-* `/surveyor add [type] [pos] [name]` add an owned to the world at the specified position.
-* `/surveyor global [type] [pos] [name]` (op 2) add an unowned landmark to the world at the specified position.
+* `/surveyor landmarks remove [type] [pos]` removes a waypoint or landmark (op 2) from the world.
+* `/surveyor landmarks add [type] [pos] [name]` add a waypoint to the world at the specified position.
+* `/surveyor landmarks global [type] [pos] [name]` (op 2) add a landmark to the world at the specified position.
 
 #### Configuration
 
