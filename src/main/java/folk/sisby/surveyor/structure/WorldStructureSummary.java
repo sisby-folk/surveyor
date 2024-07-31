@@ -103,13 +103,13 @@ public class WorldStructureSummary {
     public void put(ServerWorld world, StructureStart start) {
         if (Surveyor.CONFIG.structures == SystemMode.FROZEN) return;
         ChunkPos rPos = regionPosOf(start.getPos());
-        regions.computeIfAbsent(rPos, k -> new RegionStructureSummary()).put(world, start);
         RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElseThrow();
         Optional<RegistryKey<StructureType<?>>> type = world.getRegistryManager().get(RegistryKeys.STRUCTURE_TYPE).getKey(start.getStructure().getType());
         if (type.isEmpty()) {
             Surveyor.LOGGER.error("Cowardly refusing to save structure {} as it has no structure type! Report this to the structure mod author!", key.getValue());
             return;
         }
+        regions.computeIfAbsent(rPos, k -> new RegionStructureSummary()).put(world, start);
         List<TagKey<Structure>> tags = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getEntry(start.getStructure()).streamTags().toList();
         structureTypes.put(key, type.orElseThrow());
         structureTags.putAll(key, tags);
@@ -184,6 +184,9 @@ public class WorldStructureSummary {
             structureTypes.put(key, type);
             Collection<TagKey<Structure>> tags = structureCompound.getList(KEY_TAGS, NbtElement.STRING_TYPE).stream().map(e -> TagKey.of(RegistryKeys.STRUCTURE, new Identifier(e.asString()))).toList();
             structureTags.putAll(key, tags);
+        }
+        for (RegionStructureSummary region : regions.values()) {
+            region.structures.keySet().removeIf(k -> !structureTypes.containsKey(k));
         }
         return new WorldStructureSummary(worldKey, regions, structureTypes, structureTags);
     }
