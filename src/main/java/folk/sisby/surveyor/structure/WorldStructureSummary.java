@@ -106,6 +106,10 @@ public class WorldStructureSummary {
         ChunkPos rPos = regionPosOf(start.getPos());
         RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElseThrow();
         Optional<RegistryKey<StructureType<?>>> type = world.getRegistryManager().get(RegistryKeys.STRUCTURE_TYPE).getKey(start.getStructure().getType());
+        if (!start.hasChildren()) {
+            Surveyor.LOGGER.error("Cowardly refusing to save structure {} as it has no pieces! Report this to the structure mod author!", key.getValue());
+            return;
+        }
         if (type.isEmpty()) {
             Surveyor.LOGGER.error("Cowardly refusing to save structure {} as it has no structure type! Report this to the structure mod author!", key.getValue());
             return;
