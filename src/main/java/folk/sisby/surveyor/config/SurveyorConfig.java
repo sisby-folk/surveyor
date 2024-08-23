@@ -5,10 +5,6 @@ import folk.sisby.kaleido.lib.quiltconfig.api.annotations.Comment;
 import folk.sisby.kaleido.lib.quiltconfig.api.annotations.IntegerRange;
 
 public class SurveyorConfig extends WrappedConfig {
-	@Comment("Zeroes out waypoint owner UUIDs to use the new 'host uuid' system, which mirrors vanilla behaviour")
-	@Comment("Only occurs when loading into a singleplayer world - Will be removed in the next version")
-	public boolean migrateSingleplayerLandmarksFrom05to06 = true;
-
 	@Comment("Terrain system - records layers of blocks and biomes for maps to render")
 	@Comment("DISABLED prevents loading, FROZEN loads but prevents updates, DYNAMIC loads with addons or on servers, ENABLED always loads")
 	public SystemMode terrain = SystemMode.DYNAMIC;
