@@ -12,22 +12,23 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(MinecraftServer.class)
 public class MixinMinecraftServer implements SurveyorServer {
-    @Unique private ServerSummary surveyor$summary = null;
+	@Unique
+	private ServerSummary surveyor$summary = null;
 
-    @Override
-    public ServerSummary surveyor$getSummary() {
-        return surveyor$summary;
-    }
+	@Override
+	public ServerSummary surveyor$getSummary() {
+		return surveyor$summary;
+	}
 
-    @Inject(method = "loadWorld", at = @At("TAIL"))
-    public void loadSummary(CallbackInfo ci) {
-        MinecraftServer self = (MinecraftServer) (Object) this;
-        surveyor$summary = ServerSummary.load(self);
-    }
+	@Inject(method = "loadWorld", at = @At("TAIL"))
+	public void loadSummary(CallbackInfo ci) {
+		MinecraftServer self = (MinecraftServer) (Object) this;
+		surveyor$summary = ServerSummary.load(self);
+	}
 
-    @Inject(method = "save", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;getOverworld()Lnet/minecraft/server/world/ServerWorld;"))
-    private void saveSummary(boolean suppressLogs, boolean flush, boolean force, CallbackInfoReturnable<Boolean> cir) {
-        MinecraftServer self = (MinecraftServer) (Object) this;
-        surveyor$summary.save(self, force, suppressLogs);
-    }
+	@Inject(method = "save", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;getOverworld()Lnet/minecraft/server/world/ServerWorld;"))
+	private void saveSummary(boolean suppressLogs, boolean flush, boolean force, CallbackInfoReturnable<Boolean> cir) {
+		MinecraftServer self = (MinecraftServer) (Object) this;
+		surveyor$summary.save(self, force, suppressLogs);
+	}
 }

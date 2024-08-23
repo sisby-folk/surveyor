@@ -14,84 +14,84 @@ import java.util.Iterator;
 import java.util.List;
 
 public class RegistryPalette<T> implements IntIterable {
-    private final Registry<T> registry;
-    private final int[] raw;
-    private final int[] inverse;
-    private int size;
-    private final ValueView valueView;
+	private final Registry<T> registry;
+	private final int[] raw;
+	private final int[] inverse;
+	private final ValueView valueView;
+	private int size;
 
-    public RegistryPalette(Registry<T> registry) {
-        this.registry = registry;
-        this.raw = ArrayUtil.ofSingle(-1, registry.size());
-        this.inverse = ArrayUtil.ofSingle(-1, registry.size());
-        this.size = 0;
-        this.valueView = new ValueView();
-    }
+	public RegistryPalette(Registry<T> registry) {
+		this.registry = registry;
+		this.raw = ArrayUtil.ofSingle(-1, registry.size());
+		this.inverse = ArrayUtil.ofSingle(-1, registry.size());
+		this.size = 0;
+		this.valueView = new ValueView();
+	}
 
-    public int find(int value) {
-        return inverse[value];
-    }
+	public int find(int value) {
+		return inverse[value];
+	}
 
-    private int add(int value) {
-        raw[size] = value;
-        inverse[value] = size;
-        T object = registry.get(value);
-        valueView.values.add(object);
-        size++;
-        return size - 1;
-    }
+	private int add(int value) {
+		raw[size] = value;
+		inverse[value] = size;
+		T object = registry.get(value);
+		valueView.values.add(object);
+		size++;
+		return size - 1;
+	}
 
-    public int findOrAdd(int value) {
-        int index = find(value);
-        return index == -1 ? add(value) : index;
-    }
+	public int findOrAdd(int value) {
+		int index = find(value);
+		return index == -1 ? add(value) : index;
+	}
 
-    public int findOrAdd(T value) {
-        return findOrAdd(registry.getRawId(value));
-    }
+	public int findOrAdd(T value) {
+		return findOrAdd(registry.getRawId(value));
+	}
 
-    public int get(int index) {
-        return raw[index];
-    }
+	public int get(int index) {
+		return raw[index];
+	}
 
-    public @NotNull IntIterator iterator() {
-        return IntIterators.wrap(raw, 0, size);
-    }
+	public @NotNull IntIterator iterator() {
+		return IntIterators.wrap(raw, 0, size);
+	}
 
-    public ValueView view() {
-        return valueView;
-    }
+	public ValueView view() {
+		return valueView;
+	}
 
-    public class ValueView implements IndexedIterable<T> {
-        private final T defaultValue = registry instanceof DefaultedRegistry<T> defreg ? defreg.get(defreg.getDefaultId()) : registry.get(0);
-        private final List<T> values = new ArrayList<>();
+	public class ValueView implements IndexedIterable<T> {
+		private final T defaultValue = registry instanceof DefaultedRegistry<T> defreg ? defreg.get(defreg.getDefaultId()) : registry.get(0);
+		private final List<T> values = new ArrayList<>();
 
-        public Registry<T> registry() {
-            return registry;
-        }
+		public Registry<T> registry() {
+			return registry;
+		}
 
-        @Override
-        public T get(int index) {
-            if (index >= values.size()) {
-                Surveyor.LOGGER.error("[Surveyor] Palette view access at index {} for palette size {}! Returning garbage!", index, values.size());
-                return defaultValue;
-            }
-            return values.get(index);
-        }
+		@Override
+		public T get(int index) {
+			if (index >= values.size()) {
+				Surveyor.LOGGER.error("[Surveyor] Palette view access at index {} for palette size {}! Returning garbage!", index, values.size());
+				return defaultValue;
+			}
+			return values.get(index);
+		}
 
-        @Override
-        public int getRawId(T value) {
-            return values.indexOf(value);
-        }
+		@Override
+		public int getRawId(T value) {
+			return values.indexOf(value);
+		}
 
-        @Override
-        public @NotNull Iterator<T> iterator() {
-            return values.iterator();
-        }
+		@Override
+		public @NotNull Iterator<T> iterator() {
+			return values.iterator();
+		}
 
-        @Override
-        public int size() {
-            return size;
-        }
-    }
+		@Override
+		public int size() {
+			return size;
+		}
+	}
 }

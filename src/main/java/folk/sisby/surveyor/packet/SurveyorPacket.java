@@ -8,15 +8,15 @@ import java.util.Collection;
 import java.util.List;
 
 public interface SurveyorPacket {
-    int MAX_PAYLOAD_SIZE = 1_048_576;
+	int MAX_PAYLOAD_SIZE = 1_048_576;
 
-    void writeBuf(PacketByteBuf buf);
+	void writeBuf(PacketByteBuf buf);
 
-    Identifier getId();
+	Identifier getId();
 
-    default Collection<PacketByteBuf> toBufs() {
-        PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-        writeBuf(buf);
-        return List.of(buf);
-    }
+	default Collection<PacketByteBuf> toBufs() {
+		PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+		writeBuf(buf);
+		return List.of(buf);
+	}
 }

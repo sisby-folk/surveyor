@@ -23,46 +23,46 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ServerPlayerEntity.class)
 public class MixinServerPlayerEntity implements SurveyorPlayer {
-    @Unique
-    PlayerSummary.ServerPlayerEntitySummary surveyor$summary = null;
+	@Unique
+	PlayerSummary.ServerPlayerEntitySummary surveyor$summary = null;
 
-    @Inject(method = "<init>", at = @At("TAIL"))
-    public void init(MinecraftServer server, ServerWorld world, GameProfile profile, CallbackInfo ci) {
-        ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
-        surveyor$summary = new PlayerSummary.ServerPlayerEntitySummary(self);
-    }
+	@Inject(method = "<init>", at = @At("TAIL"))
+	public void init(MinecraftServer server, ServerWorld world, GameProfile profile, CallbackInfo ci) {
+		ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
+		surveyor$summary = new PlayerSummary.ServerPlayerEntitySummary(self);
+	}
 
-    @Inject(method = "writeCustomDataToNbt", at = @At("TAIL"))
-    public void writeSurveyorData(NbtCompound nbt, CallbackInfo ci) {
-        ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
-        surveyor$summary.writeNbt(nbt);
-        ServerSummary.of(self.getServer()).updatePlayer(Surveyor.getUuid(self), nbt, false, self.getServer());
-    }
+	@Inject(method = "writeCustomDataToNbt", at = @At("TAIL"))
+	public void writeSurveyorData(NbtCompound nbt, CallbackInfo ci) {
+		ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
+		surveyor$summary.writeNbt(nbt);
+		ServerSummary.of(self.getServer()).updatePlayer(Surveyor.getUuid(self), nbt, false, self.getServer());
+	}
 
-    @Inject(method = "readCustomDataFromNbt", at = @At("TAIL"))
-    public void readSurveyorData(NbtCompound nbt, CallbackInfo ci) {
-        surveyor$summary.read(nbt);
-    }
+	@Inject(method = "readCustomDataFromNbt", at = @At("TAIL"))
+	public void readSurveyorData(NbtCompound nbt, CallbackInfo ci) {
+		surveyor$summary.read(nbt);
+	}
 
-    @Inject(method = "setClientSettings", at = @At("HEAD"))
-    public void setSurveyorViewDistance(ClientSettingsC2SPacket packet, CallbackInfo ci) {
-        surveyor$summary.setViewDistance(packet.viewDistance());
-    }
+	@Inject(method = "setClientSettings", at = @At("HEAD"))
+	public void setSurveyorViewDistance(ClientSettingsC2SPacket packet, CallbackInfo ci) {
+		surveyor$summary.setViewDistance(packet.viewDistance());
+	}
 
-    @Inject(method = "onDeath", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/damage/DamageTracker;update()V"))
-    public void onDeath(DamageSource damageSource, CallbackInfo ci) {
-        if (!Surveyor.CONFIG.playerDeathLandmarks) return;
-        ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
-        WorldLandmarks summary = WorldSummary.of(self.getServerWorld()).landmarks();
-        if (summary == null) return;
-        summary.put(
-            self.getServerWorld(),
-            new PlayerDeathLandmark(self.getBlockPos(), Surveyor.getUuid(self), TextUtil.stripInteraction(self.getDamageTracker().getDeathMessage()), self.getServerWorld().getTimeOfDay(), self.getRandom().nextInt())
-        );
-    }
+	@Inject(method = "onDeath", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/damage/DamageTracker;update()V"))
+	public void onDeath(DamageSource damageSource, CallbackInfo ci) {
+		if (!Surveyor.CONFIG.playerDeathLandmarks) return;
+		ServerPlayerEntity self = (ServerPlayerEntity) (Object) this;
+		WorldLandmarks summary = WorldSummary.of(self.getServerWorld()).landmarks();
+		if (summary == null) return;
+		summary.put(
+			self.getServerWorld(),
+			new PlayerDeathLandmark(self.getBlockPos(), Surveyor.getUuid(self), TextUtil.stripInteraction(self.getDamageTracker().getDeathMessage()), self.getServerWorld().getTimeOfDay(), self.getRandom().nextInt())
+		);
+	}
 
-    @Override
-    public PlayerSummary surveyor$getSummary() {
-        return surveyor$summary;
-    }
+	@Override
+	public PlayerSummary surveyor$getSummary() {
+		return surveyor$summary;
+	}
 }

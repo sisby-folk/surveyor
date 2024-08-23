@@ -13,23 +13,23 @@ import net.minecraft.util.math.BlockPos;
 import java.util.UUID;
 
 public record PlayerDeathLandmark(BlockPos pos, UUID owner, Text name, long created, int seed) implements Landmark<PlayerDeathLandmark>, HasCreated, HasSeed {
-    public static final LandmarkType<PlayerDeathLandmark> TYPE = new SimpleLandmarkType<>(
-        new Identifier(Surveyor.ID, "player_death"),
-        pos -> RecordCodecBuilder.create(instance -> instance.group(
-            Uuids.CODEC.fieldOf("owner").forGetter(Landmark::owner),
-            Codecs.TEXT.fieldOf("name").forGetter(Landmark::name),
-            Codec.LONG.fieldOf("created").forGetter(HasCreated::created),
-            Codec.INT.fieldOf("seed").forGetter(HasSeed::seed)
-        ).apply(instance, (owner, name, created, seed) -> new PlayerDeathLandmark(pos, owner, name, created, seed)))
-    );
+	public static final LandmarkType<PlayerDeathLandmark> TYPE = new SimpleLandmarkType<>(
+		new Identifier(Surveyor.ID, "player_death"),
+		pos -> RecordCodecBuilder.create(instance -> instance.group(
+			Uuids.CODEC.fieldOf("owner").forGetter(Landmark::owner),
+			Codecs.TEXT.fieldOf("name").forGetter(Landmark::name),
+			Codec.LONG.fieldOf("created").forGetter(HasCreated::created),
+			Codec.INT.fieldOf("seed").forGetter(HasSeed::seed)
+		).apply(instance, (owner, name, created, seed) -> new PlayerDeathLandmark(pos, owner, name, created, seed)))
+	);
 
-    @Override
-    public LandmarkType<PlayerDeathLandmark> type() {
-        return TYPE;
-    }
+	@Override
+	public LandmarkType<PlayerDeathLandmark> type() {
+		return TYPE;
+	}
 
-    @Override
-    public DyeColor color() {
-        return DyeColor.GRAY;
-    }
+	@Override
+	public DyeColor color() {
+		return DyeColor.GRAY;
+	}
 }

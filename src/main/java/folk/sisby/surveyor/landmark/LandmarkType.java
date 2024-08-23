@@ -5,7 +5,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
 public interface LandmarkType<T extends Landmark<T>> {
-    Identifier id();
+	Identifier id();
 
-    Codec<T> createCodec(BlockPos pos);
+	Codec<T> createCodec(BlockPos pos);
 }

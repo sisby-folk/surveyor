@@ -16,28 +16,28 @@ import java.util.Map;
 import java.util.UUID;
 
 public record S2CGroupChangedPacket(Map<UUID, PlayerSummary> players, Map<ChunkPos, BitSet> regionBits, Map<RegistryKey<Structure>, LongSet> structureKeys) implements S2CPacket {
-    public static final Identifier ID = new Identifier(Surveyor.ID, "s2c_group_changed");
+	public static final Identifier ID = new Identifier(Surveyor.ID, "s2c_group_changed");
 
-    public static S2CGroupChangedPacket read(PacketByteBuf buf) {
-        return new S2CGroupChangedPacket(
-            buf.readMap(PacketByteBuf::readUuid, PlayerSummary.OfflinePlayerSummary::readBuf),
-            buf.readMap(PacketByteBuf::readChunkPos, PacketByteBuf::readBitSet),
-            buf.readMap(
-                b -> b.readRegistryKey(RegistryKeys.STRUCTURE),
-                b -> new LongOpenHashSet(b.readLongArray())
-            )
-        );
-    }
+	public static S2CGroupChangedPacket read(PacketByteBuf buf) {
+		return new S2CGroupChangedPacket(
+			buf.readMap(PacketByteBuf::readUuid, PlayerSummary.OfflinePlayerSummary::readBuf),
+			buf.readMap(PacketByteBuf::readChunkPos, PacketByteBuf::readBitSet),
+			buf.readMap(
+				b -> b.readRegistryKey(RegistryKeys.STRUCTURE),
+				b -> new LongOpenHashSet(b.readLongArray())
+			)
+		);
+	}
 
-    @Override
-    public void writeBuf(PacketByteBuf buf) {
-        buf.writeMap(players, PacketByteBuf::writeUuid, PlayerSummary.OfflinePlayerSummary::writeBuf);
-        buf.writeMap(regionBits, PacketByteBuf::writeChunkPos, PacketByteBuf::writeBitSet);
-        buf.writeMap(structureKeys, PacketByteBuf::writeRegistryKey, (b, starts) -> b.writeLongArray(starts.toLongArray()));
-    }
+	@Override
+	public void writeBuf(PacketByteBuf buf) {
+		buf.writeMap(players, PacketByteBuf::writeUuid, PlayerSummary.OfflinePlayerSummary::writeBuf);
+		buf.writeMap(regionBits, PacketByteBuf::writeChunkPos, PacketByteBuf::writeBitSet);
+		buf.writeMap(structureKeys, PacketByteBuf::writeRegistryKey, (b, starts) -> b.writeLongArray(starts.toLongArray()));
+	}
 
-    @Override
-    public Identifier getId() {
-        return ID;
-    }
+	@Override
+	public Identifier getId() {
+		return ID;
+	}
 }

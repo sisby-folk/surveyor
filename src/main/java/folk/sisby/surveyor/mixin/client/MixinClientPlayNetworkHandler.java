@@ -25,34 +25,36 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ClientPlayNetworkHandler.class)
 public abstract class MixinClientPlayNetworkHandler implements SurveyorNetworkHandler {
-    @Unique NetworkHandlerSummary surveyor$summary = null;
+	@Unique
+	NetworkHandlerSummary surveyor$summary = null;
 
-    @Override
-    public NetworkHandlerSummary surveyor$getSummary() {
-        return surveyor$summary;
-    }
+	@Override
+	public NetworkHandlerSummary surveyor$getSummary() {
+		return surveyor$summary;
+	}
 
-    @Accessor public abstract GameProfile getProfile();
+	@Accessor
+	public abstract GameProfile getProfile();
 
-    @Inject(method = "<init>", at = @At("TAIL"))
-    private void onInit(MinecraftClient client, Screen screen, ClientConnection connection, ServerInfo serverInfo, GameProfile profile, WorldSession worldSession, CallbackInfo ci) {
-        ClientPlayNetworkHandler self = (ClientPlayNetworkHandler) (Object) this;
-        surveyor$summary = new NetworkHandlerSummary(self);
-    }
+	@Inject(method = "<init>", at = @At("TAIL"))
+	private void onInit(MinecraftClient client, Screen screen, ClientConnection connection, ServerInfo serverInfo, GameProfile profile, WorldSession worldSession, CallbackInfo ci) {
+		ClientPlayNetworkHandler self = (ClientPlayNetworkHandler) (Object) this;
+		surveyor$summary = new NetworkHandlerSummary(self);
+	}
 
-    @Inject(method = "onDeathMessage", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;showsDeathScreen()Z"))
-    private void onDeathScreen(DeathMessageS2CPacket packet, CallbackInfo ci) {
-        if (!Surveyor.CONFIG.playerDeathLandmarks) return;
-        ClientPlayerEntity player = MinecraftClient.getInstance().player;
-        if (player == null || player.getWorld() == null) return;
-        WorldSummary summary = WorldSummary.of(player.getWorld());
-        if (summary.isClient()) {
-            if (summary.landmarks() == null) return;
-            summary.landmarks().put(
-                player.getWorld(),
-                new PlayerDeathLandmark(player.getBlockPos(), SurveyorClient.getClientUuid(), TextUtil.stripInteraction(packet.getMessage()), player.getWorld().getTimeOfDay(), player.getRandom().nextInt())
-            );
-        }
-    }
+	@Inject(method = "onDeathMessage", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;showsDeathScreen()Z"))
+	private void onDeathScreen(DeathMessageS2CPacket packet, CallbackInfo ci) {
+		if (!Surveyor.CONFIG.playerDeathLandmarks) return;
+		ClientPlayerEntity player = MinecraftClient.getInstance().player;
+		if (player == null || player.getWorld() == null) return;
+		WorldSummary summary = WorldSummary.of(player.getWorld());
+		if (summary.isClient()) {
+			if (summary.landmarks() == null) return;
+			summary.landmarks().put(
+				player.getWorld(),
+				new PlayerDeathLandmark(player.getBlockPos(), SurveyorClient.getClientUuid(), TextUtil.stripInteraction(packet.getMessage()), player.getWorld().getTimeOfDay(), player.getRandom().nextInt())
+			);
+		}
+	}
 
 }

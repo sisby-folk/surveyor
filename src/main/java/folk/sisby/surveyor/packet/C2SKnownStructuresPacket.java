@@ -14,21 +14,21 @@ import java.util.Arrays;
 import java.util.HashSet;
 
 public record C2SKnownStructuresPacket(Multimap<RegistryKey<Structure>, ChunkPos> structureKeys) implements C2SPacket {
-    public static final Identifier ID = new Identifier(Surveyor.ID, "c2s_known_structures");
+	public static final Identifier ID = new Identifier(Surveyor.ID, "c2s_known_structures");
 
-    public static C2SKnownStructuresPacket read(PacketByteBuf buf) {
-        return new C2SKnownStructuresPacket(
-            MapUtil.asMultiMap(buf.readMap(b -> b.readRegistryKey(RegistryKeys.STRUCTURE), b -> new HashSet<>(Arrays.stream(b.readLongArray()).mapToObj(ChunkPos::new).toList())))
-        );
-    }
+	public static C2SKnownStructuresPacket read(PacketByteBuf buf) {
+		return new C2SKnownStructuresPacket(
+			MapUtil.asMultiMap(buf.readMap(b -> b.readRegistryKey(RegistryKeys.STRUCTURE), b -> new HashSet<>(Arrays.stream(b.readLongArray()).mapToObj(ChunkPos::new).toList())))
+		);
+	}
 
-    @Override
-    public void writeBuf(PacketByteBuf buf) {
-        buf.writeMap(structureKeys.asMap(), PacketByteBuf::writeRegistryKey, (b, starts) -> b.writeLongArray(starts.stream().mapToLong(ChunkPos::toLong).toArray()));
-    }
+	@Override
+	public void writeBuf(PacketByteBuf buf) {
+		buf.writeMap(structureKeys.asMap(), PacketByteBuf::writeRegistryKey, (b, starts) -> b.writeLongArray(starts.stream().mapToLong(ChunkPos::toLong).toArray()));
+	}
 
-    @Override
-    public Identifier getId() {
-        return ID;
-    }
+	@Override
+	public Identifier getId() {
+		return ID;
+	}
 }

@@ -16,46 +16,46 @@ import net.minecraft.world.poi.PointOfInterestTypes;
 import java.util.Map;
 
 public record NetherPortalLandmark(BlockBox box, Direction.Axis axis) implements Landmark<NetherPortalLandmark>, HasAxisBlockBoxMergeable, HasPoiType {
-    public NetherPortalLandmark(BlockPos pos, Direction.Axis axis) {
-        this(new BlockBox(pos), axis);
-    }
+	public static final LandmarkType<NetherPortalLandmark> TYPE = new SimpleLandmarkType<>(
+		new Identifier(Surveyor.ID, "poi/nether_portal"),
+		pos -> RecordCodecBuilder.create(instance -> instance.group(
+			BlockBox.CODEC.fieldOf("box").forGetter(HasBlockBox::box),
+			Direction.Axis.CODEC.fieldOf("axis").forGetter(HasAxis::axis)
+		).apply(instance, NetherPortalLandmark::new))
+	);
 
-    public static final LandmarkType<NetherPortalLandmark> TYPE = new SimpleLandmarkType<>(
-        new Identifier(Surveyor.ID, "poi/nether_portal"),
-        pos -> RecordCodecBuilder.create(instance -> instance.group(
-            BlockBox.CODEC.fieldOf("box").forGetter(HasBlockBox::box),
-            Direction.Axis.CODEC.fieldOf("axis").forGetter(HasAxis::axis)
-        ).apply(instance, NetherPortalLandmark::new))
-    );
+	public NetherPortalLandmark(BlockPos pos, Direction.Axis axis) {
+		this(new BlockBox(pos), axis);
+	}
 
-    @Override
-    public LandmarkType<NetherPortalLandmark> type() {
-        return TYPE;
-    }
+	@Override
+	public LandmarkType<NetherPortalLandmark> type() {
+		return TYPE;
+	}
 
-    @Override
-    public Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> put(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> changed, World world, WorldLandmarks landmarks) {
-        Landmark.super.put(changed, world, landmarks);
-        return tryMerge(changed, world, landmarks);
-    }
+	@Override
+	public Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> put(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> changed, World world, WorldLandmarks landmarks) {
+		Landmark.super.put(changed, world, landmarks);
+		return tryMerge(changed, world, landmarks);
+	}
 
-    @Override
-    public BlockPos pos() {
-        return new BlockPos(box.getMinX(), box.getMinY(), box.getMinZ());
-    }
+	@Override
+	public BlockPos pos() {
+		return new BlockPos(box.getMinX(), box.getMinY(), box.getMinZ());
+	}
 
-    @Override
-    public RegistryKey<PointOfInterestType> poiType() {
-        return PointOfInterestTypes.NETHER_PORTAL;
-    }
+	@Override
+	public RegistryKey<PointOfInterestType> poiType() {
+		return PointOfInterestTypes.NETHER_PORTAL;
+	}
 
-    @Override
-    public DyeColor color() {
-        return DyeColor.PURPLE;
-    }
+	@Override
+	public DyeColor color() {
+		return DyeColor.PURPLE;
+	}
 
-    @Override
-    public Text name() {
-        return Text.translatable("block.minecraft.nether_portal");
-    }
+	@Override
+	public Text name() {
+		return Text.translatable("block.minecraft.nether_portal");
+	}
 }

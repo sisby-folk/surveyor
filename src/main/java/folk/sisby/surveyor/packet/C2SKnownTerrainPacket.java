@@ -9,21 +9,21 @@ import java.util.BitSet;
 import java.util.Map;
 
 public record C2SKnownTerrainPacket(Map<ChunkPos, BitSet> regionBits) implements C2SPacket {
-    public static final Identifier ID = new Identifier(Surveyor.ID, "known_terrain");
+	public static final Identifier ID = new Identifier(Surveyor.ID, "known_terrain");
 
-    public static C2SKnownTerrainPacket read(PacketByteBuf buf) {
-        return new C2SKnownTerrainPacket(
-            buf.readMap(PacketByteBuf::readChunkPos, PacketByteBuf::readBitSet)
-        );
-    }
+	public static C2SKnownTerrainPacket read(PacketByteBuf buf) {
+		return new C2SKnownTerrainPacket(
+			buf.readMap(PacketByteBuf::readChunkPos, PacketByteBuf::readBitSet)
+		);
+	}
 
-    @Override
-    public void writeBuf(PacketByteBuf buf) {
-        buf.writeMap(regionBits, PacketByteBuf::writeChunkPos, PacketByteBuf::writeBitSet);
-    }
+	@Override
+	public void writeBuf(PacketByteBuf buf) {
+		buf.writeMap(regionBits, PacketByteBuf::writeChunkPos, PacketByteBuf::writeBitSet);
+	}
 
-    @Override
-    public Identifier getId() {
-        return ID;
-    }
+	@Override
+	public Identifier getId() {
+		return ID;
+	}
 }

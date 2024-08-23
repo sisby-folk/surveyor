@@ -38,6 +38,7 @@ It's various systems can be turned on and off, and map sharing tweaked finely.
 **Surveyor relieves the scanning, saving, and networking responsibilities from dependent map mods.**
 
 In general, Surveyor:
+
 * Records terrain, structure, and "landmark" data suitable for maps as the world is changed.
 * Enables live map sharing between players by tracking individual exploration of the map.
 * Sends the client structures as they're discovered or shared.
@@ -46,6 +47,7 @@ In general, Surveyor:
 * Only adds 2-5% to save size, using an efficient format both in-memory and on-disk.
 
 Surveyor's data **deliberately preserves key details**, designed to allow any abitrary map mod to use it:
+
 * Terrain is a top-down view of blocks with height, biome, light level, and water depth.
 * Terrain contains multiple layers, allowing for usable cave and nether maps.
 * Structures have IDs, pieces, tags, and even full piece NBT for smaller structures intact.
@@ -54,6 +56,7 @@ Surveyor's data **deliberately preserves key details**, designed to allow any ab
 ---
 
 **Notice: Surveyor is still in early releases.**
+
 * The API might break several times during 0.x
 * The networking format will break several times during 0.x.
 * The save format will likely break on the change to 1.x
@@ -91,19 +94,21 @@ The **World Summary** holds all of surveyor's data for a world. It can be access
 **Landmarks** are a way to represent all other positional information on-map. They have unique serialization per-type, and are uniquely keyed by their type and position to prevent overlaps.
 
 **Exploration** is a record of what chunks, structures, and landmarks a player should be able to see.<br/>
-A player explores a chunk when they're sent it, explores a structure when they stand in (or look at) one of its pieces, and explores an (unowned) landmark when they explore the chunk it's in. 
+A player explores a chunk when they're sent it, explores a structure when they stand in (or look at) one of its pieces, and explores an (unowned) landmark when they explore the chunk it's in.
 
 ### Terrain Summary Layers
 
 To facilitate cave mapping, Surveyor records the top layer of blocks at **multiple height levels** (layer heights).
 
 **The Overworld** scans for floors in these layers:
+
 * 257-319 - usually empty
 * 62-256 - surface terrain
 * 0-61 - sea floors and riverbeds, ravines, and caves
 * -64-0 - deepslate caves
 
 **The Nether** scans for floors in these layers:
+
 * 127-255 - usually flat bedrock
 * 71-126 - high caves and outcrops
 * 41-70 - mid-level outcrops and walkways
@@ -150,6 +155,7 @@ Tune into `LandmarksRemoved` as well but without a queue - just remove from your
 
 First, generate a top layer (with any desired height limits) using `get(ChunkPos).toSingleLayer()`.<br/>
 This will produce a raw layer summary of one-dimensional arrays:
+
 * **exists** - True where a floor exists, false otherwise - where false, all other fields are junk.
 * **depths** - The distance of the floor below your specified world height. so y = worldHeight - depth.
 * **blocks** - The floor block. Indexed per-region via `getBlockPalette(ChunkPos)`.
@@ -157,9 +163,9 @@ This will produce a raw layer summary of one-dimensional arrays:
 * **lightLevels** - The block light level directly above the floor (i.e. the block light for its top face). 0-15.
 * **waterLights** - The block light level directly above the water's surface (if there is one). 0-15.
 * **waterDepths** - How deep the contiguous water above the floor is.
-  * All other liquid surfaces are considered floors, but water is special-cased.
-  * The sea floor (e.g. sand) is recorded, and this depth value indicates the water surface instead.
-  * This allows maps to show water depth shading, but also hide water completely if desired.
+	* All other liquid surfaces are considered floors, but water is special-cased.
+	* The sea floor (e.g. sand) is recorded, and this depth value indicates the water surface instead.
+	* This allows maps to show water depth shading, but also hide water completely if desired.
 
 All arrays can be indexed by `x * 16 + z`, where x and z are relative to the chunk.<br/>
 Use these arrays to render and store map data for that chunk (pixels, buffers, whichever).<br/>

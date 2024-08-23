@@ -19,57 +19,57 @@ import net.minecraft.world.gen.StructureAccessor;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
 
 public class StructurePieceSummary extends StructurePiece {
-    protected final NbtCompound pieceNbt;
-    protected final RegistryKey<StructurePieceType> typeKey;
+	protected final NbtCompound pieceNbt;
+	protected final RegistryKey<StructurePieceType> typeKey;
 
-    public StructurePieceSummary(StructurePieceType type, int chainLength, BlockBox boundingBox, NbtCompound pieceNbt) {
-        super(type, chainLength, boundingBox);
-        this.typeKey = Registries.STRUCTURE_PIECE.getKey(type).orElseThrow();
-        this.pieceNbt = pieceNbt;
-    }
+	public StructurePieceSummary(StructurePieceType type, int chainLength, BlockBox boundingBox, NbtCompound pieceNbt) {
+		super(type, chainLength, boundingBox);
+		this.typeKey = Registries.STRUCTURE_PIECE.getKey(type).orElseThrow();
+		this.pieceNbt = pieceNbt;
+	}
 
-    public StructurePieceSummary(NbtCompound nbt) {
-        super(Registries.STRUCTURE_PIECE.get(new Identifier(nbt.getString("id"))), nbt); // Might set the type as null
-        this.typeKey = RegistryKey.of(RegistryKeys.STRUCTURE_PIECE, new Identifier(nbt.getString("id")));
-        this.pieceNbt = nbt.getCompound("nbt");
-    }
+	public StructurePieceSummary(NbtCompound nbt) {
+		super(Registries.STRUCTURE_PIECE.get(new Identifier(nbt.getString("id"))), nbt); // Might set the type as null
+		this.typeKey = RegistryKey.of(RegistryKeys.STRUCTURE_PIECE, new Identifier(nbt.getString("id")));
+		this.pieceNbt = nbt.getCompound("nbt");
+	}
 
-    public static StructurePieceSummary fromPiece(StructureContext context, StructurePiece piece, boolean withNbt) {
-        StructurePieceSummary summary = new StructurePieceSummary(piece.getType(), piece.getChainLength(), piece.getBoundingBox(), new NbtCompound());
-        if (withNbt) {
-            NbtCompound summaryNbt = summary.toNbt();
-            NbtCompound pieceNbt = piece.toNbt(context);
-            for (String key : summaryNbt.getKeys()) {
-                pieceNbt.remove(key);
-            }
-            for (String key : pieceNbt.getKeys()) {
-                summary.pieceNbt.put(key, pieceNbt.get(key));
-            }
-        }
-        return summary;
-    }
+	public static StructurePieceSummary fromPiece(StructureContext context, StructurePiece piece, boolean withNbt) {
+		StructurePieceSummary summary = new StructurePieceSummary(piece.getType(), piece.getChainLength(), piece.getBoundingBox(), new NbtCompound());
+		if (withNbt) {
+			NbtCompound summaryNbt = summary.toNbt();
+			NbtCompound pieceNbt = piece.toNbt(context);
+			for (String key : summaryNbt.getKeys()) {
+				pieceNbt.remove(key);
+			}
+			for (String key : pieceNbt.getKeys()) {
+				summary.pieceNbt.put(key, pieceNbt.get(key));
+			}
+		}
+		return summary;
+	}
 
-    public final NbtCompound toNbt() {
-        NbtCompound nbt = new NbtCompound();
-        nbt.putString("id", typeKey.getValue().toString());
-        nbt.putIntArray("BB", ArrayUtil.ofBlockBox(this.boundingBox));
-        Direction direction = this.getFacing();
-        nbt.putInt("O", direction == null ? -1 : direction.getHorizontal());
-        nbt.putInt("GD", this.chainLength);
-        this.writeNbt(null, nbt);  // context only used for writeNbt
-        return nbt;
-    }
+	public final NbtCompound toNbt() {
+		NbtCompound nbt = new NbtCompound();
+		nbt.putString("id", typeKey.getValue().toString());
+		nbt.putIntArray("BB", ArrayUtil.ofBlockBox(this.boundingBox));
+		Direction direction = this.getFacing();
+		nbt.putInt("O", direction == null ? -1 : direction.getHorizontal());
+		nbt.putInt("GD", this.chainLength);
+		this.writeNbt(null, nbt);  // context only used for writeNbt
+		return nbt;
+	}
 
-    @Override
-    protected void writeNbt(StructureContext context, NbtCompound nbt) {
-        if (!pieceNbt.isEmpty()) nbt.put("nbt", pieceNbt);
-    }
+	@Override
+	protected void writeNbt(StructureContext context, NbtCompound nbt) {
+		if (!pieceNbt.isEmpty()) nbt.put("nbt", pieceNbt);
+	}
 
-    @Override
-    public void generate(StructureWorldAccess world, StructureAccessor structureAccessor, ChunkGenerator chunkGenerator, Random random, BlockBox chunkBox, ChunkPos chunkPos, BlockPos pivot) {
-    }
+	@Override
+	public void generate(StructureWorldAccess world, StructureAccessor structureAccessor, ChunkGenerator chunkGenerator, Random random, BlockBox chunkBox, ChunkPos chunkPos, BlockPos pivot) {
+	}
 
-    public NbtCompound getPieceNbt() {
-        return pieceNbt;
-    }
+	public NbtCompound getPieceNbt() {
+		return pieceNbt;
+	}
 }

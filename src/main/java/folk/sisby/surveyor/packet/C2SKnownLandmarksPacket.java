@@ -10,25 +10,25 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
 public record C2SKnownLandmarksPacket(Multimap<LandmarkType<?>, BlockPos> landmarks) implements C2SPacket {
-    public static final Identifier ID = new Identifier(Surveyor.ID, "c2s_known_landmarks");
+	public static final Identifier ID = new Identifier(Surveyor.ID, "c2s_known_landmarks");
 
-    public static C2SKnownLandmarksPacket read(PacketByteBuf buf) {
-        return new C2SKnownLandmarksPacket(MapUtil.asMultiMap(buf.readMap(
-            b -> Landmarks.getType(b.readIdentifier()),
-            b -> b.readList(PacketByteBuf::readBlockPos)
-        )));
-    }
+	public static C2SKnownLandmarksPacket read(PacketByteBuf buf) {
+		return new C2SKnownLandmarksPacket(MapUtil.asMultiMap(buf.readMap(
+			b -> Landmarks.getType(b.readIdentifier()),
+			b -> b.readList(PacketByteBuf::readBlockPos)
+		)));
+	}
 
-    @Override
-    public void writeBuf(PacketByteBuf buf) {
-        buf.writeMap(landmarks.asMap(),
-            (b, k) -> b.writeIdentifier(k.id()),
-            (b, c) -> b.writeCollection(c, PacketByteBuf::writeBlockPos)
-        );
-    }
+	@Override
+	public void writeBuf(PacketByteBuf buf) {
+		buf.writeMap(landmarks.asMap(),
+			(b, k) -> b.writeIdentifier(k.id()),
+			(b, c) -> b.writeCollection(c, PacketByteBuf::writeBlockPos)
+		);
+	}
 
-    @Override
-    public Identifier getId() {
-        return ID;
-    }
+	@Override
+	public Identifier getId() {
+		return ID;
+	}
 }

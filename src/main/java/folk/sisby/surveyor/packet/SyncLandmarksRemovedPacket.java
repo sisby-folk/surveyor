@@ -13,29 +13,29 @@ import java.util.List;
 import java.util.Map;
 
 public record SyncLandmarksRemovedPacket(Multimap<LandmarkType<?>, BlockPos> landmarks) implements SyncPacket {
-    public static final Identifier ID = new Identifier(Surveyor.ID, "landmarks_removed");
+	public static final Identifier ID = new Identifier(Surveyor.ID, "landmarks_removed");
 
-    public static SyncLandmarksRemovedPacket of(LandmarkType<?> type, BlockPos pos) {
-        return new SyncLandmarksRemovedPacket(MapUtil.asMultiMap(Map.of(type, List.of(pos))));
-    }
+	public static SyncLandmarksRemovedPacket of(LandmarkType<?> type, BlockPos pos) {
+		return new SyncLandmarksRemovedPacket(MapUtil.asMultiMap(Map.of(type, List.of(pos))));
+	}
 
-    public static SyncLandmarksRemovedPacket read(PacketByteBuf buf) {
-        return new SyncLandmarksRemovedPacket(MapUtil.asMultiMap(buf.readMap(
-            b -> Landmarks.getType(b.readIdentifier()),
-            b -> b.readList(PacketByteBuf::readBlockPos)
-        )));
-    }
+	public static SyncLandmarksRemovedPacket read(PacketByteBuf buf) {
+		return new SyncLandmarksRemovedPacket(MapUtil.asMultiMap(buf.readMap(
+			b -> Landmarks.getType(b.readIdentifier()),
+			b -> b.readList(PacketByteBuf::readBlockPos)
+		)));
+	}
 
-    @Override
-    public void writeBuf(PacketByteBuf buf) {
-        buf.writeMap(landmarks.asMap(),
-            (b, k) -> b.writeIdentifier(k.id()),
-            (b, c) -> b.writeCollection(c, PacketByteBuf::writeBlockPos)
-        );
-    }
+	@Override
+	public void writeBuf(PacketByteBuf buf) {
+		buf.writeMap(landmarks.asMap(),
+			(b, k) -> b.writeIdentifier(k.id()),
+			(b, c) -> b.writeCollection(c, PacketByteBuf::writeBlockPos)
+		);
+	}
 
-    @Override
-    public Identifier getId() {
-        return ID;
-    }
+	@Override
+	public Identifier getId() {
+		return ID;
+	}
 }

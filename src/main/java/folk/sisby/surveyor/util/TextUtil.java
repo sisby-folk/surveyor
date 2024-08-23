@@ -15,17 +15,17 @@ import java.util.Objects;
 import java.util.function.Function;
 
 public class TextUtil {
-    public static Text stripInteraction(Text text) {
-        NbtCompound nbt = (NbtCompound) Codecs.TEXT.encodeStart(NbtOps.INSTANCE, text).getOrThrow(false, null);
-        NbtUtil.removeRecursive(nbt, List.of("hoverEvent", "clickEvent", "insertion"));
-        return Codecs.TEXT.decode(NbtOps.INSTANCE, nbt).getOrThrow(false, null).getFirst();
-    }
+	public static Text stripInteraction(Text text) {
+		NbtCompound nbt = (NbtCompound) Codecs.TEXT.encodeStart(NbtOps.INSTANCE, text).getOrThrow(false, null);
+		NbtUtil.removeRecursive(nbt, List.of("hoverEvent", "clickEvent", "insertion"));
+		return Codecs.TEXT.decode(NbtOps.INSTANCE, nbt).getOrThrow(false, null).getFirst();
+	}
 
-    public static MutableText highlightStrings(Collection<String> list, Function<String, Formatting> highlighter) {
-        return Text.literal("[").append(Texts.join(
-            list,
-            Text.literal(", "),
-            s -> Text.literal(s).setStyle(Style.EMPTY.withFormatting(Objects.requireNonNullElse(highlighter.apply(s), Formatting.RESET)))
-        )).append(Text.literal("]"));
-    }
+	public static MutableText highlightStrings(Collection<String> list, Function<String, Formatting> highlighter) {
+		return Text.literal("[").append(Texts.join(
+			list,
+			Text.literal(", "),
+			s -> Text.literal(s).setStyle(Style.EMPTY.withFormatting(Objects.requireNonNullElse(highlighter.apply(s), Formatting.RESET)))
+		)).append(Text.literal("]"));
+	}
 }
