@@ -26,119 +26,119 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RegionStructureSummary {
-    public static final String KEY_STRUCTURES = "structures";
-    public static final String KEY_STARTS = "starts";
-    public static final String KEY_PIECES = "pieces";
+	public static final String KEY_STRUCTURES = "structures";
+	public static final String KEY_STARTS = "starts";
+	public static final String KEY_PIECES = "pieces";
 
-    protected final Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> structures = new ConcurrentHashMap<>();
-    protected boolean dirty = false;
+	protected final Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> structures = new ConcurrentHashMap<>();
+	protected boolean dirty = false;
 
-    RegionStructureSummary() {
-    }
+	RegionStructureSummary() {
+	}
 
-    RegionStructureSummary(Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> structures) {
-        this.structures.putAll(structures);
-    }
+	RegionStructureSummary(Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> structures) {
+		this.structures.putAll(structures);
+	}
 
-    public boolean contains(World world, StructureStart start) {
-        RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElse(null);
-        if (key == null) {
-            Surveyor.LOGGER.error("Encountered an unregistered structure! {} | {}", start, start.getStructure());
-            return true;
-        }
-        return structures.containsKey(key) && structures.get(key).containsKey(start.getPos());
-    }
+	protected static StructureStartSummary summarisePieces(StructureContext context, StructureStart start) {
+		List<StructurePieceSummary> pieces = new ArrayList<>();
+		for (StructurePiece piece : start.getChildren()) {
+			if (piece.getType().equals(StructurePieceType.JIGSAW)) {
+				pieces.addAll(JigsawPieceSummary.tryFromPiece(piece));
+			} else {
+				pieces.add(StructurePieceSummary.fromPiece(context, piece, start.getChildren().size() <= 10));
+			}
+		}
+		return new StructureStartSummary(pieces);
+	}
 
-    public boolean contains(RegistryKey<Structure> key, ChunkPos pos) {
-        return structures.containsKey(key) && structures.get(key).containsKey(pos);
-    }
+	public static StructurePieceSummary readStructurePieceNbt(NbtCompound nbt) {
+		if (nbt.getString("id").equals(Registries.STRUCTURE_PIECE.getId(StructurePieceType.JIGSAW).toString())) {
+			return new JigsawPieceSummary(nbt);
+		} else {
+			return new StructurePieceSummary(nbt);
+		}
+	}
 
-    public StructureStartSummary get(RegistryKey<Structure> key, ChunkPos pos) {
-        return structures.get(key).get(pos);
-    }
+	protected static RegionStructureSummary readNbt(NbtCompound nbt) {
+		Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> structures = new ConcurrentHashMap<>();
+		NbtCompound structuresCompound = nbt.getCompound(KEY_STRUCTURES);
+		for (String structureId : structuresCompound.getKeys()) {
+			RegistryKey<Structure> key = RegistryKey.of(RegistryKeys.STRUCTURE, Identifier.of(structureId));
+			NbtCompound structureCompound = structuresCompound.getCompound(structureId);
+			NbtCompound startsCompound = structureCompound.getCompound(KEY_STARTS);
+			for (String posKey : startsCompound.getKeys()) {
+				int x = Integer.parseInt(posKey.split(",")[0]);
+				int z = Integer.parseInt(posKey.split(",")[1]);
+				NbtCompound startCompound = startsCompound.getCompound(posKey);
+				List<StructurePieceSummary> pieces = new ArrayList<>();
+				for (NbtElement pieceElement : startCompound.getList(KEY_PIECES, NbtElement.COMPOUND_TYPE)) {
+					pieces.add(readStructurePieceNbt((NbtCompound) pieceElement));
+				}
+				structures.computeIfAbsent(key, p -> new ConcurrentHashMap<>()).put(new ChunkPos(x, z), new StructureStartSummary(pieces));
+			}
+		}
+		return new RegionStructureSummary(structures);
+	}
 
-    public Multimap<RegistryKey<Structure>, ChunkPos> keySet() {
-        return MapUtil.keyMultiMap(structures);
-    }
+	public boolean contains(World world, StructureStart start) {
+		RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElse(null);
+		if (key == null) {
+			Surveyor.LOGGER.error("Encountered an unregistered structure! {} | {}", start, start.getStructure());
+			return true;
+		}
+		return structures.containsKey(key) && structures.get(key).containsKey(start.getPos());
+	}
 
-    protected static StructureStartSummary summarisePieces(StructureContext context, StructureStart start) {
-        List<StructurePieceSummary> pieces = new ArrayList<>();
-        for (StructurePiece piece : start.getChildren()) {
-            if (piece.getType().equals(StructurePieceType.JIGSAW)) {
-                pieces.addAll(JigsawPieceSummary.tryFromPiece(piece));
-            } else {
-                pieces.add(StructurePieceSummary.fromPiece(context, piece, start.getChildren().size() <= 10));
-            }
-        }
-        return new StructureStartSummary(pieces);
-    }
+	public boolean contains(RegistryKey<Structure> key, ChunkPos pos) {
+		return structures.containsKey(key) && structures.get(key).containsKey(pos);
+	}
 
-    public void put(ServerWorld world, StructureStart start) {
-        RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElseThrow();
-        structures.computeIfAbsent(key, k -> new ConcurrentHashMap<>());
-        ChunkPos pos = start.getPos();
-        StructureStartSummary summary = summarisePieces(StructureContext.from(world), start);
-        structures.get(key).put(pos, summary);
-        dirty();
-    }
+	public StructureStartSummary get(RegistryKey<Structure> key, ChunkPos pos) {
+		return structures.get(key).get(pos);
+	}
 
-    public void put(RegistryKey<Structure> key, ChunkPos pos, StructureStartSummary summary) {
-        structures.computeIfAbsent(key, k -> new ConcurrentHashMap<>()).put(pos, summary);
-        dirty();
-    }
+	public Multimap<RegistryKey<Structure>, ChunkPos> keySet() {
+		return MapUtil.keyMultiMap(structures);
+	}
 
-    protected NbtCompound writeNbt(NbtCompound nbt) {
-        NbtCompound structuresCompound = new NbtCompound();
-        structures.forEach((key, starts) -> {
-            NbtCompound structureCompound = new NbtCompound();
-            NbtCompound startsCompound = new NbtCompound();
-            starts.forEach((pos, summary) -> {
-                NbtList pieceList = new NbtList(summary.getChildren().stream().map(p -> (NbtElement) p.toNbt()).toList(), NbtElement.COMPOUND_TYPE);
-                NbtCompound startCompound = new NbtCompound();
-                startCompound.put(KEY_PIECES, pieceList);
-                startsCompound.put("%s,%s".formatted(pos.x, pos.z), startCompound);
-            });
-            structureCompound.put(KEY_STARTS, startsCompound);
-            structuresCompound.put(key.getValue().toString(), structureCompound);
-        });
-        nbt.put(KEY_STRUCTURES, structuresCompound);
-        return nbt;
-    }
+	public void put(ServerWorld world, StructureStart start) {
+		RegistryKey<Structure> key = world.getRegistryManager().get(RegistryKeys.STRUCTURE).getKey(start.getStructure()).orElseThrow();
+		structures.computeIfAbsent(key, k -> new ConcurrentHashMap<>());
+		ChunkPos pos = start.getPos();
+		StructureStartSummary summary = summarisePieces(StructureContext.from(world), start);
+		structures.get(key).put(pos, summary);
+		dirty();
+	}
 
-    public static StructurePieceSummary readStructurePieceNbt(NbtCompound nbt) {
-        if (nbt.getString("id").equals(Registries.STRUCTURE_PIECE.getId(StructurePieceType.JIGSAW).toString())) {
-            return new JigsawPieceSummary(nbt);
-        } else {
-            return new StructurePieceSummary(nbt);
-        }
-    }
+	public void put(RegistryKey<Structure> key, ChunkPos pos, StructureStartSummary summary) {
+		structures.computeIfAbsent(key, k -> new ConcurrentHashMap<>()).put(pos, summary);
+		dirty();
+	}
 
-    protected static RegionStructureSummary readNbt(NbtCompound nbt) {
-        Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>> structures = new ConcurrentHashMap<>();
-        NbtCompound structuresCompound = nbt.getCompound(KEY_STRUCTURES);
-        for (String structureId : structuresCompound.getKeys()) {
-            RegistryKey<Structure> key = RegistryKey.of(RegistryKeys.STRUCTURE, Identifier.of(structureId));
-            NbtCompound structureCompound = structuresCompound.getCompound(structureId);
-            NbtCompound startsCompound = structureCompound.getCompound(KEY_STARTS);
-            for (String posKey : startsCompound.getKeys()) {
-                int x = Integer.parseInt(posKey.split(",")[0]);
-                int z = Integer.parseInt(posKey.split(",")[1]);
-                NbtCompound startCompound = startsCompound.getCompound(posKey);
-                List<StructurePieceSummary> pieces = new ArrayList<>();
-                for (NbtElement pieceElement : startCompound.getList(KEY_PIECES, NbtElement.COMPOUND_TYPE)) {
-                    pieces.add(readStructurePieceNbt((NbtCompound) pieceElement));
-                }
-                structures.computeIfAbsent(key, p -> new ConcurrentHashMap<>()).put(new ChunkPos(x, z), new StructureStartSummary(pieces));
-            }
-        }
-        return new RegionStructureSummary(structures);
-    }
+	protected NbtCompound writeNbt(NbtCompound nbt) {
+		NbtCompound structuresCompound = new NbtCompound();
+		structures.forEach((key, starts) -> {
+			NbtCompound structureCompound = new NbtCompound();
+			NbtCompound startsCompound = new NbtCompound();
+			starts.forEach((pos, summary) -> {
+				NbtList pieceList = new NbtList(summary.getChildren().stream().map(p -> (NbtElement) p.toNbt()).toList(), NbtElement.COMPOUND_TYPE);
+				NbtCompound startCompound = new NbtCompound();
+				startCompound.put(KEY_PIECES, pieceList);
+				startsCompound.put("%s,%s".formatted(pos.x, pos.z), startCompound);
+			});
+			structureCompound.put(KEY_STARTS, startsCompound);
+			structuresCompound.put(key.getValue().toString(), structureCompound);
+		});
+		nbt.put(KEY_STRUCTURES, structuresCompound);
+		return nbt;
+	}
 
-    public boolean isDirty() {
-        return dirty && Surveyor.CONFIG.structures != SystemMode.FROZEN;
-    }
+	public boolean isDirty() {
+		return dirty && Surveyor.CONFIG.structures != SystemMode.FROZEN;
+	}
 
-    private void dirty() {
-        dirty = true;
-    }
+	private void dirty() {
+		dirty = true;
+	}
 }

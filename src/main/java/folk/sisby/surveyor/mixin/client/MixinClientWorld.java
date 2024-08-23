@@ -13,26 +13,26 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ClientWorld.class)
 public class MixinClientWorld implements SurveyorWorld {
-    @Unique
-    private WorldSummary surveyor$summary = null;
+	@Unique
+	private WorldSummary surveyor$summary = null;
 
-    @Override
-    public WorldSummary surveyor$getSummary() {
-        ClientWorld self = (ClientWorld) (Object) this;
-        if (surveyor$summary == null) {
-            if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
-                surveyor$summary = WorldSummary.of(SurveyorClient.stealServerWorld(self.getRegistryKey()));
-            } else {
-                surveyor$summary = WorldSummary.load(self, SurveyorClient.getWorldSavePath(self), true);
-            }
-        }
-        return surveyor$summary;
-    }
+	@Override
+	public WorldSummary surveyor$getSummary() {
+		ClientWorld self = (ClientWorld) (Object) this;
+		if (surveyor$summary == null) {
+			if (MinecraftClient.getInstance().isIntegratedServerRunning()) {
+				surveyor$summary = WorldSummary.of(SurveyorClient.stealServerWorld(self.getRegistryKey()));
+			} else {
+				surveyor$summary = WorldSummary.load(self, SurveyorClient.getWorldSavePath(self), true);
+			}
+		}
+		return surveyor$summary;
+	}
 
-    @Inject(method = "disconnect", at = @At("HEAD"))
-    public void saveOnDisconnect(CallbackInfo ci) {
-        ClientWorld self = (ClientWorld) (Object) this;
-        WorldSummary summary = WorldSummary.of(self);
-        if (summary.isClient()) summary.save(self, SurveyorClient.getWorldSavePath(self), false);
-    }
+	@Inject(method = "disconnect", at = @At("HEAD"))
+	public void saveOnDisconnect(CallbackInfo ci) {
+		ClientWorld self = (ClientWorld) (Object) this;
+		WorldSummary summary = WorldSummary.of(self);
+		if (summary.isClient()) summary.save(self, SurveyorClient.getWorldSavePath(self), false);
+	}
 }

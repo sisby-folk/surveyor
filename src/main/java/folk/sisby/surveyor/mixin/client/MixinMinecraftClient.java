@@ -13,16 +13,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(MinecraftClient.class)
 public class MixinMinecraftClient {
-    @Inject(method = "joinWorld", at = @At("HEAD"))
-    void saveOnLeaveWorld(ClientWorld world, DownloadingTerrainScreen.WorldEntryReason worldEntryReason, CallbackInfo ci) {
-        MinecraftClient self = (MinecraftClient) (Object) this;
-        if (self.world != null && WorldSummary.of(self.world).isClient()) {
-            WorldSummary.of(self.world).save(self.world, SurveyorClient.getWorldSavePath(self.world), false);
-        }
-    }
+	@Inject(method = "joinWorld", at = @At("HEAD"))
+	void saveOnLeaveWorld(ClientWorld world, DownloadingTerrainScreen.WorldEntryReason worldEntryReason, CallbackInfo ci) {
+		MinecraftClient self = (MinecraftClient) (Object) this;
+		if (self.world != null && WorldSummary.of(self.world).isClient()) {
+			WorldSummary.of(self.world).save(self.world, SurveyorClient.getWorldSavePath(self.world), false);
+		}
+	}
 
-    @Inject(method = "joinWorld", at = @At("TAIL"))
-    void loadOnJoinWorld(ClientWorld world, DownloadingTerrainScreen.WorldEntryReason worldEntryReason, CallbackInfo ci) {
-        SurveyorClientEvents.INITIALIZING_WORLD = true;
-    }
+	@Inject(method = "joinWorld", at = @At("TAIL"))
+	void loadOnJoinWorld(ClientWorld world, DownloadingTerrainScreen.WorldEntryReason worldEntryReason, CallbackInfo ci) {
+		SurveyorClientEvents.INITIALIZING_WORLD = true;
+	}
 }

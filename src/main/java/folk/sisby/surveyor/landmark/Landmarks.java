@@ -16,62 +16,60 @@ import java.util.Optional;
 import java.util.Set;
 
 public class Landmarks {
-    public static final String KEY_LANDMARKS = "landmarks";
-    public static final Codec<LandmarkType<?>> TYPE_CODEC = Identifier.CODEC.comapFlatMap(Landmarks::decode, LandmarkType::id);
+	public static final String KEY_LANDMARKS = "landmarks";
+	private static final Map<Identifier, LandmarkType<?>> TYPES = new HashMap<>();
+	public static final Codec<LandmarkType<?>> TYPE_CODEC = Identifier.CODEC.comapFlatMap(Landmarks::decode, LandmarkType::id);
+	public static final Codec<Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>>> CODEC = DispatchMapCodec.of(
+		TYPE_CODEC,
+		Landmarks::typedCodec
+	);
 
-    public static final Codec<Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>>> CODEC = DispatchMapCodec.of(
-        TYPE_CODEC,
-        Landmarks::typedCodec
-    );
+	static {
+		register(SimplePointLandmark.TYPE);
+		register(SimplePointOfInterestLandmark.TYPE);
+		register(NetherPortalLandmark.TYPE);
+		register(PlayerDeathLandmark.TYPE);
+	}
 
-    @SuppressWarnings("unchecked")
-    public static <T extends Landmark<T>> Codec<Map<BlockPos, Landmark<?>>> typedCodec(LandmarkType<T> type) {
-        return DispatchMapCodec.of(
-            SurveyorCodecs.STRINGIFIED_BLOCKPOS,
-            pos -> (Codec<Landmark<?>>) type.createCodec(pos)
-        );
-    }
+	@SuppressWarnings("unchecked")
+	public static <T extends Landmark<T>> Codec<Map<BlockPos, Landmark<?>>> typedCodec(LandmarkType<T> type) {
+		return DispatchMapCodec.of(
+			SurveyorCodecs.STRINGIFIED_BLOCKPOS,
+			pos -> (Codec<Landmark<?>>) type.createCodec(pos)
+		);
+	}
 
-    private static final Map<Identifier, LandmarkType<?>> TYPES = new HashMap<>();
+	private static DataResult<? extends LandmarkType<?>> decode(Identifier id) {
+		return Optional.ofNullable(TYPES.get(id))
+			.map(DataResult::success)
+			.orElse(DataResult.error(() -> "No landmark type found with id " + id));
+	}
 
-    private static DataResult<? extends LandmarkType<?>> decode(Identifier id) {
-        return Optional.ofNullable(TYPES.get(id))
-            .map(DataResult::success)
-            .orElse(DataResult.error(() -> "No landmark type found with id " + id));
-    }
+	public static boolean containsType(Identifier id) {
+		return TYPES.containsKey(id);
+	}
 
-    public static boolean containsType(Identifier id) {
-        return TYPES.containsKey(id);
-    }
+	public static NbtCompound writeNbt(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks, NbtCompound nbt) {
+		nbt.put(KEY_LANDMARKS, CODEC.encodeStart(NbtOps.INSTANCE, landmarks).getOrThrow());
+		return nbt;
+	}
 
-    public static NbtCompound writeNbt(Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> landmarks, NbtCompound nbt) {
-        nbt.put(KEY_LANDMARKS, CODEC.encodeStart(NbtOps.INSTANCE, landmarks).getOrThrow());
-        return nbt;
-    }
+	public static Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> fromNbt(NbtCompound nbt) {
+		return CODEC.decode(NbtOps.INSTANCE, nbt.getCompound(KEY_LANDMARKS)).getOrThrow().getFirst();
+	}
 
-    public static Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>> fromNbt(NbtCompound nbt) {
-        return CODEC.decode(NbtOps.INSTANCE, nbt.getCompound(KEY_LANDMARKS)).getOrThrow().getFirst();
-    }
+	public static LandmarkType<?> getType(Identifier id) {
+		return TYPES.get(id);
+	}
 
-    public static LandmarkType<?> getType(Identifier id) {
-        return TYPES.get(id);
-    }
+	public static Set<Identifier> keySet() {
+		return new HashSet<>(TYPES.keySet());
+	}
 
-    public static Set<Identifier> keySet() {
-        return new HashSet<>(TYPES.keySet());
-    }
-
-    public static void register(LandmarkType<?> type) {
-        if (containsType(type.id())) {
-            throw new IllegalArgumentException("Multiple landmark types registered to the same ID: %s".formatted(type.id()));
-        }
-        TYPES.put(type.id(), type);
-    }
-
-    static {
-        register(SimplePointLandmark.TYPE);
-        register(SimplePointOfInterestLandmark.TYPE);
-        register(NetherPortalLandmark.TYPE);
-        register(PlayerDeathLandmark.TYPE);
-    }
+	public static void register(LandmarkType<?> type) {
+		if (containsType(type.id())) {
+			throw new IllegalArgumentException("Multiple landmark types registered to the same ID: %s".formatted(type.id()));
+		}
+		TYPES.put(type.id(), type);
+	}
 }

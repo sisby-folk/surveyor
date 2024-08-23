@@ -3,7 +3,7 @@ package folk.sisby.surveyor.client;
 import com.mojang.authlib.GameProfile;
 
 public interface SurveyorNetworkHandler {
-    NetworkHandlerSummary surveyor$getSummary();
+	NetworkHandlerSummary surveyor$getSummary();
 
-    GameProfile getProfile();
+	GameProfile getProfile();
 }

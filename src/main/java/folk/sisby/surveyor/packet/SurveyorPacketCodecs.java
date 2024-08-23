@@ -34,48 +34,48 @@ import java.util.Map;
 import java.util.UUID;
 
 public interface SurveyorPacketCodecs {
-    PacketCodec<PacketByteBuf, Map<ChunkPos, BitSet>> TERRAIN_KEYS = PacketCodecs.map(HashMap::new,
-        PacketCodecs.VAR_LONG.xmap(ChunkPos::new, ChunkPos::toLong),
-        PacketCodecs.codec(Codecs.BIT_SET)
-    );
+	PacketCodec<PacketByteBuf, Map<ChunkPos, BitSet>> TERRAIN_KEYS = PacketCodecs.map(HashMap::new,
+		PacketCodecs.VAR_LONG.xmap(ChunkPos::new, ChunkPos::toLong),
+		PacketCodecs.codec(Codecs.BIT_SET)
+	);
 
-    PacketCodec<PacketByteBuf, Multimap<RegistryKey<Structure>, ChunkPos>> STRUCTURE_KEYS = PacketCodecs.<PacketByteBuf, RegistryKey<Structure>, List<ChunkPos>, Map<RegistryKey<Structure>, List<ChunkPos>>>map(HashMap::new,
-        RegistryKey.createPacketCodec(RegistryKeys.STRUCTURE),
-        PacketCodecs.VAR_LONG.xmap(ChunkPos::new, ChunkPos::toLong).collect(PacketCodecs.toList())
-    ).xmap(MapUtil::asMultiMap, MapUtil::asListMap);
+	PacketCodec<PacketByteBuf, Multimap<RegistryKey<Structure>, ChunkPos>> STRUCTURE_KEYS = PacketCodecs.<PacketByteBuf, RegistryKey<Structure>, List<ChunkPos>, Map<RegistryKey<Structure>, List<ChunkPos>>>map(HashMap::new,
+		RegistryKey.createPacketCodec(RegistryKeys.STRUCTURE),
+		PacketCodecs.VAR_LONG.xmap(ChunkPos::new, ChunkPos::toLong).collect(PacketCodecs.toList())
+	).xmap(MapUtil::asMultiMap, MapUtil::asListMap);
 
-    PacketCodec<PacketByteBuf, Map<RegistryKey<Structure>, LongSet>> STRUCTURE_KEYS_LONG_SET = PacketCodecs.map(HashMap::new,
-        RegistryKey.createPacketCodec(RegistryKeys.STRUCTURE),
-        PacketCodecs.codec(Codec.LONG_STREAM).xmap(LongOpenHashSet::toSet, LongSet::longStream)
-    );
+	PacketCodec<PacketByteBuf, Map<RegistryKey<Structure>, LongSet>> STRUCTURE_KEYS_LONG_SET = PacketCodecs.map(HashMap::new,
+		RegistryKey.createPacketCodec(RegistryKeys.STRUCTURE),
+		PacketCodecs.codec(Codec.LONG_STREAM).xmap(LongOpenHashSet::toSet, LongSet::longStream)
+	);
 
-    PacketCodec<PacketByteBuf, Multimap<LandmarkType<?>, BlockPos>> LANDMARK_KEYS = PacketCodecs.<PacketByteBuf, LandmarkType<?>, List<BlockPos>, Map<LandmarkType<?>, List<BlockPos>>>map(HashMap::new,
-        PacketCodecs.codec(LandmarkType.CODEC),
-        BlockPos.PACKET_CODEC.collect(PacketCodecs.toList())
-    ).xmap(MapUtil::asMultiMap, MapUtil::asListMap);
+	PacketCodec<PacketByteBuf, Multimap<LandmarkType<?>, BlockPos>> LANDMARK_KEYS = PacketCodecs.<PacketByteBuf, LandmarkType<?>, List<BlockPos>, Map<LandmarkType<?>, List<BlockPos>>>map(HashMap::new,
+		PacketCodecs.codec(LandmarkType.CODEC),
+		BlockPos.PACKET_CODEC.collect(PacketCodecs.toList())
+	).xmap(MapUtil::asMultiMap, MapUtil::asListMap);
 
-    PacketCodec<RegistryByteBuf, Map<UUID, PlayerSummary>> GROUP_SUMMARIES = PacketCodecs.map(HashMap::new,
-        Uuids.PACKET_CODEC,
-        PacketCodec.of(PlayerSummary.OfflinePlayerSummary::writeBuf, PlayerSummary.OfflinePlayerSummary::readBuf)
-    );
+	PacketCodec<RegistryByteBuf, Map<UUID, PlayerSummary>> GROUP_SUMMARIES = PacketCodecs.map(HashMap::new,
+		Uuids.PACKET_CODEC,
+		PacketCodec.of(PlayerSummary.OfflinePlayerSummary::writeBuf, PlayerSummary.OfflinePlayerSummary::readBuf)
+	);
 
-    PacketCodec<PacketByteBuf, Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>>> STRUCTURE_SUMMARIES = PacketCodecs.map(HashMap::new,
-        RegistryKey.createPacketCodec(RegistryKeys.STRUCTURE),
-        PacketCodecs.map(HashMap::new,
-            PacketCodecs.VAR_LONG.xmap(ChunkPos::new, ChunkPos::toLong),
-            PacketCodec.of((StructurePieceSummary s, PacketByteBuf b) -> b.writeNbt(s.toNbt()), (PacketByteBuf b) -> RegionStructureSummary.readStructurePieceNbt(b.readNbt())).collect(PacketCodecs.toList()).xmap(StructureStartSummary::new, StructureStartSummary::getChildren)
-        )
-    );
+	PacketCodec<PacketByteBuf, Map<RegistryKey<Structure>, Map<ChunkPos, StructureStartSummary>>> STRUCTURE_SUMMARIES = PacketCodecs.map(HashMap::new,
+		RegistryKey.createPacketCodec(RegistryKeys.STRUCTURE),
+		PacketCodecs.map(HashMap::new,
+			PacketCodecs.VAR_LONG.xmap(ChunkPos::new, ChunkPos::toLong),
+			PacketCodec.of((StructurePieceSummary s, PacketByteBuf b) -> b.writeNbt(s.toNbt()), (PacketByteBuf b) -> RegionStructureSummary.readStructurePieceNbt(b.readNbt())).collect(PacketCodecs.toList()).xmap(StructureStartSummary::new, StructureStartSummary::getChildren)
+		)
+	);
 
-    PacketCodec<PacketByteBuf, Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>>> STRUCTURE_TYPES = PacketCodecs.map(HashMap::new,
-        RegistryKey.createPacketCodec(RegistryKeys.STRUCTURE),
-        RegistryKey.createPacketCodec(RegistryKeys.STRUCTURE_TYPE)
-    );
+	PacketCodec<PacketByteBuf, Map<RegistryKey<Structure>, RegistryKey<StructureType<?>>>> STRUCTURE_TYPES = PacketCodecs.map(HashMap::new,
+		RegistryKey.createPacketCodec(RegistryKeys.STRUCTURE),
+		RegistryKey.createPacketCodec(RegistryKeys.STRUCTURE_TYPE)
+	);
 
-    PacketCodec<PacketByteBuf, Multimap<RegistryKey<Structure>, TagKey<Structure>>> STRUCTURE_TAGS = PacketCodecs.<PacketByteBuf, RegistryKey<Structure>, List<TagKey<Structure>>, Map<RegistryKey<Structure>, List<TagKey<Structure>>>>map(HashMap::new,
-        RegistryKey.createPacketCodec(RegistryKeys.STRUCTURE),
-        PacketCodecs.codec(TagKey.codec(RegistryKeys.STRUCTURE)).collect(PacketCodecs.toList())
-    ).xmap(MapUtil::asMultiMap, MapUtil::asListMap);
+	PacketCodec<PacketByteBuf, Multimap<RegistryKey<Structure>, TagKey<Structure>>> STRUCTURE_TAGS = PacketCodecs.<PacketByteBuf, RegistryKey<Structure>, List<TagKey<Structure>>, Map<RegistryKey<Structure>, List<TagKey<Structure>>>>map(HashMap::new,
+		RegistryKey.createPacketCodec(RegistryKeys.STRUCTURE),
+		PacketCodecs.codec(TagKey.codec(RegistryKeys.STRUCTURE)).collect(PacketCodecs.toList())
+	).xmap(MapUtil::asMultiMap, MapUtil::asListMap);
 
-    PacketCodec<ByteBuf, Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>>> LANDMARK_SUMMARIES = PacketCodecs.codec(Landmarks.CODEC);
+	PacketCodec<ByteBuf, Map<LandmarkType<?>, Map<BlockPos, Landmark<?>>>> LANDMARK_SUMMARIES = PacketCodecs.codec(Landmarks.CODEC);
 }

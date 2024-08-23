@@ -6,37 +6,37 @@ import net.minecraft.nbt.NbtElement;
 import net.minecraft.network.PacketByteBuf;
 
 public record UByte(byte value) implements SingleUInts {
-    public static final byte TYPE = NbtElement.BYTE_TYPE;
+	public static final byte TYPE = NbtElement.BYTE_TYPE;
 
-    public static UInts ofInt(int value) {
-        return new UByte((byte) value);
-    }
+	public static UInts ofInt(int value) {
+		return new UByte((byte) value);
+	}
 
-    public static UInts fromNbt(NbtElement nbt) {
-        return new UByte(((NbtByte) nbt).byteValue());
-    }
+	public static UInts fromNbt(NbtElement nbt) {
+		return new UByte(((NbtByte) nbt).byteValue());
+	}
 
-    public static UInts fromBuf(PacketByteBuf buf) {
-        return new UByte(buf.readByte());
-    }
+	public static UInts fromBuf(PacketByteBuf buf) {
+		return new UByte(buf.readByte());
+	}
 
-    @Override
-    public int get() {
-        return value & BYTE_MASK;
-    }
+	@Override
+	public int get() {
+		return value & BYTE_MASK;
+	}
 
-    @Override
-    public void writeNbt(NbtCompound nbt, String key) {
-        nbt.putByte(key, value);
-    }
+	@Override
+	public void writeNbt(NbtCompound nbt, String key) {
+		nbt.putByte(key, value);
+	}
 
-    @Override
-    public void writeBuf(PacketByteBuf buf) {
-        buf.writeByte(value);
-    }
+	@Override
+	public void writeBuf(PacketByteBuf buf) {
+		buf.writeByte(value);
+	}
 
-    @Override
-    public int getType() {
-        return TYPE;
-    }
+	@Override
+	public int getType() {
+		return TYPE;
+	}
 }

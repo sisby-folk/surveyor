@@ -9,27 +9,27 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface VariableLandmark<T extends VariableLandmark<T>> extends Landmark<T> {
-    default @Nullable UUID owner() {
-        return optionalOwner().orElse(null);
-    }
+	default @Nullable UUID owner() {
+		return optionalOwner().orElse(null);
+	}
 
-    Optional<UUID> optionalOwner();
+	Optional<UUID> optionalOwner();
 
-    default @Nullable DyeColor color() {
-        return optionalColor().orElse(null);
-    }
+	default @Nullable DyeColor color() {
+		return optionalColor().orElse(null);
+	}
 
-    Optional<DyeColor> optionalColor();
+	Optional<DyeColor> optionalColor();
 
-    default @Nullable Text name() {
-        return optionalName().orElse(null);
-    }
+	default @Nullable Text name() {
+		return optionalName().orElse(null);
+	}
 
-    Optional<Text> optionalName();
+	Optional<Text> optionalName();
 
-    default @Nullable Identifier texture() {
-        return optionalTexture().orElse(null);
-    }
+	default @Nullable Identifier texture() {
+		return optionalTexture().orElse(null);
+	}
 
-    Optional<Identifier> optionalTexture();
+	Optional<Identifier> optionalTexture();
 }
