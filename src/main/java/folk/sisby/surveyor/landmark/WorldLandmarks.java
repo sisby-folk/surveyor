@@ -2,7 +2,6 @@ package folk.sisby.surveyor.landmark;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import folk.sisby.surveyor.ServerSummary;
 import folk.sisby.surveyor.Surveyor;
 import folk.sisby.surveyor.SurveyorEvents;
 import folk.sisby.surveyor.SurveyorExploration;
@@ -24,7 +23,6 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -49,16 +47,6 @@ public class WorldLandmarks {
 			}
 		}
 		var landmarks = Landmarks.fromNbt(landmarkNbt);
-		if (Surveyor.CONFIG.migrateSingleplayerLandmarksFrom05to06 && world instanceof ServerWorld sw && sw.getServer().isSingleplayer()) { // TODO: Remove in next release
-			for (Landmark<?> landmark : new HashSet<>(landmarks.values().stream().flatMap(m -> m.values().stream()).toList())) {
-				if (landmark instanceof SimplePointLandmark spl && spl.owner() != null) {
-					landmarks.computeIfAbsent(spl.type(), type -> new HashMap<>()).put(spl.pos(), new SimplePointLandmark(spl.pos(), ServerSummary.HOST, spl.color(), spl.name(), spl.texture()));
-				}
-				if (landmark instanceof PlayerDeathLandmark pdl && pdl.owner() != null) {
-					landmarks.computeIfAbsent(pdl.type(), type -> new HashMap<>()).put(pdl.pos(), new PlayerDeathLandmark(pdl.pos(), ServerSummary.HOST, pdl.name(), pdl.created(), pdl.seed()));
-				}
-			}
-		}
 		return new WorldLandmarks(world.getRegistryKey(), landmarks);
 	}
 
