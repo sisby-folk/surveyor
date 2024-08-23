@@ -9,6 +9,7 @@ import folk.sisby.surveyor.landmark.Landmarks;
 import folk.sisby.surveyor.landmark.WorldLandmarks;
 import folk.sisby.surveyor.util.MapUtil;
 import io.netty.buffer.Unpooled;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
@@ -37,7 +38,7 @@ public record SyncLandmarksAddedPacket(Map<LandmarkType<?>, Map<BlockPos, Landma
 	public void writeBuf(PacketByteBuf buf) {
 		buf.writeMap(landmarks,
 			(b, k) -> b.writeIdentifier(k.id()),
-			(b, m) -> b.writeMap(m, PacketByteBuf::writeBlockPos, (b2, landmark) -> b2.writeNbt(Landmarks.CODEC.encodeStart(NbtOps.INSTANCE, Map.of(landmark.type(), Map.of(landmark.pos(), landmark))).getOrThrow(false, Surveyor.LOGGER::error)))
+			(b, m) -> b.writeMap(m, PacketByteBuf::writeBlockPos, (b2, landmark) -> b2.writeNbt((NbtCompound) Landmarks.CODEC.encodeStart(NbtOps.INSTANCE, Map.of(landmark.type(), Map.of(landmark.pos(), landmark))).getOrThrow(false, Surveyor.LOGGER::error)))
 		);
 	}
 
