@@ -1,6 +1,4 @@
 <!--suppress HtmlDeprecatedTag, XmlDeprecatedElement -->
-
-
 <center>
 <img alt="surveyor banner" src="https://cdn.modrinth.com/data/4KjqhPc9/images/036db8bcb021c9e81e18561698d45d3c7bb71127.png"><br/>
 Unified API, networking, and save data for map mods.<br/>
@@ -68,12 +66,12 @@ Surveyor's data **deliberately preserves key details**, designed to allow any ab
 
 ```groovy
 repositories {
-    maven { url 'https://repo.sleeping.town/' }
+	maven { url 'https://repo.sleeping.town/' }
 }
 
 dependencies {
-    modImplementation 'folk.sisby:surveyor:0.3.0+1.20'
-    include 'folk.sisby:surveyor:0.3.0+1.20'
+	modImplementation 'folk.sisby:surveyor:0.3.0+1.20'
+	include 'folk.sisby:surveyor:0.3.0+1.20'
 }
 ```
 
@@ -225,4 +223,4 @@ All mods are built on the work of many others.
 **Special thanks to:**<br/>
 [Ampflower](https://github.com/Ampflower), [Falkreon](https://github.com/falkreon), [Garden](https://modrinth.com/user/GardenSystem), [Kat](https://git.sleeping.town/Kat), [Solo](https://github.com/solonovamax), [Crosby](https://github.com/RacoonDog), [Lemma](https://github.com/LemmaEOF), [Leo](https://github.com/leo60228), [Jasmine](https://github.com/jaskarth), [Aqua](https://github.com/Aquaeyes), [Wonder](https://git.sleeping.town/wonder), [Infinidoge](https://github.com/Infinidoge), [Emi](https://github.com/emilyploszaj), and [Una](https://github.com/unascribed).
 
-We're open to suggestions for how to implement stuff better - if you see something wonky and have an idea - let us know.
+We're open to better ways to implement our mods. If you see something odd and have an idea, let us know! 
