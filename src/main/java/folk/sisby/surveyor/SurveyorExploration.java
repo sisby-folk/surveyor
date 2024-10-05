@@ -56,6 +56,11 @@ public interface SurveyorExploration {
 
 	Set<UUID> sharedPlayers();
 
+	default void copyFrom(SurveyorExploration oldExploration) {
+		terrain().putAll(oldExploration.terrain());
+		structures().putAll(oldExploration.structures());
+	}
+
 	boolean personal();
 
 	default boolean exploredChunk(RegistryKey<World> worldKey, ChunkPos pos) {
