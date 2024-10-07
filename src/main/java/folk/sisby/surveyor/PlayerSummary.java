@@ -45,7 +45,6 @@ public interface PlayerSummary {
 	}
 
 	SurveyorExploration exploration();
-	void copyExploration(PlayerSummary oldSummary);
 
 	String username();
 
@@ -101,10 +100,6 @@ public interface PlayerSummary {
 			return 0;
 		}
 
-		@Override
-		public void copyExploration(PlayerSummary oldSummary) {
-		}
-
 		public record OfflinePlayerExploration(Set<UUID> sharedPlayers, Map<RegistryKey<World>, Map<ChunkPos, BitSet>> terrain, Map<RegistryKey<World>, Map<RegistryKey<Structure>, LongSet>> structures, boolean personal) implements SurveyorExploration {
 			public static OfflinePlayerExploration ofMerged(Set<SurveyorExploration> explorations) {
 				Set<UUID> sharedPlayers = new HashSet<>();
@@ -137,10 +132,6 @@ public interface PlayerSummary {
 		@Override
 		public SurveyorExploration exploration() {
 			return null;
-		}
-
-		@Override
-		public void copyExploration(PlayerSummary oldSummary) {
 		}
 
 		@Override
@@ -188,13 +179,12 @@ public interface PlayerSummary {
 		}
 
 		@Override
-		public void copyExploration(PlayerSummary oldSummary) {
-			exploration.copyFrom(((ServerPlayerEntitySummary) oldSummary).exploration);
-		}
-
-		@Override
 		public int viewDistance() {
 			return ((ServerPlayerEntity) this.player).getViewDistance();
+		}
+
+		public void copyExploration(ServerPlayerEntitySummary oldSummary) {
+			exploration.copyFrom(oldSummary.exploration);
 		}
 
 		public void read(NbtCompound nbt) {
