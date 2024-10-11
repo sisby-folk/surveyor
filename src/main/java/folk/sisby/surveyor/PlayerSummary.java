@@ -58,6 +58,11 @@ public interface PlayerSummary {
 
 	boolean online();
 
+
+	default void copyFrom(PlayerSummary oldSummary) {
+		exploration().copyFrom(oldSummary.exploration());
+	}
+
 	record OfflinePlayerSummary(SurveyorExploration exploration, String username, RegistryKey<World> dimension, Vec3d pos, float yaw, boolean online) implements PlayerSummary {
 		public OfflinePlayerSummary(UUID uuid, NbtCompound nbt, boolean online) {
 			this(
@@ -184,12 +189,14 @@ public interface PlayerSummary {
 			return viewDistance;
 		}
 
-		public void setViewDistance(int viewDistance) {
-			this.viewDistance = viewDistance;
+		@Override
+		public void copyFrom(PlayerSummary oldSummary) {
+			super.copyFrom(oldSummary);
+			viewDistance = oldSummary.viewDistance();
 		}
 
-		public void copyExploration(ServerPlayerEntitySummary oldSummary) {
-			exploration.copyFrom(oldSummary.exploration);
+		public void setViewDistance(int viewDistance) {
+			this.viewDistance = viewDistance;
 		}
 
 		public void read(NbtCompound nbt) {
