@@ -58,6 +58,11 @@ public interface PlayerSummary {
 
 	boolean online();
 
+
+	default void copyFrom(PlayerSummary oldSummary) {
+		exploration().copyFrom(oldSummary.exploration());
+	}
+
 	record OfflinePlayerSummary(SurveyorExploration exploration, String username, RegistryKey<World> dimension, Vec3d pos, float yaw, boolean online) implements PlayerSummary {
 		public OfflinePlayerSummary(UUID uuid, NbtCompound nbt, boolean online) {
 			this(
