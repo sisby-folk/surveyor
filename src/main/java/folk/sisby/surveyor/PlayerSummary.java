@@ -183,6 +183,10 @@ public interface PlayerSummary {
 			return ((ServerPlayerEntity) this.player).getViewDistance();
 		}
 
+		public void copyExploration(ServerPlayerEntitySummary oldSummary) {
+			exploration.copyFrom(oldSummary.exploration);
+		}
+
 		public void read(NbtCompound nbt) {
 			exploration.read(nbt.getCompound(KEY_DATA));
 		}

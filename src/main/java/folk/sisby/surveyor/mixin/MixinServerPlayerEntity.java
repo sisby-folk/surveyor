@@ -56,6 +56,11 @@ public class MixinServerPlayerEntity implements SurveyorPlayer {
 		);
 	}
 
+	@Inject(method = "copyFrom", at = @At("TAIL"))
+	public void copyFrom(MixinServerPlayerEntity oldPlayer, boolean alive, CallbackInfo ci) {
+		surveyor$summary.copyExploration(oldPlayer.surveyor$summary);
+	}
+
 	@Override
 	public PlayerSummary surveyor$getSummary() {
 		return surveyor$summary;
