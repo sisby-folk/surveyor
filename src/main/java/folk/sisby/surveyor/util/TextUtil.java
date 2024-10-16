@@ -16,9 +16,13 @@ import java.util.function.Function;
 
 public class TextUtil {
 	public static Text stripInteraction(Text text) {
-		NbtCompound nbt = (NbtCompound) Codecs.TEXT.encodeStart(NbtOps.INSTANCE, text).getOrThrow(false, null);
-		NbtUtil.removeRecursive(nbt, List.of("hoverEvent", "clickEvent", "insertion"));
-		return Codecs.TEXT.decode(NbtOps.INSTANCE, nbt).getOrThrow(false, null).getFirst();
+		try {
+			NbtCompound nbt = (NbtCompound) Codecs.TEXT.encodeStart(NbtOps.INSTANCE, text).getOrThrow(true, null);
+			NbtUtil.removeRecursive(nbt, List.of("hoverEvent", "clickEvent", "insertion"));
+			return Codecs.TEXT.decode(NbtOps.INSTANCE, nbt).getOrThrow(true, null).getFirst();
+		} catch (Exception e) {
+			return Text.literal(text.getString());
+		}
 	}
 
 	public static MutableText highlightStrings(Collection<String> list, Function<String, Formatting> highlighter) {
