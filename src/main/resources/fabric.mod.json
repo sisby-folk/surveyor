@@ -33,5 +33,17 @@
 		"client": [
 			"folk.sisby.surveyor.client.SurveyorClient"
 		]
+	},
+	"custom": {
+		"launchpad:compatible": true,
+		"launchpad:overrides": {
+			"depends": {
+				"minecraft": ">=${mc}",
+				"fabric_api_base": "*",
+				"fabric_command_api_v2": "*",
+				"fabric_networking_api_v1": "*",
+				"fabric_lifecycle_events_v1": "*"
+			}
+		}
 	}
 }

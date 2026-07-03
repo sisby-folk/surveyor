@@ -13,10 +13,10 @@ displayURL = "${homepage}"
 logoFile = "assets/${modId}/icon.png"
 
 [properties]
-"connector:placeholder" = true
+"launchpad:placeholder" = true
 
 [[dependencies."${ modId }"]]
-modId = "connector"
+modId = "launchpad"
 type = "required"
 versionRange = "*"
 ordering = "NONE"
@@ -37,7 +37,7 @@ ordering = "NONE"
 side = "BOTH"
 
 [[dependencies."${ modId }"]]
-modId = "fabric_api"
+modId = "forgified_fabric_api"
 type = "required"
 versionRange = "[${fapi},)"
 ordering = "NONE"
