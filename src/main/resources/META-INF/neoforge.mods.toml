@@ -13,10 +13,10 @@ displayURL = "${homepage}"
 logoFile = "assets/${modId}/icon.png"
 
 [properties]
-"connector:placeholder" = true
+"launchpad:placeholder" = true
 
 [[dependencies."${ modId }"]]
-modId = "connector"
+modId = "launchpad"
 type = "required"
 versionRange = "*"
 ordering = "NONE"
