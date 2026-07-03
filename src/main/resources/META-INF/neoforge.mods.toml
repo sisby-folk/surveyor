@@ -37,7 +37,7 @@ ordering = "NONE"
 side = "BOTH"
 
 [[dependencies."${ modId }"]]
-modId = "fabric_api"
+modId = "forgified_fabric_api"
 type = "required"
 versionRange = "[${fapi},)"
 ordering = "NONE"
